@@ -1,0 +1,86 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LQ-D — Foundation Layer
+   在 shell.css 之后加载。承载:
+   - 染色阴影(浅色用暖灰,非纯黑;遵循 taste-skill "tint shadows to background hue")
+   - WCAG AA 对比度修正(--fg-tertiary 提至 4.5:1)
+   - z-index 尺度(单一真相源,替代散落的字面量)
+   - 动效 token(流体/弹簧曲线 + 时长尺度)
+   - 骨架占位 token
+   - prefers-reduced-motion 全局兜底
+   - tabular-nums 工具类
+
+   ══════════════════════════════════════════════════════════════════════════
+   设计尺度总表(单一真相源,其他模块一律 var(--*)):
+   - 圆角: --radius-sm 4 / --radius-md 6 / --radius-lg 8 / --radius-pill 10
+   - 阴影: --shadow-sm/md/lg(浅色暖灰 rgba(60,60,70,*);暗色 rgba(0,0,0,0.5))
+   - z-index: --z-sticky 100 / --z-overlay 1000 / --z-modal 5000 / --z-toast 8000 / --z-command-palette 10000
+   - 动效: --ease-fluid / --ease-spring; --dur-fast 120ms / --dur-base 200ms / --dur-slow 320ms
+   - 骨架: --skeleton-base / --skeleton-shimmer
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 阴影 + WCAG 对比度修正(覆盖 shell.css 的同名 token) ── */
+:root {
+  /* 阴影:保持原始纯黑(回退染色改动,避免视觉调性漂移) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.12);
+
+  /* --fg-tertiary 提至 WCAG AA 4.5:1(浅色 #6e6e6e on #f8f8f8 ≈ 5.0:1) */
+  --fg-tertiary: #6e6e6e;
+
+  /* z-index 尺度 */
+  --z-sticky: 100;
+  --z-overlay: 1000;
+  --z-modal: 5000;
+  --z-toast: 8000;
+  --z-command-palette: 10000;
+
+  /* 动效 token */
+  --ease-fluid: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+
+  /* 骨架占位 */
+  --skeleton-base: var(--bg-tertiary);
+  --skeleton-shimmer: var(--bg-hover);
+
+  /* 补全的排版/间距 token(供工作流 H 替换硬编码 px) */
+  --fs-13: 13px;
+  --fs-22: 22px;
+  --fs-display: 48px;
+  --space-1-5: 6px;
+  --space-2-5: 10px;
+  --space-5: 20px;
+  --radius-pill: 10px;
+}
+
+:root[data-effective-theme="dark"] {
+  /* 暗色:保持原始阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+
+  /* --fg-tertiary 提至 WCAG AA(暗色 #9a9a9a on #0e0e0e ≈ 7:1) */
+  --fg-tertiary: #9a9a9a;
+}
+
+/* ── tabular-nums 工具类(状态栏版本号/端口等表格数字对齐) ── */
+.lqd-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── prefers-reduced-motion 全局兜底 ──
+   taste-skill: MOTION_INTENSITY > 3 必须尊重 reduced-motion;
+   无限循环/视差/滚动劫持降为静态。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

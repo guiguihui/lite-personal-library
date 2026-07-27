@@ -1,0 +1,22 @@
+# 用户数据(不提交)
+data/content/
+data/pageindex/
+data/config/
+data/pdfs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 打包产物
+build/
+dist/
+*.spec
+
+# IDE
+.vscode/
+.idea/

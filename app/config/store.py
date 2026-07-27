@@ -1,0 +1,214 @@
+"""配置读写模块。
+
+职责:应用配置 + LLM 配置持久化(JSON 文件),BYOK key 走 keyring(可选)。
+零耦合:只依赖 schema + defaults,不依赖 http/index/ingest。
+
+key 存储策略:
+  - keyring 可用 → 存系统凭证管理器(Win Credential Manager / macOS Keychain)
+  - keyring 不可用 → 降级到 llm.yaml 明文(本地桌面应用可接受)
+  - /api/settings 响应永远不返回 key 本身,只返回 has_key: bool
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from app.config.defaults import default_app_config, default_providers
+from app.config.schema import AppConfig, LlmConfig, LlmProviderConfig
+
+# keyring 可选(无则降级明文)
+try:
+    import keyring  # type: ignore
+
+    _HAS_KEYRING = True
+    _KEYRING_SERVICE = "yuulibrary-desktop"
+except ImportError:  # pragma: no cover
+    _HAS_KEYRING = False
+    _KEYRING_SERVICE = ""
+
+_APP_CONFIG_FILE = "app.yaml"
+_LLM_CONFIG_FILE = "llm.yaml"
+
+
+# ── AppConfig ──────────────────────────────────────────────────────────────
+
+
+def load_app_config(config_dir: str) -> AppConfig:
+    """读应用配置;不存在则用默认值并写盘。"""
+    path = Path(config_dir) / _APP_CONFIG_FILE
+    if not path.exists():
+        cfg = default_app_config(
+            content_dir=str(Path(config_dir).parent / "content"),
+            pageindex_dir=str(Path(config_dir).parent / "pageindex"),
+            config_dir=config_dir,
+            pdfs_dir=str(Path(config_dir).parent / "pdfs"),
+        )
+        save_app_config(cfg)
+        return cfg
+    with path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    return AppConfig(
+        content_dir=data.get("content_dir", str(Path(config_dir).parent / "content")),
+        pageindex_dir=data.get("pageindex_dir", str(Path(config_dir).parent / "pageindex")),
+        config_dir=config_dir,
+        pdfs_dir=data.get("pdfs_dir", str(Path(config_dir).parent / "pdfs")),
+        pdf_strategy=data.get("pdf_strategy", "local"),
+        http_host=data.get("http_host", "127.0.0.1"),
+        http_port=int(data.get("http_port", 8765)),
+        use_llm_proxy=bool(data.get("use_llm_proxy", False)),
+    )
+
+
+def save_app_config(cfg: AppConfig) -> None:
+    """写应用配置。"""
+    path = Path(cfg.config_dir) / _APP_CONFIG_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = {
+        "content_dir": cfg.content_dir,
+        "pageindex_dir": cfg.pageindex_dir,
+        "pdfs_dir": cfg.pdfs_dir,
+        "pdf_strategy": cfg.pdf_strategy,
+        "http_host": cfg.http_host,
+        "http_port": cfg.http_port,
+        "use_llm_proxy": cfg.use_llm_proxy,
+    }
+    with path.open("w", encoding="utf-8") as f:
+        yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+
+
+# ── LlmConfig ──────────────────────────────────────────────────────────────
+
+
+def load_llm_config(config_dir: str) -> LlmConfig:
+    """读 LLM 配置;不存在则用默认值并写盘。"""
+    path = Path(config_dir) / _LLM_CONFIG_FILE
+    if not path.exists():
+        cfg = LlmConfig(active_provider="anthropic", providers=default_providers(), remember_key=False)
+        save_llm_config(cfg, config_dir)
+        return cfg
+    with path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    active = data.get("active_provider", "anthropic")
+    remember = bool(data.get("remember_key", False))
+    providers: dict[str, LlmProviderConfig] = {}
+    for name, p in (data.get("providers") or {}).items():
+        providers[name] = LlmProviderConfig(
+            provider=name,
+            model=p.get("model", ""),
+            base_url=p.get("base_url", ""),
+            has_key=bool(p.get("has_key", False)),
+        )
+    # 补齐缺失的 provider(默认值)
+    for name, default in default_providers().items():
+        if name not in providers:
+            providers[name] = default
+    return LlmConfig(active_provider=active, providers=providers, remember_key=remember)
+
+
+def save_llm_config(cfg: LlmConfig, config_dir: str) -> None:
+    """写 LLM 配置(has_key 标记,key 本身走 keyring)。"""
+    path = Path(config_dir) / _LLM_CONFIG_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data: dict[str, Any] = {
+        "active_provider": cfg.active_provider,
+        "remember_key": cfg.remember_key,
+        "providers": {
+            name: {"model": p.model, "base_url": p.base_url, "has_key": p.has_key}
+            for name, p in cfg.providers.items()
+        },
+    }
+    with path.open("w", encoding="utf-8") as f:
+        yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+
+
+# ── API key 存取(供 routes_settings 调用)────────────────────────────────
+
+
+def get_api_key(provider: str, config_dir: str) -> str:
+    """读 API key:优先 keyring,降级 llm.yaml 明文。"""
+    if _HAS_KEYRING:
+        try:
+            k = keyring.get_password(_KEYRING_SERVICE, provider)
+            if k:
+                return k
+        except Exception:  # pragma: no cover — keyring 后端故障降级
+            pass
+    # 降级:从 llm.yaml 的 _plain_keys 读(不暴露给前端)
+    path = Path(config_dir) / _LLM_CONFIG_FILE
+    if not path.exists():
+        return ""
+    with path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    plain = data.get("_plain_keys") or {}
+    return str(plain.get(provider, ""))
+
+
+def set_api_key(provider: str, key: str, config_dir: str) -> None:
+    """写 API key:优先 keyring,降级 llm.yaml 明文。同时更新 has_key 标记。"""
+    if _HAS_KEYRING:
+        try:
+            if key:
+                keyring.set_password(_KEYRING_SERVICE, provider, key)
+            else:
+                # 空key = 删除
+                try:
+                    keyring.delete_password(_KEYRING_SERVICE, provider)
+                except keyring.PasswordDeleteError:  # type: ignore
+                    pass
+            _update_has_key(provider, bool(key), config_dir)
+            _clear_plain_key(provider, config_dir)
+            return
+        except Exception:  # pragma: no cover — keyring 后端故障降级
+            pass
+    # 降级:写 llm.yaml 明文
+    path = Path(config_dir) / _LLM_CONFIG_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    plain = data.setdefault("_plain_keys", {})
+    if key:
+        plain[provider] = key
+    else:
+        plain.pop(provider, None)
+    with path.open("w", encoding="utf-8") as f:
+        yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+    _update_has_key(provider, bool(key), config_dir)
+
+
+def _update_has_key(provider: str, has_key: bool, config_dir: str) -> None:
+    """更新 llm.yaml 里 provider 的 has_key 标记。"""
+    path = Path(config_dir) / _LLM_CONFIG_FILE
+    if not path.exists():
+        return
+    with path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    providers = data.setdefault("providers", {})
+    if provider not in providers:
+        providers[provider] = {}
+    providers[provider]["has_key"] = has_key
+    with path.open("w", encoding="utf-8") as f:
+        yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+
+
+def _clear_plain_key(provider: str, config_dir: str) -> None:
+    """从 llm.yaml 明文区删除某 provider 的 key(切回 keyring 后清理)。"""
+    path = Path(config_dir) / _LLM_CONFIG_FILE
+    if not path.exists():
+        return
+    with path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    plain = data.get("_plain_keys") or {}
+    if provider in plain:
+        del plain[provider]
+        with path.open("w", encoding="utf-8") as f:
+            yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+
+
+def has_keyring() -> bool:
+    """暴露 keyring 可用性(供前端展示存储方式)。"""
+    return _HAS_KEYRING

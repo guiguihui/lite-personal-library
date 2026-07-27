@@ -1,0 +1,41 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LQ-D — Tab Context Menu Styles
+   z-index: var(--z-overlay)。固定定位,JS 计算位置。
+   动画仅 opacity/transform;reduced-motion 下由 foundation.css 全局兜底。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.lqd-tab-context-menu {
+  position: fixed;
+  z-index: var(--z-overlay);
+  min-width: 160px;
+  padding: var(--space-1);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: scale(0.96);
+  transform-origin: top left;
+  transition: opacity var(--dur-fast) var(--ease-fluid),
+              transform var(--dur-fast) var(--ease-spring);
+}
+.lqd-tab-context-menu[hidden] { display: none !important; }
+.lqd-tab-context-menu--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.lqd-tab-context-menu-item {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--fg-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+}
+.lqd-tab-context-menu-item:hover,
+.lqd-tab-context-menu-item:focus-visible {
+  background: var(--accent-bg);
+  color: var(--accent);
+  outline: none;
+}
