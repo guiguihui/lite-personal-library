@@ -42,6 +42,10 @@ class IngestJob:
     stages: tuple[str, ...] = field(default_factory=tuple)
     log: list[str] = field(default_factory=list)
     result: dict[str, Any] | None = None
+    # 可选元数据(publish 阶段写 _index.md front matter)
+    title: str = ""
+    author: str = ""
+    tags: tuple[str, ...] = field(default_factory=tuple)
 
 
 # 进程内 job 注册表
@@ -80,6 +84,9 @@ def create_job(req: IngestExtractRequest) -> str:
         stages=stages,
         log=[],
         result=None,
+        title=req.title or "",
+        author=req.author or "",
+        tags=tuple(req.tags) if req.tags else (),
     )
     with _jobs_lock:
         _jobs[job_id] = job

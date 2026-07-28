@@ -102,6 +102,8 @@ def load_llm_config(config_dir: str) -> LlmConfig:
             model=p.get("model", ""),
             base_url=p.get("base_url", ""),
             has_key=bool(p.get("has_key", False)),
+            protocol=p.get("protocol", "auto"),
+            path_mode=p.get("path_mode", "auto"),
         )
     # 补齐缺失的 provider(默认值)
     for name, default in default_providers().items():
@@ -111,17 +113,38 @@ def load_llm_config(config_dir: str) -> LlmConfig:
 
 
 def save_llm_config(cfg: LlmConfig, config_dir: str) -> None:
-    """写 LLM 配置(has_key 标记,key 本身走 keyring)。"""
+    """写 LLM 配置(has_key 标记,key 本身走 keyring 或 _plain_keys 明文降级)。
+
+    关键:保留磁盘上已有的 _plain_keys 明文 key 区。keyring 不可用时,key
+    存在 _plain_keys 里(见 set_api_key 降级路径)。若此处从零重写 yaml,
+    会丢掉 _plain_keys → 已存的 key 被冲掉 → get_api_key 返回空 → 401。
+    前端 saveLLM 顺序发多个 PUT(api_key 之后还有 remember_key 等),
+    remember_key 走本函数重写,会把刚写的 _plain_keys 冲掉。读-合并-写规避。
+    """
     path = Path(config_dir) / _LLM_CONFIG_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
+    # 读已有数据,保留 _plain_keys(若存在)
+    existing: dict[str, Any] = {}
+    if path.exists():
+        with path.open("r", encoding="utf-8") as f:
+            existing = yaml.safe_load(f) or {}
     data: dict[str, Any] = {
         "active_provider": cfg.active_provider,
         "remember_key": cfg.remember_key,
         "providers": {
-            name: {"model": p.model, "base_url": p.base_url, "has_key": p.has_key}
+            name: {
+                "model": p.model,
+                "base_url": p.base_url,
+                "has_key": p.has_key,
+                "protocol": p.protocol,
+                "path_mode": p.path_mode,
+            }
             for name, p in cfg.providers.items()
         },
     }
+    # 保留明文 key 降级区(keyring 不可用时 key 在这里)
+    if existing.get("_plain_keys"):
+        data["_plain_keys"] = existing["_plain_keys"]
     with path.open("w", encoding="utf-8") as f:
         yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 

@@ -25,6 +25,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
 
+  <!-- 全局错误捕获:必须是第一个 defer 脚本,先装好捕获器再加载其余模块 -->
+  <script defer src="/frontend/core/error-handler.js"></script>
+
   <!-- KaTeX:数学渲染,auto-render 处理 $...$ 和 $$...$$ -->
   <link rel="stylesheet" href="/frontend/katex/katex.min.css">
   <script defer src="/frontend/katex/katex.min.js"></script>
@@ -147,19 +150,24 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      // KaTeX 自动渲染
+      // KaTeX 自动渲染。注意:katex 内部对非 ParseError(如非法输入 TypeError)
+      // 即使 throwOnError:false 也会重抛,必须自己兜住,避免页面初始化中断。
       if (window.renderMathInElement) {
-        renderMathInElement(document.body, {
-          delimiters: [
-            { left: "$$", right: "$$", display: true },
-            { left: "\\[", right: "\\]", display: true },
-            { left: "\\(", right: "\\)", display: false },
-            { left: "$", right: "$", display: false }
-          ],
-          ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
-          ignoredClasses: ["pseudocode"],
-          throwOnError: false
-        });
+        try {
+          renderMathInElement(document.body, {
+            delimiters: [
+              { left: "$$", right: "$$", display: true },
+              { left: "\\[", right: "\\]", display: true },
+              { left: "\\(", right: "\\)", display: false },
+              { left: "$", right: "$", display: false }
+            ],
+            ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+            ignoredClasses: ["pseudocode"],
+            throwOnError: false
+          });
+        } catch (e) {
+          if (window.LqdErrors) window.LqdErrors.report(e, 'katex-auto-render');
+        }
       }
     });
   </script>

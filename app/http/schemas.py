@@ -45,6 +45,10 @@ class IngestExtractRequest(BaseModel):
     pages: str | None = None
     strategy: str | None = None  # "local" | "mineru",None 用 AppConfig.pdf_strategy
     stages: list[str] | None = None  # 自定义阶段序列;None 按 doc_type 选默认
+    # 可选元数据(由 /full 透传,publish 阶段写 _index.md front matter)
+    title: str | None = None
+    author: str | None = None
+    tags: list[str] | None = None
 
 
 class IngestFullRequest(BaseModel):
@@ -110,6 +114,12 @@ class IngestTranslateRequest(BaseModel):
 class IngestValidateRequest(BaseModel):
     doc_type: str = Field(pattern="^(book|paper)$")
     slug: str
+
+
+class IngestRecleanRequest(BaseModel):
+    """对已入库书重跑 clean 阶段(修复伪标题等)。"""
+    slug: str
+    doc_type: str = Field(pattern="^(book|paper|note)$")
 
 
 class IngestResponse(BaseModel):

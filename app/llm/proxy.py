@@ -29,10 +29,13 @@ async def proxy_stream(
     thinking: bool,
     config_dir: str,
     has_key: bool,
+    protocol: str = "auto",
+    path_mode: str = "auto",
 ) -> AsyncIterator[bytes]:
     """构造 LLM 请求并转发 SSE 流。
 
     yield 上游的原始 SSE 字节流(前端 readSSE 直接解析)。
+    protocol/path_mode 透传给 build_request,用于自定义端点。
     """
     api_key = get_api_key(provider, config_dir) if has_key else ""
     url, headers, body = build_request(
@@ -45,6 +48,8 @@ async def proxy_stream(
         max_tokens=max_tokens,
         tools=tools,
         thinking=thinking,
+        protocol=protocol,
+        path_mode=path_mode,
     )
     # 流式转发(httpx stream)
     async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:

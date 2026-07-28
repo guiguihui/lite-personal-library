@@ -28,7 +28,13 @@ def _to_response(request: Request) -> SettingsResponse:
     cfg = request.app.state.app_config
     llm = load_llm_config(cfg.config_dir)
     providers = {
-        name: {"model": p.model, "base_url": p.base_url, "has_key": p.has_key}
+        name: {
+            "model": p.model,
+            "base_url": p.base_url,
+            "has_key": p.has_key,
+            "protocol": p.protocol,
+            "path_mode": p.path_mode,
+        }
         for name, p in llm.providers.items()
     }
     return SettingsResponse(
@@ -116,17 +122,28 @@ async def update_settings(body: SettingsUpdate, request: Request) -> SettingsUpd
         save_app_config(new_cfg)
         request.app.state.app_config = new_cfg
         cfg = new_cfg
-    elif key in ("model", "base_url"):
+    elif key in ("model", "base_url", "protocol", "path_mode"):
         if not provider:
             raise HTTPException(status_code=400, detail=f"provider required for {key}")
         old = llm.providers.get(provider)
         if old is None:
             raise HTTPException(status_code=400, detail=f"unknown provider: {provider}")
+        # 取值校验
+        if key == "protocol" and str(value) not in ("auto", "anthropic", "openai"):
+            raise HTTPException(
+                status_code=400, detail="protocol must be one of: auto|anthropic|openai"
+            )
+        if key == "path_mode" and str(value) not in ("auto", "full", "suffix"):
+            raise HTTPException(
+                status_code=400, detail="path_mode must be one of: auto|full|suffix"
+            )
         new_p = LlmProviderConfig(
             provider=old.provider,
             model=str(value) if key == "model" else old.model,
             base_url=str(value) if key == "base_url" else old.base_url,
             has_key=old.has_key,
+            protocol=str(value) if key == "protocol" else old.protocol,
+            path_mode=str(value) if key == "path_mode" else old.path_mode,
         )
         new_providers = {**llm.providers, provider: new_p}
         llm = LlmConfig(

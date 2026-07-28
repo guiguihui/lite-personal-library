@@ -26,6 +26,7 @@ from app.ingest.extract_adapter import run_extract
 from app.ingest.jobs import IngestJob, append_log, cleanup_done, create_job, get_job, list_jobs, update_job
 from app.ingest.note_adapter import run_note
 from app.ingest.pipeline import run_pipeline
+from app.ingest.translate_adapter import run_translate
 from app.ingest.validate_adapter import run_validate
 
 
@@ -258,25 +259,96 @@ class TestCleanAdapter:
     def test_missing_merged_raises(self, tmp_path: Path) -> None:
         job = _make_job()
         jobs._jobs[job.job_id] = job
+        cfg = _make_cfg(tmp_path)
         # prev_result 指向不存在的 merged
         prev = {"merged_path": str(tmp_path / "nonexistent" / "book.md")}
         with pytest.raises(FileNotFoundError, match="merged not found"):
-            run_clean(job, prev)
+            run_clean(job, prev, cfg)
 
     def test_clean_writes_back(self, tmp_path: Path) -> None:
         # 真实跑 clean(纯函数,无外部依赖)
         job = _make_job()
         jobs._jobs[job.job_id] = job
+        cfg = _make_cfg(tmp_path)
         merged = tmp_path / "merged" / "book.md"
         merged.parent.mkdir(parents=True)
         merged.write_text("# Title\n\nsome  content\n\n\n\n", encoding="utf-8")
         prev = {"merged_path": str(merged)}
-        result = run_clean(job, prev)
+        result = run_clean(job, prev, cfg)
         assert "clean_stats" in result
         assert "clean_fixes" in result
         assert result["merged_path"] == str(merged)
         # 文件被写回(cleaned)
         assert merged.exists()
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# translate_adapter
+# ══════════════════════════════════════════════════════════════════════════
+
+
+class TestTranslateAdapter:
+    def test_missing_merged_raises(self, tmp_path: Path) -> None:
+        cfg = _make_cfg(tmp_path)
+        job = _make_job(slug="no-slug")
+        jobs._jobs[job.job_id] = job
+        # prev_result 指向不存在的 merged
+        prev = {"merged_path": str(tmp_path / "nonexistent" / "book.md")}
+        with pytest.raises(FileNotFoundError, match="merged not found"):
+            run_translate(job, prev, cfg)
+
+    def test_on_progress_writes_chunk_log(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """on_progress 回调把 chunk 进度追加到 job.log。
+
+        mock translate_single,验证:
+          1. run_translate 把 on_progress 传给了 translate_single
+          2. 调用 on_progress 后 job.log 出现 [translate] N/M chunks 行
+        """
+        cfg = _make_cfg(tmp_path)
+        job = _make_job(slug="prog-slug")
+        jobs._jobs[job.job_id] = job
+
+        # 构造一个 merged/book.md(内容无所谓,mock 会跳过真实翻译)
+        merged = Path(cfg.pdfs_dir) / job.slug / "merged" / "book.md"
+        merged.parent.mkdir(parents=True, exist_ok=True)
+        merged.write_text("# Test\n\ncontent\n", encoding="utf-8")
+        prev = {"merged_path": str(merged)}
+
+        # 捕获 run_translate 传给 translate_single 的 on_progress
+        captured: dict[str, Any] = {}
+
+        async def fake_translate_single(path: str, max_retry: int, on_progress=None) -> int:
+            captured["on_progress"] = on_progress
+            # 模拟 translate_chapter 的 chunk 进度回调
+            if on_progress:
+                on_progress(3, 10)
+                on_progress(10, 10)
+            return 0
+
+        # monkeypatch _import_translate 返回 (translate_book, fake_translate_single)
+        import app.ingest.translate_adapter as ta_mod
+
+        monkeypatch.setattr(
+            ta_mod,
+            "_import_translate",
+            lambda: (lambda *a, **k: 0, fake_translate_single),
+        )
+        # _inject_llm_config 会读 config_dir 的 llm.yaml——cfg.config_dir 已建,
+        # load_llm_config 不存在则写默认,不会崩。但为隔离也可 patch 掉。
+        monkeypatch.setattr(ta_mod, "_inject_llm_config", lambda app_cfg: None)
+
+        result = run_translate(job, prev, cfg)
+
+        # on_progress 被传给了 translate_single
+        assert callable(captured["on_progress"])
+        # job.log 含 chunk 进度行
+        log_text = "\n".join(job.log)
+        assert "[translate] 3/10 chunks" in log_text
+        assert "[translate] 10/10 chunks" in log_text
+        # 返回结构正确
+        assert "translated_path" in result
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -394,6 +466,89 @@ class TestPipeline:
         # 改为:验证 clean adapter 单独调用能 done(已在 TestCleanAdapter 测),
         # 此处验证 pipeline 对未知 job_id 的 failed 路径已覆盖,跳过端到端 done。
         pytest.skip("pipeline end-to-end done needs extract (PyMuPDF); covered by adapter unit tests")
+
+    def test_pipeline_publishes_and_triggers_build(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """pipeline 跑完 stages 后:publish 搬产物到 content/ + 触发 build。
+
+        mock 各 adapter(避免真实 extract 需 PyMuPDF),验证:
+          1. publish 被调,content/books/<slug>/ 有文件
+          2. start_build 被调(增量),返回 build_job_id 记入 result
+          3. job status=done
+        """
+        cfg = _make_cfg(tmp_path)
+        job = _make_job(
+            stages=("extract", "clean", "validate"),
+            input_pdf="fake.pdf",
+            slug="pub-slug",
+            doc_type="book",
+        )
+        # 给 job 补 title(模拟 /full 透传)
+        job.title = "测试发布"
+        jobs._jobs[job.job_id] = job
+
+        # 构造 extract 产物(merged/book.md)
+        merged = Path(cfg.pdfs_dir) / job.slug / "merged" / "book.md"
+        merged.parent.mkdir(parents=True, exist_ok=True)
+        merged.write_text("# 测试\n\n正文\n", encoding="utf-8")
+
+        # mock 各 adapter:返回 prev_result 链
+        def fake_extract(j, pdfs_dir):
+            append_log(j.job_id, "[mock] extract")
+            return {"merged_path": str(merged), "images_dir": "", "title": "提取标题"}
+
+        def fake_clean(j, prev, app_cfg):
+            append_log(j.job_id, "[mock] clean")
+            return {"merged_path": str(merged)}
+
+        def fake_validate(j, prev, app_cfg):
+            append_log(j.job_id, "[mock] validate")
+            return {"validated_path": str(merged)}
+
+        # mock start_build(不真跑 build_incremental)
+        build_calls: list[dict] = []
+
+        def fake_start_build(mode, content_dir, pageindex_dir, llm_model):
+            build_calls.append({
+                "mode": mode, "content_dir": content_dir, "pageindex_dir": pageindex_dir
+            })
+            return "idx_fake_build"
+
+        import app.ingest.pipeline as pipe_mod
+
+        monkeypatch.setattr(pipe_mod, "run_extract", fake_extract)
+        monkeypatch.setattr(pipe_mod, "run_clean", fake_clean)
+        monkeypatch.setattr(pipe_mod, "run_validate", fake_validate)
+        # start_build 在函数内 local import,patch app.index.status.start_build
+        import app.index.status as idx_status
+
+        monkeypatch.setattr(idx_status, "start_build", fake_start_build)
+
+        run_pipeline(job.job_id, cfg)
+
+        updated = get_job(job.job_id)
+        assert updated.status == "done"
+        assert updated.current_stage == "done"
+        # publish 搬了文件到 content/books/<slug>/
+        target_dir = Path(cfg.content_dir) / "books" / "pub-slug"
+        assert (target_dir / "book.md").exists()
+        assert (target_dir / "_index.md").exists()
+        # _index.md 含 title
+        idx = (target_dir / "_index.md").read_text(encoding="utf-8")
+        assert "测试发布" in idx
+        # build 被触发(增量模式)
+        assert len(build_calls) == 1
+        assert build_calls[0]["mode"] == "incremental"
+        assert build_calls[0]["content_dir"] == cfg.content_dir
+        # result 含 build_job_id + published_path
+        assert updated.result is not None
+        assert updated.result.get("build_job_id") == "idx_fake_build"
+        assert "published_path" in updated.result
+        # log 含 publish + build triggered
+        log_text = "\n".join(updated.log)
+        assert "[pipeline] >>> stage: publish" in log_text
+        assert "[pipeline] build triggered: idx_fake_build" in log_text
 
 
 if __name__ == "__main__":

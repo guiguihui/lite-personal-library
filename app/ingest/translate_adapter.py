@@ -76,13 +76,33 @@ def run_translate(
 
     # paper:单文件翻译(产出 .zh.md);book:也走单文件(merged 是单文件)
     # translate_single 产出 {path}.zh.md(in_place=False 默认)
-    rc = asyncio.run(translate_single(str(merged_path), max_retry=2))
+    # on_progress:每个 chunk 完成后追加进度到 job.log,前端 manage 页可见。
+    #   断点续跑由 translate_chapter 的 partial marker 机制保证(detect_partial)。
+    def on_progress(done: int, total: int) -> None:
+        append_log(job.job_id, f"[translate] {done}/{total} chunks")
+
+    rc = asyncio.run(translate_single(str(merged_path), max_retry=2, on_progress=on_progress))
     if rc != 0:
         raise RuntimeError(f"translate_single exit {rc}")
 
     zh_path = merged_path.with_suffix(".zh.md")
-    append_log(job.job_id, f"[translate] done: {zh_path}")
+    # 检测中文跳过:book.zh.md 与 book.md 内容相同 = is_chinese_text 命中跳过
+    # (translate_chapters 对中文文档直接 copy2,不调 LLM)。给用户明确反馈。
+    if zh_path.exists() and _files_identical(merged_path, zh_path):
+        append_log(job.job_id, "[translate] skipped: 已是中文，跳过翻译")
+    else:
+        append_log(job.job_id, f"[translate] done: {zh_path}")
     return {
         "translated_path": str(zh_path),
         "merged_path": str(merged_path),
     }
+
+
+def _files_identical(a: Path, b: Path) -> bool:
+    """比较两文件内容是否相同(用于检测中文跳过翻译)。"""
+    import filecmp
+
+    try:
+        return filecmp.cmp(str(a), str(b), shallow=False)
+    except OSError:
+        return False

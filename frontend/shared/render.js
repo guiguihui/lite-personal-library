@@ -128,13 +128,31 @@
    */
   function md(text) {
     if (!text) return '';
+    if (typeof text !== 'string') {
+      // 防御:非字符串输入(理论上不应发生,但流式累加时若混入 undefined 会崩)
+      text = String(text);
+    }
     if (typeof marked === 'undefined') {
       // 降级:marked 未加载,做最简单的转义 + <p> 包裹
       return '<p>' + _escHtml(text).replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
     }
-    var preprocessed = _preprocess(text);
-    var html = marked.parse(preprocessed);
-    return _postprocess(html);
+    // 整个渲染流程(_preprocess + marked.parse + _postprocess)包 try/catch。
+    // 流式渲染时每个 chunk 都调一次,任何环节对畸形/不完整片段抛错都会导致整条消息崩溃
+    // (典型症状:Cannot read properties of undefined (reading 'match') ——
+    //  marked 内部 tokenizer 或 _preprocess 的 callout 正则对边界片段的处理)。
+    // 兜底降级到转义文本,保证消息可见;打印堆栈 + 输入片段便于定位上游。
+    try {
+      var preprocessed = _preprocess(text);
+      var html = marked.parse(preprocessed);
+      if (html == null) {
+        console.warn('[YuuRender] marked.parse returned', typeof html, 'for input(len=' + text.length + '):', text.slice(0, 200));
+        return '<p>' + _escHtml(text).replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+      }
+      return _postprocess(html);
+    } catch (e) {
+      console.error('[YuuRender] md() render failed, falling back to escaped text', e, 'input(len=' + text.length + '):', text.slice(0, 200));
+      return '<p>' + _escHtml(text).replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+    }
   }
 
   /**
@@ -143,17 +161,24 @@
    */
   function renderKatex(el) {
     if (typeof renderMathInElement === 'undefined' || !el) return;
-    renderMathInElement(el, {
-      delimiters: [
-        { left: '$$', right: '$$', display: true },
-        { left: '\\[', right: '\\]', display: true },
-        { left: '\\(', right: '\\)', display: false },
-        { left: '$', right: '$', display: false }
-      ],
-      ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
-      ignoredClasses: ['pseudocode'],
-      throwOnError: false
-    });
+    // 注意:katex 对非 ParseError(非法输入的 TypeError 等)即使 throwOnError:false
+    // 也会从 renderError 重抛(实测 "KaTeX can only parse string typed expression")。
+    // 公式渲染失败不应拖垮整页内容,兜住并记录堆栈。
+    try {
+      renderMathInElement(el, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '\\[', right: '\\]', display: true },
+          { left: '\\(', right: '\\)', display: false },
+          { left: '$', right: '$', display: false }
+        ],
+        ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoredClasses: ['pseudocode'],
+        throwOnError: false
+      });
+    } catch (e) {
+      if (window.LqdErrors) window.LqdErrors.report(e, 'renderKatex');
+    }
   }
 
   // 导出

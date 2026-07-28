@@ -306,508 +306,58 @@ _RE_NORMALIZE_ROMAN = re.compile(
 )
 
 
-def _heading_prefix_type(line: str) -> tuple[str, int]:
-    """Return (type, current_level) for a heading line.
+# â”€â”€ Stage 2b: Pseudo-heading detection (PDF æ•°å­—ç¼–å·ä¼ªæ ‡é¢˜ â†’ ## æ ‡é¢˜) â”€â”€â”€â”€â”€â”€
+# PDF è½¬ markdown äº§ç‰©å¸¸ä¸¢å¤±æ ‡é¢˜å±‚çº§ï¼šç« èŠ‚ç¼–å·ï¼ˆå¦‚ "1.1 æ–‡æ¡£è¯´æ˜"ã€"4.4.2.5 è½¦ä½ç®¡ç†"ï¼‰
+# ä»¥çº¯æ–‡æœ¬è¡Œå­˜åœ¨ï¼Œæ²¡æœ‰ # å‰ç¼€ã€‚extract_headings åªè®¤ ^#{1,6}ï¼Œå¯¼è‡´æ•´æœ¬ä¹¦åªæœ‰ 1 ä¸ªæ ‡é¢˜
+# èŠ‚ç‚¹ï¼Œæ­£æ–‡å…¨å¡è¿›å»ï¼Œchunk title å…¨ç›¸åŒ â†’ é«˜é¢‘ token è¢«åœç”¨è¯è¯¯æ€ â†’ æ£€ç´¢å¤±è´¥ã€‚
+# è¿™é‡Œè¯†åˆ«è¿™ç±»ä¼ªæ ‡é¢˜å¹¶è¡¥ ## å‰ç¼€ï¼Œæœ€ç»ˆå±‚çº§ç”± fix_heading_hierarchy Pass 2 æŒ‰ç‚¹æ•°é™çº§ã€‚
+_RE_PSEUDO_HEADING = re.compile(r"^(\d+(?:\.\d+)*)\s+(\S.*)$")
 
-    type: 'roman' | 'letter' | 'number' | 'numbered_sub' | None
+
+def detect_pseudo_headings(lines: list[str]) -> list[dict]:
+    """æ‰¾æ•°å­—ç¼–å·ä¼ªæ ‡é¢˜å€™é€‰è¡Œï¼ˆæ—  # å‰ç¼€ï¼‰ã€‚
+
+    è¿”å› [{line_idx, text, number, depth}, ...]ï¼Œdepth = number ä¸­ç‚¹æ•°+1ã€‚
+    è·³è¿‡ä»£ç å—å†…çš„è¡Œï¼ˆ``` fence ä¹‹é—´ï¼‰ã€‚
     """
-    m = re.match(r"^(#+)\s", line)
-    if not m:
-        return ("none", 0)
-    level = len(m.group(1))
-    stripped = line[level:].strip()
-
-    # Roman numerals: I., II., ... or ç¬¬Iç« 
-    if re.match(r"^(?:ç¬¬)?(I{1,3}|IV|VI{0,3}|IX|XI{0,3})[\.\sç« ]", stripped):
-        return ("roman", level)
-    # Letter: A., B., ... (but not I, V, X which are Roman numerals)
-    if re.match(r"^([A-HJ-NP-Z])\.\s", stripped):
-        return ("letter", level)
-    # Numbered: 1., 2., ...
-    if re.match(r"^(\d+)\.\s", stripped):
-        return ("number", level)
-    # Numbered subsection: N.M or N.M.K
-    if re.match(r"^\d+\.\d+", stripped):
-        return ("numbered_sub", level)
-
-    return ("none", level)
-
-
-def fix_heading_hierarchy(text):
-    """Fix heading levels for book chapters AND paper sections.
-
-    Book: ## N.M â†’ ###, ## N.M.K â†’ #### (numbered subsections under chapter)
-
-    Paper: MinerU puts all sections at ## regardless of actual hierarchy.
-    Detect I./II./A./B./1./2. prefixes and build proper levels:
-      Roman numeral (I., II.) â†’ top-level (keep)
-      Letter (A., B.)         â†’ sub-section (demote 1)
-      Number (1., 2.)         â†’ sub-sub-section (demote 2)
-
-    Also normalizes inconsistent Roman numeral heading text:
-      ç¬¬Iç«  â†’ I. / ç¬¬IIIèŠ‚ â†’ III. / ç¬¬IVç«  â†’ IV.
-    """
-    lines = text.split("\n")
-    stats = {"headings_demoted": 0}
-
-    # â”€â”€ Pass 0: normalize Roman numeral heading text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    candidates: list[dict] = []
+    in_code = False
     for i, line in enumerate(lines):
-        m = _RE_NORMALIZE_ROMAN.match(line)
-        if m:
-            lines[i] = f"{m.group(1)}{m.group(2)}. {m.group(3)}"
-
-    # â”€â”€ Pass 1: detect paper-style hierarchy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    heading_indices = []
-    for i, line in enumerate(lines):
-        typ, level = _heading_prefix_type(line)
-        if typ != "none":
-            heading_indices.append((i, typ, level))
-
-    # Build level map â€” only if there's clear multi-level evidence.
-    # "numbered_sub" (N.M, N.M.K) is handled by separate rules below.
-    # Only consider roman/letter/number for the gating check.
-    target_levels = {}
-    if heading_indices:
-        hierarchy_types = {"roman", "letter", "number"}
-        types_present = set(typ for _, typ, _ in heading_indices if typ in hierarchy_types)
-        has_multi_level = len(types_present) >= 2
-
-        if has_multi_level:
-            # Determine base: Roman â†’ keep at detected level, Letter/Number â†’ +1/+2
-            roman_levels = [lv for _, typ, lv in heading_indices if typ == "roman"]
-            base_level = max(set(roman_levels), key=roman_levels.count) if roman_levels else 2
-            if not roman_levels:
-                all_levels = [lv for _, _, lv in heading_indices]
-                base_level = max(set(all_levels), key=all_levels.count)
-
-            for idx, typ, lv in heading_indices:
-                if typ == "roman":
-                    target_levels[idx] = base_level
-                elif typ == "letter":
-                    target_levels[idx] = base_level + 1
-                elif typ == "number":
-                    target_levels[idx] = base_level + 2
-
-    # â”€â”€ Pass 2: apply level changes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    result = []
-    for i, line in enumerate(lines):
-        if i in target_levels:
-            current = len(re.match(r"^#+", line).group(0))
-            target = target_levels[i]
-            if target > current:
-                line = "#" * target + line[current:]
-                stats["headings_demoted"] += 1
-            elif target < current:
-                line = "#" * target + line[current:]
-            result.append(line)
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_code = not in_code
             continue
-
-        # Existing numbered-subsection rules (## N.M â†’ ###, ## N.M.K â†’ ####)
-        m = re.match(r"^(##)\s+(\d+\.\d+\.\d+)\s", line)
-        if m:
-            line = "####" + line[2:]
-            stats["headings_demoted"] += 1
-            result.append(line)
+        if in_code:
             continue
-        m = re.match(r"^(##)\s+(\d+\.\d+)\s", line)
-        if m:
-            line = "###" + line[2:]
-            stats["headings_demoted"] += 1
-            result.append(line)
+        # è·³è¿‡å·²æœ‰ # å‰ç¼€çš„è¡Œï¼ˆå·²æ˜¯ markdown æ ‡é¢˜ï¼‰
+        if stripped.startswith("#"):
             continue
-        result.append(line)
-
-    return "\n".join(result), stats
-
-
-# â”€â”€ Stage 4: Figure caption pairing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-def pair_figures(text):
-    """Match figure captions with nearby images, wrap in {{< caption >}}."""
-    stats = {"fig_paired": 0, "fig_orphan_caption": 0, "fig_orphan_image": 0}
-    lines = text.split("\n")
-    result_lines = list(lines)
-
-    captions = {}
-    image_lines = []
-    for i, line in enumerate(lines):
-        m = re.match(r"^(å›¾\s*(\d+)\s*[ï¼š:.]|Figure\s+(\d+)\s*[ï¼š:]|Fig\.?\s+(\d+)\s*[ï¼š:.])\s*(.*)", line.strip(), re.IGNORECASE)
-        if m:
-            fig_num = int(m.group(2) or m.group(3) or m.group(4))
-            captions[fig_num] = (i, line.strip())
-        if re.search(r"!\[.*?\]\(images/", line):
-            image_lines.append(i)
-
-    used_images = set()
-    for fig_num, (cap_idx, cap_text) in sorted(captions.items()):
-        best_img = None
-        best_dist = 999
-        for img_idx in image_lines:
-            if img_idx in used_images:
-                continue
-            dist = abs(img_idx - cap_idx)
-            if dist <= 8 and dist < best_dist:
-                best_img = img_idx
-                best_dist = dist
-
-        cap_content = re.sub(
-            r"^(å›¾\s*\d+\s*[ï¼š:.]|Figure\s+\d+\s*[ï¼š:]|Fig\.?\s+\d+\s*[ï¼š:.])\s*",
-            "", cap_text, flags=re.IGNORECASE,
-        )
-        new_caption = f"{{{{< caption >}}}}å›¾{fig_num}ï¼š{cap_content}{{{{< /caption >}}}}"
-
-        if best_img is not None:
-            used_images.add(best_img)
-            stats["fig_paired"] += 1
-        else:
-            stats["fig_orphan_caption"] += 1
-        result_lines[cap_idx] = new_caption
-
-    for img_idx in image_lines:
-        if img_idx not in used_images:
-            near_cap = any(abs(img_idx - c) <= 8 for _, (c, _) in captions.items())
-            if not near_cap:
-                stats["fig_orphan_image"] += 1
-
-    return "\n".join(result_lines), stats
+        m = _RE_PSEUDO_HEADING.match(stripped)
+        if not m:
+            continue
+        number = m.group(1)
+        depth = number.count(".") + 1  # 1.1 â†’ depth 2, 1.1.1 â†’ depth 3
+        candidates.append({
+            "line_idx": i,
+            "text": stripped,
+            "number": number,
+            "depth": depth,
+        })
+    return candidates
 
 
-# â”€â”€ Stage 5: Book-specific misc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-def fix_book_misc(text):
-    """â–  â†’ -, book footnote superscripts ($^{N}$)."""
-    stats = {}
-    # â–  bullets
-    if "â– " in text:
-        count = text.count("â– ")
-        text = text.replace("â– ", "-")
-        stats["bullets"] = count
-    # Book footnote superscripts: $\$^{N}\$` style
-    text, n = re.subn(r"\s*\\?\$\^\{(\d+)\}\\?\$", "", text)
-    if n:
-        stats["book_footnotes"] = n
-    return text, stats
+def _classify_headings_regex(candidates: list[dict]) -> dict[int, bool]:
+    """æ­£åˆ™å…œåº•ï¼šdepthâ‰¥2ï¼ˆæœ‰è‡³å°‘ä¸€ä¸ªç‚¹ï¼‰å½“æ ‡é¢˜ï¼Œdepth=1 ä¸è½¬ï¼ˆè¯¯ä¼¤ç‡é«˜ï¼‰ã€‚
 
-
-def fix_mineru_divs(text):
-    """Convert MinerU <div class="mineru-algorithm">...</div> to fenced code blocks.
-
-    MinerU wraps terminal output / pseudocode in these divs with inline styles.
-    The content is typically Matlab/session output â†’ convert to ```matlab block.
-    Also unescapes HTML entities (&gt; â†’ >, &lt; â†’ <, &amp; â†’ &).
+    1 çº§æ— ç‚¹ç¼–å·ï¼ˆå¦‚ "1 å‰è¨€"ï¼‰å¤§å¤šæ˜¯æ­£æ–‡é‡Œçš„æšä¸¾é¡¹/æ•°æ®å€¼ï¼Œä¸è½¬ï¼›
+    ä½†ä¹Ÿæœ‰çœŸæ ‡é¢˜ï¼ˆ"1 å‰è¨€"ï¼‰ï¼ŒLLM è·¯å¾„èƒ½è¯†åˆ«ï¼Œæ­£åˆ™å…œåº•ä¿å®ˆä¸è½¬ã€‚
     """
-    stats = {}
-    pattern = re.compile(
-        r'<div class="mineru-algorithm"[^>]*>(.*?)</div>', re.DOTALL
-    )
-
-    def replace_div(m):
-        content = m.group(1)
-        content = (
-            content.replace("&gt;", ">")
-            .replace("&lt;", "<")
-            .replace("&quot;", '"')
-            .replace("&amp;", "&")
-        )
-        # drop blank lines inside
-        content = "\n".join(l for l in content.split("\n") if l.strip())
-        return "```matlab\n" + content + "\n```"
-
-    new_text, n = pattern.subn(replace_div, text)
-    if n:
-        stats["mineru_div"] = n
-        text = new_text
-    return text, stats
+    return {c["line_idx"]: c["depth"] >= 2 for c in candidates}
 
 
-def fix_html_tags(text: str):
-    """Fix MinerU HTML tag residue in running text.
+def _classify_headings_llm(candidates: list[dict]) -> dict[int, bool]:
+    """LLM æ‰¹é‡åˆ¤æ–­å€™é€‰è¡Œæ˜¯å¦ä¸ºæ ‡é¢˜ã€‚å¤±è´¥æŠ›å¼‚å¸¸ï¼Œè°ƒç”¨æ–¹é™çº§åˆ°æ­£åˆ™ã€‚
 
-    Three categories:
-      1. <table>...</table> â†’ convert to markdown pipe table
-      2. <sup>N</sup> â†’ $^N$ (footnote/ref markers in running text)
-      3. Empty <!-- ... --> comments â†’ remove
-    """
-    stats = {}
-
-    # 1. Simple HTML tables â†’ markdown (no rowspan/colspan)
-    def convert_table(m):
-        html = m.group(0)
-        # Count columns from first row
-        rows = re.findall(r'<tr>(.*?)</tr>', html, re.DOTALL)
-        if not rows:
-            return html  # can't parse
-        md_rows = []
-        for ri, row in enumerate(rows):
-            cells = re.findall(r'<td>(.*?)</td>', row, re.DOTALL)
-            md_rows.append('| ' + ' | '.join(c.strip() for c in cells) + ' |')
-            if ri == 0:
-                md_rows.append('|' + '|'.join(['---'] * len(cells)) + '|')
-        return '\n'.join(md_rows)
-
-    n_tables = len(re.findall(r'<table>', text))
-    if n_tables:
-        text = re.sub(r'<table>.*?</table>', convert_table, text, flags=re.DOTALL)
-        stats["html_table"] = n_tables
-
-    # 2. <sup>N</sup> â†’ $^N$ (digit superscripts â€” footnote/ref markers)
-    n_sup = len(re.findall(r'<sup>\d+</sup>', text))
-    text = re.sub(r'<sup>(\d+)</sup>', r'$^{\1}$', text)
-    # <sub>x</sub> â†’ $x$ (subscripts in running text, not in code blocks)
-    n_sub = len(re.findall(r'<sub>([a-zA-Z]+)</sub>', text))
-    text = re.sub(r'<sub>([a-zA-Z]+)</sub>', r'$_{\1}$', text)
-
-    if n_sup:
-        stats["html_sup"] = n_sup
-    if n_sub:
-        stats["html_sub"] = n_sub
-
-    # 3. Empty HTML comments
-    n_cmts = len(re.findall(r'<!--\s*(glossary:\s*)?-->', text))
-    if n_cmts:
-        text = re.sub(r'<!--\s*(glossary:\s*)?-->\n?', '', text)
-        stats["empty_comment"] = n_cmts
-
-    return text, stats
-
-
-def fix_image_caption_spacing(text: str):
-    """Insert blank line between image references and {{< caption >}} shortcodes.
-
-    Only matches when caption is directly on next line (no blank line between).
-    [^\\S\\n]* = horizontal whitespace only (spaces, tabs), not newlines.
-    """
-    n = len(re.findall(r'!\[.*?\]\([^)]+\)[^\S\n]*\n[^\S\n]*\{\{< caption >', text))
-    text = re.sub(
-        r'(!\[.*?\]\([^)]+\))[^\S\n]*\n[^\S\n]*(\{\{< caption >)',
-        r'\1\n\n\2', text,
-    )
-    if n:
-        return text, {"img_caption_spacing": n}
-    return text, {}
-
-
-def fix_pandoc_residue(text: str):
-    """Remove pandoc EPUB conversion residue and FB2 XML leftovers.
-
-    Consolidates the manual sed rules documented in SKILL.md Phase 2 step 3:
-      - ::: fn1 / ::: blk1 / :::  (pandoc div markers)
-      - []{#page_xxx} / []{#pages-xxx}  (pandoc anchor markers)
-      - {.small} / {.dropcap} / {.col}  (pandoc inline attributes)
-      - {height="100%"} etc.  (pandoc image attributes)
-      - [text](file.xhtml)  â†’ text  (EPUB internal links)
-      - -----  table separators  â†’ |---|  (pandoc pipe table format)
-      - <empty-line/>  â†’ blank line  (FB2 XML residue)
-    """
-    stats = {}
-    original_len = len(text)
-
-    # ::: fn1 / ::: blk1 / :::  (pandoc div markers â€” whole line)
-    n_div = len(re.findall(r"^::: \w+\s*$", text, re.MULTILINE))
-    text = re.sub(r"^::: \w+\s*$\n", "", text, flags=re.MULTILINE)
-    text = re.sub(r"^:::\s*$\n", "", text, flags=re.MULTILINE)
-
-    # []{#page_xxx} / []{#pages-xxx}  (pandoc anchor markers)
-    n_anchor = len(re.findall(r"\[\]\{#pages?-?\w*\}", text))
-    text = re.sub(r"\[\]\{#pages?-?\w*\}", "", text)
-
-    # {.small} / {.dropcap} / {.col} / {.unnumbered} / {#id} etc.  (pandoc attrs)
-    # Matches {.class} {#id} {key="val"} and combinations like {.small .col}
-    # Every token MUST start with . (class) or # (id), or be a key="val" pair â€”
-    # a bare {array} / {r} / {1} is NEVER a pandoc attr (those are math args),
-    # and matching them destroys \mathrm{A}, \frac{1}{2}, \begin{array}{r}, etc.
-    _PANDOC_ATTR = (
-        r"\{(?:[#.][\w:-]+|\w+=\"[^\"]*\")"
-        r"(?:\s+(?:[#.][\w:-]+|\w+=\"[^\"]*\"))*\}"
-    )
-    n_attr = len(re.findall(_PANDOC_ATTR, text))
-    text = re.sub(_PANDOC_ATTR, "", text)
-
-    # {height="100%"} / {width="50%"}  (image attributes â€” more specific)
-    n_imgattr = len(re.findall(r'\{(height|width|id|title|align)="[^"]*"\}', text))
-    text = re.sub(r'\{(height|width|id|title|align)="[^"]*"\}', "", text)
-
-    # [text](file.xhtml)  â†’ text  (EPUB internal links â€” strip .xhtml refs)
-    n_xhtml = len(re.findall(r"\]\([^)]+\.xhtml[^)]*\)", text))
-    text = re.sub(r"\[([^\]]*)\]\([^)]+\.xhtml[^)]*\)", r"\1", text)
-
-    # -----  table separators  â†’ |---|  (pandoc line-table format)
-    n_dash = len(re.findall(r"^\s*-{5,}\s*$", text, re.MULTILINE))
-    text = re.sub(r"^(\s*)-{5,}(\s*)$", r"\1|---|\2", text, flags=re.MULTILINE)
-
-    # <empty-line/>  â†’ blank line  (FB2 XML residue if any leaked through)
-    n_emptyline = len(re.findall(r"<empty-line/>", text))
-    text = text.replace("<empty-line/>", "")
-
-    removed = original_len - len(text)
-    if removed > 0 or n_div or n_anchor or n_attr or n_imgattr or n_xhtml or n_dash or n_emptyline:
-        stats["pandoc_residue"] = {
-            "divs": n_div, "anchors": n_anchor, "attrs": n_attr,
-            "img_attrs": n_imgattr, "xhtml_links": n_xhtml,
-            "dash_tables": n_dash, "fb2_emptyline": n_emptyline,
-        }
-    return text, stats
-
-
-def fix_math_delimiters(text: str):
-    """Repair malformed $$ delimiters that wrap Chinese prose.
-
-    Two corruption patterns from LLM translation output:
-      1. Adjacent inline math like `$_{1}$$(...)` creates a false $$ pair
-         that wraps Chinese body text between them.
-      2. Odd $$ count (orphaned delimiter) from chunking artifacts.
-
-    Strategy:
-      - For each $$...$$ block, check if the content has Chinese punctuation
-        (ï¼Œã€‚ã€ï¼›ï¼šï¼Ÿï¼) or >10 CJK chars after stripping LaTeX commands.
-        If so, it's proseè¯¯åŒ… â€” replace the $$ delimiters with $ (inline math).
-      - If $$ count is odd, remove the last orphan $$.
-    """
-    stats = {}
-    fixes = 0
-
-    # Pattern 1: $$ blocks containing Chinese prose â†’ demote to inline $
-    def check_and_demote(m):
-        nonlocal fixes
-        block = m.group(1)
-        # Strip LaTeX commands to see if there's raw Chinese prose
-        stripped = re.sub(r"\\[a-zA-Z]+\{[^}]*\}", "", block)
-        stripped = re.sub(r"\\[a-zA-Z]+", "", stripped)
-        has_cn_punct = bool(re.search(r"[ï¼Œã€‚ã€ï¼›ï¼šï¼Ÿï¼]", stripped))
-        cn_count = len(re.findall(r"[ä¸€-é¿¿]", stripped))
-        if has_cn_punct or cn_count > 10:
-            # This is proseè¯¯åŒ… in math â€” demote $$ to $ so it renders as inline
-            fixes += 1
-            return f"${block}$"
-        return m.group(0)
-
-    text = re.sub(r"\$\$(.+?)\$\$", check_and_demote, text, flags=re.DOTALL)
-
-    # Pattern 2: odd $$ count â€” remove the last orphan $$
-    count = text.count("$$")
-    if count % 2 == 1:
-        # Find the last $$ and remove it
-        last_pos = text.rfind("$$")
-        text = text[:last_pos] + text[last_pos + 2:]
-        fixes += 1
-
-    if fixes:
-        stats["math_delimiter_fix"] = fixes
-    return text, stats
-
-
-# â”€â”€ Main clean function â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-def clean(content):
-    """Full cleaning pipeline. Returns (cleaned_content, stats_dict)."""
-    lines = content.split("\n")
-
-    # Stage 1: noise removal
-    lines, noise_stats = remove_noise(lines)
-
-    # Stage 1c: separate consecutive reference entries with blank lines
-    # MinerU often produces consecutive [N] lines without blank line separation,
-    # causing Markdown to render them as a single paragraph.
-    ref_line_count = 0
-    ref_sep_lines = []
-    for line in lines:
-        is_ref = bool(re.match(r"^\[\d+\]", line.strip()))
-        if is_ref and ref_sep_lines and re.match(r"^\[\d+\]", ref_sep_lines[-1].strip()):
-            ref_sep_lines.append("")
-            ref_line_count += 1
-        ref_sep_lines.append(line)
-    if ref_line_count:
-        lines = ref_sep_lines
-        noise_stats["ref_sep"] = ref_line_count
-
-    text = "\n".join(lines)
-
-    # Stage 1b: MinerU \begin{array} corruption repair
-    # MUST run before pandoc residue removal (Stage 1e) and math-region repair
-    # (Stage 2): the bare colspecs \begin{r} / {r l r} look like pandoc attrs
-    # and would be stripped; and the repair spans whole lines, not just math.
-    text, array_stats = fix_mineru_array_corruption(text)
-
-    # Stage 1c: book misc (bullets, book footnotes)
-    text, book_stats = fix_book_misc(text)
-
-    # Stage 1d: MinerU <div class="mineru-algorithm"> â†’ ```matlab code blocks
-    text, div_stats = fix_mineru_divs(text)
-
-    # Stage 1d2: HTML tag residue â€” <table>, <sup>, <sub>, empty comments
-    text, html_stats = fix_html_tags(text)
-
-    # Stage 1e: pandoc EPUB residue + FB2 XML residue
-    text, pandoc_stats = fix_pandoc_residue(text)
-
-    # Stage 1f: repair malformed $$ delimiters (Chinese proseè¯¯åŒ… + orphan $$)
-    text, delim_stats = fix_math_delimiters(text)
-
-    # Stage 1g: normalize LaTeX delimiters â€” \(...\) â†’ $...$, \[...\] â†’ $$...$$
-    # KaTeX only renders $ and $$. MinerU sometimes emits \(\) / \[\] especially
-    # in appendices and supplementary material where the translator model
-    # uses different conventions for inline vs display math.
-    n_inline_delim = len(re.findall(r"\\\(|\\\)", text))
-    n_display_delim = len(re.findall(r"\\\[|\\\]", text))
-    text = re.sub(r"\\\((.*?)\\\)", r"$\1$", text, flags=re.DOTALL)
-    text = re.sub(r"\\\[(.*?)\\\]", r"$$\1$$", text, flags=re.DOTALL)
-    if n_inline_delim or n_display_delim:
-        delim_stats["fix_latex_delimiters"] = {"inline_pairs": n_inline_delim // 2,
-                                                "display_pairs": n_display_delim // 2}
-
-    # Stage 2: LaTeX repair (scoped to math regions)
-    inline_before = len(re.findall(r"\$[^$\n]+?\$", text))
-    display_before = len(re.findall(r"\$\$", text)) // 2
-    text = re.sub(r"\$\$([\s\S]*?)\$\$", lambda m: fix_math_simple(m, "$$"), text)
-    text = re.sub(r"\$([^$\n]+?)\$", lambda m: fix_math_simple(m, "$"), text)
-
-    # Stage 3: heading hierarchy
-    text, heading_stats = fix_heading_hierarchy(text)
-
-    # Stage 4: figure caption pairing
-    text, fig_stats = pair_figures(text)
-
-    # Stage 4b: blank line between image references and {{< caption >}} shortcodes
-    text, spacing_stats = fix_image_caption_spacing(text)
-
-    # Stage 5: collapse 3+ blank lines
-    before_blanks = len(re.findall(r"\n{4,}", text))
-    text = re.sub(r"\n{4,}", "\n\n\n", text)
-
-    # Stage 6: trailing whitespace
-    text = "\n".join(l.rstrip() for l in text.split("\n"))
-
-    stats = {**noise_stats, **book_stats, **div_stats, **html_stats, **pandoc_stats, **delim_stats, **array_stats, **heading_stats, **fig_stats, **spacing_stats}
-    stats["math_regions"] = inline_before + display_before
-    if before_blanks:
-        stats["blank_collapse"] = before_blanks
-
-    return text, stats
-
-
-def main():
-    ap = argparse.ArgumentParser(description="Clean MinerU/pandoc markdown (book + paper).")
-    ap.add_argument("md_path", help="path to markdown file")
-    ap.add_argument("--dry-run", action="store_true", help="preview without writing")
-    args = ap.parse_args()
-
-    if not os.path.isfile(args.md_path):
-        print(f"Error: {args.md_path} not found", file=sys.stderr)
-        return 1
-
-    with open(args.md_path, encoding="utf-8") as f:
-        content = f.read()
-
-    cleaned, stats = clean(content)
-    total = sum(v for v in stats.values() if isinstance(v, int))
-    detail = ", ".join(f"{k}:{v}" for k, v in sorted(stats.items()))
-
-    if not args.dry_run:
-        with open(args.md_path, "w", encoding="utf-8") as f:
-            f.write(cleaned)
-        print(f"âœ“ {os.path.basename(args.md_path)}: {detail}")
-    else:
-        print(f"[dry-run] {os.path.basename(args.md_path)}: {detail}")
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+    å»¶è¿Ÿ importï¼ˆä¿æŒ clean_markdown.py CLI ç‹¬ç«‹ï¼‰ï¼šllm_config + app.llm.nonstreamã€‚
+    ä¸€æ¬¡è°ƒç”¨ä¼ åß]ı¶‰Ëkºwµç@€‰•ÍÑ}¥µœ€ô9½¹”(€€€€€€€‰•ÍÑ}‘¥ÍĞ€ô€äää(€€€€€€€™½È¥µ}¥‘à¥¸¥µ…•}±¥¹•Ìè(€€€€€€€€€€€¥˜¥µ}¥‘à¥¸ÕÍ•‘}¥µ…•Ìè(€€€€€€€€€€€€€€€½¹Ñ¥¹Õ”(€€€€€€€€€€€‘¥ÍĞ€ô…‰Ì¡¥µ}¥‘à€´…Á}¥‘à¤(€€€€€€€€€€€¥˜‘¥ÍĞ€ğô€à…¹‘¥ÍĞ€ğ‰•ÍÑ}‘¥ÍĞè(€€€€€€€€€€€€€€€‰•ÍÑ}¥µœ€ô¥µ}¥‘à(€€€€€€€€€€€€€€€‰•ÍÑ}‘¥ÍĞ€ô‘¥ÍĞ((€€€€€€€…Á}½¹Ñ•¹Ğ€ôÉ”¹ÍÕˆ (€€€€€€€€€€€È‰x£–nùqÌ©q­qÌ©o¾òhè¹uñ¥ÕÉ•qÌ­q­qÌ©o¾òhéuñ¥p¸ıqÌ­q­qÌ©o¾òhè¹t¥qÌ¨ˆ°(€€€€€€€€€€€€ˆˆ°…Á}Ñ•áĞ°™±…ÌõÉ”¹%9=IM°(€€€€€€€€¤(€€€€€€€¹•İ}…ÁÑ¥½¸€ô˜‰íííìğ…ÁÑ¥½¸€ùõõõ÷–nùí™¥}¹Õµ÷¾òií…Á}½¹Ñ•¹Ñõíííìğ€½…ÁÑ¥½¸€ùõõõôˆ((€€€€€€€¥˜‰•ÍÑ}¥µœ¥Ì¹½Ğ9½¹”è(€€€€€€€€€€€ÕÍ•‘}¥µ…•Ì¹…‘¡‰•ÍÑ}¥µœ¤(€€€€€€€€€€€ÍÑ…ÑÍl‰™¥}Á…¥É•‰t€¬ô€Ä(€€€€€€€•±Í”è(€€€€€€€€€€€ÍÑ…ÑÍl‰™¥}½ÉÁ¡…¹}…ÁÑ¥½¸‰t€¬ô€Ä(€€€€€€€É•ÍÕ±Ñ}±¥¹•Ím…Á}¥‘át€ô¹•İ}…ÁÑ¥½¸((€€€™½È¥µ}¥‘à¥¸¥µ…•}±¥¹•Ìè(€€€€€€€¥˜¥µ}¥‘à¹½Ğ¥¸ÕÍ•‘}¥µ…•Ìè(€€€€€€€€€€€¹•…É}…À€ô…¹ä¡…‰Ì¡¥µ}¥‘à€´Œ¤€ğô€à™½È|°€¡Œ°|¤¥¸…ÁÑ¥½¹Ì¹¥Ñ•µÌ ¤¤(€€€€€€€€€€€¥˜¹½Ğ¹•…É}…Àè(€€€€€€€€€€€€€€€ÍÑ…ÑÍl‰™¥}½ÉÁ¡…¹}¥µ…”‰t€¬ô€Ä((€€€É•ÑÕÉ¸€‰q¸ˆ¹©½¥¸¡É•ÍÕ±Ñ}±¥¹•Ì¤°ÍÑ…ÑÌ(((ŒƒŠRŠR MÑ…”€Ôè	½½¬µÍÁ•¥™¥Œµ¥ÍŒƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR )‘•˜™¥á}‰½½­}µ¥ÍŒ¡Ñ•áĞ¤è(€€€€ˆˆ‹ŠZ€ƒŠH€´°‰½½¬™½½Ñ¹½Ñ”ÍÕÁ•ÉÍÉ¥ÁÑÌ€ ‘yí9ô¤¸ˆˆˆ(€€€ÍÑ…ÑÌ€ôíô(€€€€ŒƒŠZ€‰Õ±±•ÑÌ(€€€¥˜€‹ŠZ€ˆ¥¸Ñ•áĞè(€€€€€€€½Õ¹Ğ€ôÑ•áĞ¹½Õ¹Ğ ‹ŠZ€ˆ¤(€€€€€€€Ñ•áĞ€ôÑ•áĞ¹É•Á±…” ‹ŠZ€ˆ°€ˆ´ˆ¤(€€€€€€€ÍÑ…ÑÍl‰‰Õ±±•ÑÌ‰t€ô½Õ¹Ğ(€€€€Œ	½½¬™½½Ñ¹½Ñ”ÍÕÁ•ÉÍÉ¥ÁÑÌè€‘p‘yí9õp‘€ÍÑå±”(€€€Ñ•áĞ°¸€ôÉ”¹ÍÕ‰¸¡È‰qÌ©qpıp‘qyqì¡q¬¥qõqpıpˆ°€ˆˆ°Ñ•áĞ¤(€€€¥˜¸è(€€€€€€€ÍÑ…ÑÍl‰‰½½­}™½½Ñ¹½Ñ•Ì‰t€ô¸(€€€É•ÑÕÉ¸Ñ•áĞ°ÍÑ…ÑÌ(()‘•˜™¥á}µ¥¹•ÉÕ}‘¥ÙÌ¡Ñ•áĞ¤è(€€€€ˆˆ‰½¹Ù•ÉĞ5¥¹•ÉT€ñ‘¥Ø±…ÍÌô‰µ¥¹•ÉÔµ…±½É¥Ñ¡´ˆø¸¸¸ğ½‘¥ØøÑ¼™•¹•½‘”‰±½­Ì¸((€€€5¥¹•ÉTİÉ…ÁÌÑ•Éµ¥¹…°½ÕÑÁÕĞ€¼ÁÍ•Õ‘½½‘”¥¸Ñ¡•Í”‘¥ÙÌİ¥Ñ ¥¹±¥¹”ÍÑå±•Ì¸(€€€Q¡”½¹Ñ•¹Ğ¥ÌÑåÁ¥…±±ä5…Ñ±…ˆ½Í•ÍÍ¥½¸½ÕÑÁÕĞƒŠH½¹Ù•ÉĞÑ¼µ…Ñ±…ˆ‰±½¬¸(€€€±Í¼Õ¹•Í…Á•Ì!Q50•¹Ñ¥Ñ¥•Ì€ ™ĞìƒŠH€ø°€™±ĞìƒŠH€ğ°€™…µÀìƒŠH€˜¤¸(€€€€ˆˆˆ(€€€ÍÑ…ÑÌ€ôíô(€€€Á…ÑÑ•É¸€ôÉ”¹½µÁ¥±” (€€€€€€€Èœñ‘¥Ø±…ÍÌô‰µ¥¹•ÉÔµ…±½É¥Ñ¡´‰mxùt¨ø ¸¨ü¤ğ½‘¥Øøœ°É”¹=Q10(€€€€¤((€€€‘•˜É•Á±…•}‘¥Ø¡´¤è(€€€€€€€½¹Ñ•¹Ğ€ô´¹É½ÕÀ Ä¤(€€€€€€€½¹Ñ•¹Ğ€ô€ (€€€€€€€€€€€½¹Ñ•¹Ğ¹É•Á±…” ˆ™Ğìˆ°€ˆøˆ¤(€€€€€€€€€€€€¹É•Á±…” ˆ™±Ğìˆ°€ˆğˆ¤(€€€€€€€€€€€€¹É•Á±…” ˆ™ÅÕ½Ğìˆ°€œˆœ¤(€€€€€€€€€€€€¹É•Á±…” ˆ™…µÀìˆ°€ˆ˜ˆ¤(€€€€€€€€¤(€€€€€€€€Œ‘É½À‰±…¹¬±¥¹•Ì¥¹Í¥‘”(€€€€€€€½¹Ñ•¹Ğ€ô€‰q¸ˆ¹©½¥¸¡°™½È°¥¸½¹Ñ•¹Ğ¹ÍÁ±¥Ğ ‰q¸ˆ¤¥˜°¹ÍÑÉ¥À ¤¤(€€€€€€€É•ÑÕÉ¸€‰µ…Ñ±…‰q¸ˆ€¬½¹Ñ•¹Ğ€¬€‰q¹€ˆ((€€€¹•İ}Ñ•áĞ°¸€ôÁ…ÑÑ•É¸¹ÍÕ‰¸¡É•Á±…•}‘¥Ø°Ñ•áĞ¤(€€€¥˜¸è(€€€€€€€ÍÑ…ÑÍl‰µ¥¹•ÉÕ}‘¥Ø‰t€ô¸(€€€€€€€Ñ•áĞ€ô¹•İ}Ñ•áĞ(€€€É•ÑÕÉ¸Ñ•áĞ°ÍÑ…ÑÌ(()‘•˜™¥á}¡Ñµ±}Ñ…Ì¡Ñ•áĞèÍÑÈ¤è(€€€€ˆˆ‰¥à5¥¹•ÉT!Q50Ñ…œÉ•Í¥‘Õ”¥¸ÉÕ¹¹¥¹œÑ•áĞ¸((€€€Q¡É•”…Ñ•½É¥•Ìè(€€€€€€Ä¸€ñÑ…‰±”ø¸¸¸ğ½Ñ…‰±”øƒŠH½¹Ù•ÉĞÑ¼µ…É­‘½İ¸Á¥Á”Ñ…‰±”(€€€€€€È¸€ñÍÕÀù8ğ½ÍÕÀøƒŠH€‘y8€¡™½½Ñ¹½Ñ”½É•˜µ…É­•ÉÌ¥¸ÉÕ¹¹¥¹œÑ•áĞ¤(€€€€€€Ì¸µÁÑä€ğ„´´€¸¸¸€´´ø½µµ•¹ÑÌƒŠHÉ•µ½Ù”(€€€€ˆˆˆ(€€€ÍÑ…ÑÌ€ôíô((€€€€Œ€Ä¸M¥µÁ±”!Q50Ñ…‰±•ÌƒŠHµ…É­‘½İ¸€¡¹¼É½İÍÁ…¸½½±ÍÁ…¸¤(€€€‘•˜½¹Ù•ÉÑ}Ñ…‰±”¡´¤è(€€€€€€€¡Ñµ°€ô´¹É½ÕÀ À¤(€€€€€€€€Œ½Õ¹Ğ½±Õµ¹Ì™É½´™¥ÉÍĞÉ½Ü(€€€€€€€É½İÌ€ôÉ”¹™¥¹‘…±°¡ÈœñÑÈø ¸¨ü¤ğ½ÑÈøœ°¡Ñµ°°É”¹=Q10¤(€€€€€€€¥˜¹½ĞÉ½İÌè(€€€€€€€€€€€É•ÑÕÉ¸¡Ñµ°€€Œ…¸ĞÁ…ÉÍ”(€€€€€€€µ‘}É½İÌ€ômt(€€€€€€€™½ÈÉ¤°É½Ü¥¸•¹Õµ•É…Ñ”¡É½İÌ¤è(€€€€€€€€€€€•±±Ì€ôÉ”¹™¥¹‘…±°¡ÈœñÑø ¸¨ü¤ğ½Ñøœ°É½Ü°É”¹=Q10¤(€€€€€€€€€€€µ‘}É½İÌ¹…ÁÁ•¹ ğ€œ€¬€œğ€œ¹©½¥¸¡Œ¹ÍÑÉ¥À ¤™½ÈŒ¥¸•±±Ì¤€¬€œğœ¤(€€€€€€€€€€€¥˜É¤€ôô€Àè(€€€€€€€€€€€€€€€µ‘}É½İÌ¹…ÁÁ•¹ ğœ€¬€ğœ¹©½¥¸¡lœ´´´t€¨±•¸¡•±±Ì¤¤€¬€ğœ¤(€€€€€€€É•ÑÕÉ¸€q¸œ¹©½¥¸¡µ‘}É½İÌ¤((€€€¹}Ñ…‰±•Ì€ô±•¸¡É”¹™¥¹‘…±°¡ÈœñÑ…‰±”øœ°Ñ•áĞ¤¤(€€€¥˜¹}Ñ…‰±•Ìè(€€€€€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡ÈœñÑ…‰±”ø¸¨üğ½Ñ…‰±”øœ°½¹Ù•ÉÑ}Ñ…‰±”°Ñ•áĞ°™±…ÌõÉ”¹=Q10¤(€€€€€€€ÍÑ…ÑÍl‰¡Ñµ±}Ñ…‰±”‰t€ô¹}Ñ…‰±•Ì((€€€€Œ€È¸€ñÍÕÀù8ğ½ÍÕÀøƒŠH€‘y8€¡‘¥¥ĞÍÕÁ•ÉÍÉ¥ÁÑÌƒŠP™½½Ñ¹½Ñ”½É•˜µ…É­•ÉÌ¤(€€€¹}ÍÕÀ€ô±•¸¡É”¹™¥¹‘…±°¡ÈœñÍÕÀùq¬ğ½ÍÕÀøœ°Ñ•áĞ¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡ÈœñÍÕÀø¡q¬¤ğ½ÍÕÀøœ°Èœ‘yípÅôœ°Ñ•áĞ¤(€€€€Œ€ñÍÕˆùàğ½ÍÕˆøƒŠH€‘à€¡ÍÕ‰ÍÉ¥ÁÑÌ¥¸ÉÕ¹¹¥¹œÑ•áĞ°¹½Ğ¥¸½‘”‰±½­Ì¤(€€€¹}ÍÕˆ€ô±•¸¡É”¹™¥¹‘…±°¡ÈœñÍÕˆø¡m„µéµit¬¤ğ½ÍÕˆøœ°Ñ•áĞ¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡ÈœñÍÕˆø¡m„µéµit¬¤ğ½ÍÕˆøœ°Èœ‘}ípÅôœ°Ñ•áĞ¤((€€€¥˜¹}ÍÕÀè(€€€€€€€ÍÑ…ÑÍl‰¡Ñµ±}ÍÕÀ‰t€ô¹}ÍÕÀ(€€€¥˜¹}ÍÕˆè(€€€€€€€ÍÑ…ÑÍl‰¡Ñµ±}ÍÕˆ‰t€ô¹}ÍÕˆ((€€€€Œ€Ì¸µÁÑä!Q50½µµ•¹ÑÌ(€€€¹}µÑÌ€ô±•¸¡É”¹™¥¹‘…±°¡Èœğ„´µqÌ¨¡±½ÍÍ…ÉäéqÌ¨¤ü´´øœ°Ñ•áĞ¤¤(€€€¥˜¹}µÑÌè(€€€€€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡Èœğ„´µqÌ¨¡±½ÍÍ…ÉäéqÌ¨¤ü´´ùq¸üœ°€œœ°Ñ•áĞ¤(€€€€€€€ÍÑ…ÑÍl‰•µÁÑå}½µµ•¹Ğ‰t€ô¹}µÑÌ((€€€É•ÑÕÉ¸Ñ•áĞ°ÍÑ…ÑÌ(()‘•˜™¥á}¥µ…•}…ÁÑ¥½¹}ÍÁ…¥¹œ¡Ñ•áĞèÍÑÈ¤è(€€€€ˆˆ‰%¹Í•ÉĞ‰±…¹¬±¥¹”‰•Ñİ••¸¥µ…”É•™•É•¹•Ì…¹íìğ…ÁÑ¥½¸€ùõôÍ¡½ÉÑ½‘•Ì¸((€€€=¹±äµ…Ñ¡•Ìİ¡•¸…ÁÑ¥½¸¥Ì‘¥É•Ñ±ä½¸¹•áĞ±¥¹”€¡¹¼‰±…¹¬±¥¹”‰•Ñİ••¸¤¸(€€€myqqMqq¹t¨€ô¡½É¥é½¹Ñ…°İ¡¥Ñ•ÍÁ…”½¹±ä€¡ÍÁ…•Ì°Ñ…‰Ì¤°¹½Ğ¹•İ±¥¹•Ì¸(€€€€ˆˆˆ(€€€¸€ô±•¸¡É”¹™¥¹‘…±°¡Èœ…ql¸¨ıqup¡mx¥t­p¥myqMq¹t©q¹myqMq¹t©qíqìğ…ÁÑ¥½¸€øœ°Ñ•áĞ¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ (€€€€€€€Èœ …ql¸¨ıqup¡mx¥t­p¤¥myqMq¹t©q¹myqMq¹t¨¡qíqìğ…ÁÑ¥½¸€ø¤œ°(€€€€€€€ÈpÅq¹q¹pÈœ°Ñ•áĞ°(€€€€¤(€€€¥˜¸è(€€€€€€€É•ÑÕÉ¸Ñ•áĞ°ì‰¥µ}…ÁÑ¥½¹}ÍÁ…¥¹œˆè¹ô(€€€É•ÑÕÉ¸Ñ•áĞ°íô(()‘•˜™¥á}Á…¹‘½}É•Í¥‘Õ”¡Ñ•áĞèÍÑÈ¤è(€€€€ˆˆ‰I•µ½Ù”Á…¹‘½ŒAU½¹Ù•ÉÍ¥½¸É•Í¥‘Õ”…¹Èa50±•™Ñ½Ù•ÉÌ¸((€€€½¹Í½±¥‘…Ñ•ÌÑ¡”µ…¹Õ…°Í•ÉÕ±•Ì‘½Õµ•¹Ñ•¥¸M-%10¹µA¡…Í”€ÈÍÑ•À€Ìè(€€€€€€´€èèè™¸Ä€¼€èèè‰±¬Ä€¼€èèè€€¡Á…¹‘½Œ‘¥Øµ…É­•ÉÌ¤(€€€€€€´muìÁ…•}áááô€¼muìÁ…•Ìµáááô€€¡Á…¹‘½Œ…¹¡½Èµ…É­•ÉÌ¤(€€€€€€´ì¹Íµ…±±ô€¼ì¹‘É½Á…Áô€¼ì¹½±ô€€¡Á…¹‘½Œ¥¹±¥¹”…ÑÑÉ¥‰ÕÑ•Ì¤(€€€€€€´í¡•¥¡ĞôˆÄÀÀ”‰ô•ÑŒ¸€€¡Á…¹‘½Œ¥µ…”…ÑÑÉ¥‰ÕÑ•Ì¤(€€€€€€´mÑ•áÑt¡™¥±”¹á¡Ñµ°¤€ƒŠHÑ•áĞ€€¡AU¥¹Ñ•É¹…°±¥¹­Ì¤(€€€€€€´€´´´´´€Ñ…‰±”Í•Á…É…Ñ½ÉÌ€ƒŠHğ´´µğ€€¡Á…¹‘½ŒÁ¥Á”Ñ…‰±”™½Éµ…Ğ¤(€€€€€€´€ñ•µÁÑäµ±¥¹”¼ø€ƒŠH‰±…¹¬±¥¹”€€¡Èa50É•Í¥‘Õ”¤(€€€€ˆˆˆ(€€€ÍÑ…ÑÌ€ôíô(€€€½É¥¥¹…±}±•¸€ô±•¸¡Ñ•áĞ¤((€€€€Œ€èèè™¸Ä€¼€èèè‰±¬Ä€¼€èèè€€¡Á…¹‘½Œ‘¥Øµ…É­•ÉÌƒŠPİ¡½±”±¥¹”¤(€€€¹}‘¥Ø€ô±•¸¡É”¹™¥¹‘…±°¡È‰xèèèqÜ­qÌ¨ˆ°Ñ•áĞ°É”¹5U1Q%1%9¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰xèèèqÜ­qÌ¨‘q¸ˆ°€ˆˆ°Ñ•áĞ°™±…ÌõÉ”¹5U1Q%1%9¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰xèèéqÌ¨‘q¸ˆ°€ˆˆ°Ñ•áĞ°™±…ÌõÉ”¹5U1Q%1%9¤((€€€€ŒmuìÁ…•}áááô€¼muìÁ…•Ìµáááô€€¡Á…¹‘½Œ…¹¡½Èµ…É­•ÉÌ¤(€€€¹}…¹¡½È€ô±•¸¡É”¹™¥¹‘…±°¡È‰qmquqìÁ…•Ìü´ıqÜ©qôˆ°Ñ•áĞ¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰qmquqìÁ…•Ìü´ıqÜ©qôˆ°€ˆˆ°Ñ•áĞ¤((€€€€Œì¹Íµ…±±ô€¼ì¹‘É½Á…Áô€¼ì¹½±ô€¼ì¹Õ¹¹Õµ‰•É•‘ô€¼ì¥‘ô•ÑŒ¸€€¡Á…¹‘½Œ…ÑÑÉÌ¤(€€€€Œ5…Ñ¡•Ìì¹±…ÍÍôì¥‘ôí­•äô‰Ù…°‰ô…¹½µ‰¥¹…Ñ¥½¹Ì±¥­”ì¹Íµ…±°€¹½±ô(€€€€ŒÙ•ÉäÑ½­•¸5UMPÍÑ…ÉĞİ¥Ñ €¸€¡±…ÍÌ¤½È€Œ€¡¥¤°½È‰”„­•äô‰Ù…°ˆÁ…¥ÈƒŠP(€€€€Œ„‰…É”í…ÉÉ…åô€¼íÉô€¼ìÅô¥Ì9YH„Á…¹‘½Œ…ÑÑÈ€¡Ñ¡½Í”…É”µ…Ñ …ÉÌ¤°(€€€€Œ…¹µ…Ñ¡¥¹œÑ¡•´‘•ÍÑÉ½åÌqµ…Ñ¡Éµíô°q™É…ìÅõìÉô°q‰•¥¹í…ÉÉ…åõíÉô°•ÑŒ¸(€€€}A9=}QQH€ô€ (€€€€€€€È‰qì üélŒ¹umqÜèµt­ñqÜ¬õp‰myp‰t©pˆ¤ˆ(€€€€€€€Èˆ üéqÌ¬ üélŒ¹umqÜèµt­ñqÜ¬õp‰myp‰t©pˆ¤¤©qôˆ(€€€€¤(€€€¹}…ÑÑÈ€ô±•¸¡É”¹™¥¹‘…±°¡}A9=}QQH°Ñ•áĞ¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡}A9=}QQH°€ˆˆ°Ñ•áĞ¤((€€€€Œí¡•¥¡ĞôˆÄÀÀ”‰ô€¼íİ¥‘Ñ ôˆÔÀ”‰ô€€¡¥µ…”…ÑÑÉ¥‰ÕÑ•ÌƒŠPµ½É”ÍÁ•¥™¥Œ¤(€€€¹}¥µ…ÑÑÈ€ô±•¸¡É”¹™¥¹‘…±°¡Èqì¡¡•¥¡Ññİ¥‘Ñ¡ñ¥‘ñÑ¥Ñ±•ñ…±¥¸¤ô‰mx‰t¨‰qôœ°Ñ•áĞ¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡Èqì¡¡•¥¡Ññİ¥‘Ñ¡ñ¥‘ñÑ¥Ñ±•ñ…±¥¸¤ô‰mx‰t¨‰qôœ°€ˆˆ°Ñ•áĞ¤((€€€€ŒmÑ•áÑt¡™¥±”¹á¡Ñµ°¤€ƒŠHÑ•áĞ€€¡AU¥¹Ñ•É¹…°±¥¹­ÌƒŠPÍÑÉ¥À€¹á¡Ñµ°É•™Ì¤(€€€¹}á¡Ñµ°€ô±•¸¡É”¹™¥¹‘…±°¡È‰qup¡mx¥t­p¹á¡Ñµ±mx¥t©p¤ˆ°Ñ•áĞ¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰ql¡myqut¨¥qup¡mx¥t­p¹á¡Ñµ±mx¥t©p¤ˆ°È‰pÄˆ°Ñ•áĞ¤((€€€€Œ€´´´´´€Ñ…‰±”Í•Á…É…Ñ½ÉÌ€ƒŠHğ´´µğ€€¡Á…¹‘½Œ±¥¹”µÑ…‰±”™½Éµ…Ğ¤(€€€¹}‘…Í €ô±•¸¡É”¹™¥¹‘…±°¡È‰yqÌ¨µìÔ±õqÌ¨ˆ°Ñ•áĞ°É”¹5U1Q%1%9¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰x¡qÌ¨¤µìÔ±ô¡qÌ¨¤ˆ°È‰pÅğ´´µñpÈˆ°Ñ•áĞ°™±…ÌõÉ”¹5U1Q%1%9¤((€€€€Œ€ñ•µÁÑäµ±¥¹”¼ø€ƒŠH‰±…¹¬±¥¹”€€¡Èa50É•Í¥‘Õ”¥˜…¹ä±•…­•Ñ¡É½Õ ¤(€€€¹}•µÁÑå±¥¹”€ô±•¸¡É”¹™¥¹‘…±°¡Èˆñ•µÁÑäµ±¥¹”¼øˆ°Ñ•áĞ¤¤(€€€Ñ•áĞ€ôÑ•áĞ¹É•Á±…” ˆñ•µÁÑäµ±¥¹”¼øˆ°€ˆˆ¤((€€€É•µ½Ù•€ô½É¥¥¹…±}±•¸€´±•¸¡Ñ•áĞ¤(€€€¥˜É•µ½Ù•€ø€À½È¹}‘¥Ø½È¹}…¹¡½È½È¹}…ÑÑÈ½È¹}¥µ…ÑÑÈ½È¹}á¡Ñµ°½È¹}‘…Í ½È¹}•µÁÑå±¥¹”è(€€€€€€€ÍÑ…ÑÍl‰Á…¹‘½}É•Í¥‘Õ”‰t€ôì(€€€€€€€€€€€€‰‘¥ÙÌˆè¹}‘¥Ø°€‰…¹¡½ÉÌˆè¹}…¹¡½È°€‰…ÑÑÉÌˆè¹}…ÑÑÈ°(€€€€€€€€€€€€‰¥µ}…ÑÑÉÌˆè¹}¥µ…ÑÑÈ°€‰á¡Ñµ±}±¥¹­Ìˆè¹}á¡Ñµ°°(€€€€€€€€€€€€‰‘…Í¡}Ñ…‰±•Ìˆè¹}‘…Í °€‰™ˆÉ}•µÁÑå±¥¹”ˆè¹}•µÁÑå±¥¹”°(€€€€€€€ô(€€€É•ÑÕÉ¸Ñ•áĞ°ÍÑ…ÑÌ(()‘•˜™¥á}µ…Ñ¡}‘•±¥µ¥Ñ•ÉÌ¡Ñ•áĞèÍÑÈ¤è(€€€€ˆˆ‰I•Á…¥Èµ…±™½Éµ•€‘•±¥µ¥Ñ•ÉÌÑ¡…ĞİÉ…À¡¥¹•Í”ÁÉ½Í”¸((€€€Qİ¼½ÉÉÕÁÑ¥½¸Á…ÑÑ•É¹Ì™É½´114ÑÉ…¹Í±…Ñ¥½¸½ÕÑÁÕĞè(€€€€€€Ä¸‘©…•¹Ğ¥¹±¥¹”µ…Ñ ±¥­”€‘}ìÅô ¸¸¸¥€É•…Ñ•Ì„™…±Í”€Á…¥È(€€€€€€€€Ñ¡…ĞİÉ…ÁÌ¡¥¹•Í”‰½‘äÑ•áĞ‰•Ñİ••¸Ñ¡•´¸(€€€€€€È¸=‘€½Õ¹Ğ€¡½ÉÁ¡…¹•‘•±¥µ¥Ñ•È¤™É½´¡Õ¹­¥¹œ…ÉÑ¥™…ÑÌ¸((€€€MÑÉ…Ñ•äè(€€€€€€´½È•… €¸¸¸‰±½¬°¡•¬¥˜Ñ¡”½¹Ñ•¹Ğ¡…Ì¡¥¹•Í”ÁÕ¹ÑÕ…Ñ¥½¸(€€€€€€€€£¾ò3¾òo¾òk¾ò¾ò¤½È€øÄÀ),¡…ÉÌ…™Ñ•ÈÍÑÉ¥ÁÁ¥¹œ1…Q•`½µµ…¹‘Ì¸(€€€€€€€%˜Í¼°¥ĞÌÁÉ½Í—¢¾¿–2ƒŠPÉ•Á±…”Ñ¡”€‘•±¥µ¥Ñ•ÉÌİ¥Ñ €€¡¥¹±¥¹”µ…Ñ ¤¸(€€€€€€´%˜€½Õ¹Ğ¥Ì½‘°É•µ½Ù”Ñ¡”±…ÍĞ½ÉÁ¡…¸€¸(€€€€ˆˆˆ(€€€ÍÑ…ÑÌ€ôíô(€€€™¥á•Ì€ô€À((€€€€ŒA…ÑÑ•É¸€Äè€‰±½­Ì½¹Ñ…¥¹¥¹œ¡¥¹•Í”ÁÉ½Í”ƒŠH‘•µ½Ñ”Ñ¼¥¹±¥¹”€(€€€‘•˜¡•­}…¹‘}‘•µ½Ñ”¡´¤è(€€€€€€€¹½¹±½…°™¥á•Ì(€€€€€€€‰±½¬€ô´¹É½ÕÀ Ä¤(€€€€€€€€ŒMÑÉ¥À1…Q•`½µµ…¹‘ÌÑ¼Í•”¥˜Ñ¡•É”ÌÉ…Ü¡¥¹•Í”ÁÉ½Í”(€€€€€€€ÍÑÉ¥ÁÁ•€ôÉ”¹ÍÕˆ¡È‰qqm„µéµit­qímyõt©qôˆ°€ˆˆ°‰±½¬¤(€€€€€€€ÍÑÉ¥ÁÁ•€ôÉ”¹ÍÕˆ¡È‰qqm„µéµit¬ˆ°€ˆˆ°ÍÑÉ¥ÁÁ•¤(€€€€€€€¡…Í}¹}ÁÕ¹Ğ€ô‰½½°¡É”¹Í•…É ¡È‰o¾ò3¾òo¾òk¾ò¾òtˆ°ÍÑÉ¥ÁÁ•¤¤(€€€€€€€¹}½Õ¹Ğ€ô±•¸¡É”¹™¥¹‘…±°¡È‰o’â ·¦şıtˆ°ÍÑÉ¥ÁÁ•¤¤(€€€€€€€¥˜¡…Í}¹}ÁÕ¹Ğ½È¹}½Õ¹Ğ€ø€ÄÀè(€€€€€€€€€€€€ŒQ¡¥Ì¥ÌÁÉ½Í—¢¾¿–2¥¸µ…Ñ ƒŠP‘•µ½Ñ”€Ñ¼€Í¼¥ĞÉ•¹‘•ÉÌ…Ì¥¹±¥¹”(€€€€€€€€€€€™¥á•Ì€¬ô€Ä(€€€€€€€€€€€É•ÑÕÉ¸˜ˆ‘í‰±½­ôˆ(€€€€€€€É•ÑÕÉ¸´¹É½ÕÀ À¤((€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰p‘p ¸¬ü¥p‘pˆ°¡•­}…¹‘}‘•µ½Ñ”°Ñ•áĞ°™±…ÌõÉ”¹=Q10¤((€€€€ŒA…ÑÑ•É¸€Èè½‘€½Õ¹ĞƒŠPÉ•µ½Ù”Ñ¡”±…ÍĞ½ÉÁ¡…¸€(€€€½Õ¹Ğ€ôÑ•áĞ¹½Õ¹Ğ ˆˆ¤(€€€¥˜½Õ¹Ğ€”€È€ôô€Äè(€€€€€€€€Œ¥¹Ñ¡”±…ÍĞ€…¹É•µ½Ù”¥Ğ(€€€€€€€±…ÍÑ}Á½Ì€ôÑ•áĞ¹É™¥¹ ˆˆ¤(€€€€€€€Ñ•áĞ€ôÑ•áÑlé±…ÍÑ}Á½Ít€¬Ñ•áÑm±…ÍÑ}Á½Ì€¬€Èét(€€€€€€€™¥á•Ì€¬ô€Ä((€€€¥˜™¥á•Ìè(€€€€€€€ÍÑ…ÑÍl‰µ…Ñ¡}‘•±¥µ¥Ñ•É}™¥à‰t€ô™¥á•Ì(€€€É•ÑÕÉ¸Ñ•áĞ°ÍÑ…ÑÌ(((ŒƒŠRŠR 5…¥¸±•…¸™Õ¹Ñ¥½¸ƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR )‘•˜±•…¸¡½¹Ñ•¹Ğ¤è(€€€€ˆˆ‰Õ±°±•…¹¥¹œÁ¥Á•±¥¹”¸I•ÑÕÉ¹Ì€¡±•…¹•‘}½¹Ñ•¹Ğ°ÍÑ…ÑÍ}‘¥Ğ¤¸ˆˆˆ(€€€±¥¹•Ì€ô½¹Ñ•¹Ğ¹ÍÁ±¥Ğ ‰q¸ˆ¤((€€€€ŒMÑ…”€Äè¹½¥Í”É•µ½Ù…°(€€€±¥¹•Ì°¹½¥Í•}ÍÑ…ÑÌ€ôÉ•µ½Ù•}¹½¥Í”¡±¥¹•Ì¤((€€€€ŒMÑ…”€ÅŒèÍ•Á…É…Ñ”½¹Í•ÕÑ¥Ù”É•™•É•¹”•¹ÑÉ¥•Ìİ¥Ñ ‰±…¹¬±¥¹•Ì(€€€€Œ5¥¹•ÉT½™Ñ•¸ÁÉ½‘Õ•Ì½¹Í•ÕÑ¥Ù”m9t±¥¹•Ìİ¥Ñ¡½ÕĞ‰±…¹¬±¥¹”Í•Á…É…Ñ¥½¸°(€€€€Œ…ÕÍ¥¹œ5…É­‘½İ¸Ñ¼É•¹‘•ÈÑ¡•´…Ì„Í¥¹±”Á…É…É…Á ¸(€€€É•™}±¥¹•}½Õ¹Ğ€ô€À(€€€É•™}Í•Á}±¥¹•Ì€ômt(€€€™½È±¥¹”¥¸±¥¹•Ìè(€€€€€€€¥Í}É•˜€ô‰½½°¡É”¹µ…Ñ ¡È‰yqmq­qtˆ°±¥¹”¹ÍÑÉ¥À ¤¤¤(€€€€€€€¥˜¥Í}É•˜…¹É•™}Í•Á}±¥¹•Ì…¹É”¹µ…Ñ ¡È‰yqmq­qtˆ°É•™}Í•Á}±¥¹•Íl´Åt¹ÍÑÉ¥À ¤¤è(€€€€€€€€€€€É•™}Í•Á}±¥¹•Ì¹…ÁÁ•¹ ˆˆ¤(€€€€€€€€€€€É•™}±¥¹•}½Õ¹Ğ€¬ô€Ä(€€€€€€€É•™}Í•Á}±¥¹•Ì¹…ÁÁ•¹¡±¥¹”¤(€€€¥˜É•™}±¥¹•}½Õ¹Ğè(€€€€€€€±¥¹•Ì€ôÉ•™}Í•Á}±¥¹•Ì(€€€€€€€¹½¥Í•}ÍÑ…ÑÍl‰É•™}Í•À‰t€ôÉ•™}±¥¹•}½Õ¹Ğ((€€€Ñ•áĞ€ô€‰q¸ˆ¹©½¥¸¡±¥¹•Ì¤((€€€€ŒMÑ…”€Åˆè5¥¹•ÉTq‰•¥¹í…ÉÉ…åô½ÉÉÕÁÑ¥½¸É•Á…¥È(€€€€Œ5UMPÉÕ¸‰•™½É”Á…¹‘½ŒÉ•Í¥‘Õ”É•µ½Ù…°€¡MÑ…”€Å”¤…¹µ…Ñ µÉ•¥½¸É•Á…¥È(€€€€Œ€¡MÑ…”€È¤èÑ¡”‰…É”½±ÍÁ•Ìq‰•¥¹íÉô€¼íÈ°Éô±½½¬±¥­”Á…¹‘½Œ…ÑÑÉÌ(€€€€Œ…¹İ½Õ±‰”ÍÑÉ¥ÁÁ•ì…¹Ñ¡”É•Á…¥ÈÍÁ…¹Ìİ¡½±”±¥¹•Ì°¹½Ğ©ÕÍĞµ…Ñ ¸(€€€Ñ•áĞ°…ÉÉ…å}ÍÑ…ÑÌ€ô™¥á}µ¥¹•ÉÕ}…ÉÉ…å}½ÉÉÕÁÑ¥½¸¡Ñ•áĞ¤((€€€€ŒMÑ…”€ÅŒè‰½½¬µ¥ÍŒ€¡‰Õ±±•ÑÌ°‰½½¬™½½Ñ¹½Ñ•Ì¤(€€€Ñ•áĞ°‰½½­}ÍÑ…ÑÌ€ô™¥á}‰½½­}µ¥ÍŒ¡Ñ•áĞ¤((€€€€ŒMÑ…”€Åè5¥¹•ÉT€ñ‘¥Ø±…ÍÌô‰µ¥¹•ÉÔµ…±½É¥Ñ¡´ˆøƒŠHµ…Ñ±…ˆ½‘”‰±½­Ì(€€€Ñ•áĞ°‘¥Ù}ÍÑ…ÑÌ€ô™¥á}µ¥¹•ÉÕ}‘¥ÙÌ¡Ñ•áĞ¤((€€€€ŒMÑ…”€ÅÈè!Q50Ñ…œÉ•Í¥‘Õ”ƒŠP€ñÑ…‰±”ø°€ñÍÕÀø°€ñÍÕˆø°•µÁÑä½µµ•¹ÑÌ(€€€Ñ•áĞ°¡Ñµ±}ÍÑ…ÑÌ€ô™¥á}¡Ñµ±}Ñ…Ì¡Ñ•áĞ¤((€€€€ŒMÑ…”€Å”èÁ…¹‘½ŒAUÉ•Í¥‘Õ”€¬Èa50É•Í¥‘Õ”(€€€Ñ•áĞ°Á…¹‘½}ÍÑ…ÑÌ€ô™¥á}Á…¹‘½}É•Í¥‘Õ”¡Ñ•áĞ¤((€€€€ŒMÑ…”€Å˜èÉ•Á…¥Èµ…±™½Éµ•€‘•±¥µ¥Ñ•ÉÌ€¡¡¥¹•Í”ÁÉ½Í—¢¾¿–2€¬½ÉÁ¡…¸€¤(€€€Ñ•áĞ°‘•±¥µ}ÍÑ…ÑÌ€ô™¥á}µ…Ñ¡}‘•±¥µ¥Ñ•ÉÌ¡Ñ•áĞ¤((€€€€ŒMÑ…”€Åœè¹½Éµ…±¥é”1…Q•`‘•±¥µ¥Ñ•ÉÌƒŠPp ¸¸¹p¤ƒŠH€¸¸¸°ql¸¸¹qtƒŠH€¸¸¸(€€€€Œ-…Q•`½¹±äÉ•¹‘•ÉÌ€…¹€¸5¥¹•ÉTÍ½µ•Ñ¥µ•Ì•µ¥ÑÌp¡p¤€¼qmqt•ÍÁ•¥…±±ä(€€€€Œ¥¸…ÁÁ•¹‘¥•Ì…¹ÍÕÁÁ±•µ•¹Ñ…Éäµ…Ñ•É¥…°İ¡•É”Ñ¡”ÑÉ…¹Í±…Ñ½Èµ½‘•°(€€€€ŒÕÍ•Ì‘¥™™•É•¹Ğ½¹Ù•¹Ñ¥½¹Ì™½È¥¹±¥¹”ÙÌ‘¥ÍÁ±…äµ…Ñ ¸(€€€¹}¥¹±¥¹•}‘•±¥´€ô±•¸¡É”¹™¥¹‘…±°¡È‰qqp¡ñqqp¤ˆ°Ñ•áĞ¤¤(€€€¹}‘¥ÍÁ±…å}‘•±¥´€ô±•¸¡É”¹™¥¹‘…±°¡È‰qqqmñqqqtˆ°Ñ•áĞ¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰qqp  ¸¨ü¥qqp¤ˆ°Èˆ‘pÄˆ°Ñ•áĞ°™±…ÌõÉ”¹=Q10¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰qqql ¸¨ü¥qqqtˆ°Èˆ‘pÄˆ°Ñ•áĞ°™±…ÌõÉ”¹=Q10¤(€€€¥˜¹}¥¹±¥¹•}‘•±¥´½È¹}‘¥ÍÁ±…å}‘•±¥´è(€€€€€€€‘•±¥µ}ÍÑ…ÑÍl‰™¥á}±…Ñ•á}‘•±¥µ¥Ñ•ÉÌ‰t€ôì‰¥¹±¥¹•}Á…¥ÉÌˆè¹}¥¹±¥¹•}‘•±¥´€¼¼€È°(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€‰‘¥ÍÁ±…å}Á…¥ÉÌˆè¹}‘¥ÍÁ±…å}‘•±¥´€¼¼€Éô((€€€€ŒMÑ…”€Èè1…Q•`É•Á…¥È€¡Í½Á•Ñ¼µ…Ñ É•¥½¹Ì¤(€€€¥¹±¥¹•}‰•™½É”€ô±•¸¡É”¹™¥¹‘…±°¡È‰p‘mx‘q¹t¬ıpˆ°Ñ•áĞ¤¤(€€€‘¥ÍÁ±…å}‰•™½É”€ô±•¸¡É”¹™¥¹‘…±°¡È‰p‘pˆ°Ñ•áĞ¤¤€¼¼€È(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰p‘p¡mqÍqMt¨ü¥p‘pˆ°±…µ‰‘„´è™¥á}µ…Ñ¡}Í¥µÁ±”¡´°€ˆˆ¤°Ñ•áĞ¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰p¡mx‘q¹t¬ü¥pˆ°±…µ‰‘„´è™¥á}µ…Ñ¡}Í¥µÁ±”¡´°€ˆˆ¤°Ñ•áĞ¤((€€€€ŒMÑ…”€ÉˆèÁÍ•Õ‘¼µ¡•…‘¥¹œ‘•Ñ•Ñ¥½¸€¡AƒšVÃ–¶_ò[–>ß’ò«š‚¦Š`ƒŠH€ŒŒƒš‚¦Š`¤(€€€€Œƒ–ş¦†ï–r ™¥á}¡•…‘¥¹}¡¥•É…É¡äƒ’æ/–&7¾òk–#¢†”€ŒŒƒ–&7ò¾ò1A…ÍÌ€Èƒ–7š2'
+çšVÃ¦f7êŸ(€€€Ñ•áĞ°ÁÍ•Õ‘½}ÍÑ…ÑÌ€ô™¥á}ÁÍ•Õ‘½}¡•…‘¥¹Ì¡Ñ•áĞ¤((€€€€ŒMÑ…”€Ìè¡•…‘¥¹œ¡¥•É…É¡ä(€€€Ñ•áĞ°¡•…‘¥¹}ÍÑ…ÑÌ€ô™¥á}¡•…‘¥¹}¡¥•É…É¡ä¡Ñ•áĞ¤((€€€€ŒMÑ…”€Ğè™¥ÕÉ”…ÁÑ¥½¸Á…¥É¥¹œ(€€€Ñ•áĞ°™¥}ÍÑ…ÑÌ€ôÁ…¥É}™¥ÕÉ•Ì¡Ñ•áĞ¤((€€€€ŒMÑ…”€Ñˆè‰±…¹¬±¥¹”‰•Ñİ••¸¥µ…”É•™•É•¹•Ì…¹íìğ…ÁÑ¥½¸€ùõôÍ¡½ÉÑ½‘•Ì(€€€Ñ•áĞ°ÍÁ…¥¹}ÍÑ…ÑÌ€ô™¥á}¥µ…•}…ÁÑ¥½¹}ÍÁ…¥¹œ¡Ñ•áĞ¤((€€€€ŒMÑ…”€Ôè½±±…ÁÍ”€Ì¬‰±…¹¬±¥¹•Ì(€€€‰•™½É•}‰±…¹­Ì€ô±•¸¡É”¹™¥¹‘…±°¡È‰q¹ìĞ±ôˆ°Ñ•áĞ¤¤(€€€Ñ•áĞ€ôÉ”¹ÍÕˆ¡È‰q¹ìĞ±ôˆ°€‰q¹q¹q¸ˆ°Ñ•áĞ¤((€€€€ŒMÑ…”€ØèÑÉ…¥±¥¹œİ¡¥Ñ•ÍÁ…”(€€€Ñ•áĞ€ô€‰q¸ˆ¹©½¥¸¡°¹ÉÍÑÉ¥À ¤™½È°¥¸Ñ•áĞ¹ÍÁ±¥Ğ ‰q¸ˆ¤¤((€€€ÍÑ…ÑÌ€ôì¨©¹½¥Í•}ÍÑ…ÑÌ°€¨©‰½½­}ÍÑ…ÑÌ°€¨©‘¥Ù}ÍÑ…ÑÌ°€¨©¡Ñµ±}ÍÑ…ÑÌ°€¨©Á…¹‘½}ÍÑ…ÑÌ°€¨©‘•±¥µ}ÍÑ…ÑÌ°€¨©…ÉÉ…å}ÍÑ…ÑÌ°€¨©¡•…‘¥¹}ÍÑ…ÑÌ°€¨©™¥}ÍÑ…ÑÌ°€¨©ÍÁ…¥¹}ÍÑ…ÑÌ°€¨©ÁÍ•Õ‘½}ÍÑ…ÑÍô(€€€ÍÑ…ÑÍl‰µ…Ñ¡}É•¥½¹Ì‰t€ô¥¹±¥¹•}‰•™½É”€¬‘¥ÍÁ±…å}‰•™½É”(€€€¥˜‰•™½É•}‰±…¹­Ìè(€€€€€€€ÍÑ…ÑÍl‰‰±…¹­}½±±…ÁÍ”‰t€ô‰•™½É•}‰±…¹­Ì((€€€É•ÑÕÉ¸Ñ•áĞ°ÍÑ…ÑÌ(()‘•˜µ…¥¸ ¤è(€€€…À€ô…ÉÁ…ÉÍ”¹ÉÕµ•¹ÑA…ÉÍ•È¡‘•ÍÉ¥ÁÑ¥½¸ô‰±•…¸5¥¹•ÉT½Á…¹‘½Œµ…É­‘½İ¸€¡‰½½¬€¬Á…Á•È¤¸ˆ¤(€€€…À¹…‘‘}…ÉÕµ•¹Ğ ‰µ‘}Á…Ñ ˆ°¡•±Àô‰Á…Ñ Ñ¼µ…É­‘½İ¸™¥±”ˆ¤(€€€…À¹…‘‘}…ÉÕµ•¹Ğ ˆ´µ‘ÉäµÉÕ¸ˆ°…Ñ¥½¸ô‰ÍÑ½É•}ÑÉÕ”ˆ°¡•±Àô‰ÁÉ•Ù¥•Üİ¥Ñ¡½ÕĞİÉ¥Ñ¥¹œˆ¤(€€€…ÉÌ€ô…À¹Á…ÉÍ•}…ÉÌ ¤((€€€¥˜¹½Ğ½Ì¹Á…Ñ ¹¥Í™¥±”¡…ÉÌ¹µ‘}Á…Ñ ¤è(€€€€€€€ÁÉ¥¹Ğ¡˜‰ÉÉ½Èèí…ÉÌ¹µ‘}Á…Ñ¡ô¹½Ğ™½Õ¹ˆ°™¥±”õÍåÌ¹ÍÑ‘•ÉÈ¤(€€€€€€€É•ÑÕÉ¸€Ä((€€€İ¥Ñ ½Á•¸¡…ÉÌ¹µ‘}Á…Ñ °•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€½¹Ñ•¹Ğ€ô˜¹É•… ¤((€€€±•…¹•°ÍÑ…ÑÌ€ô±•…¸¡½¹Ñ•¹Ğ¤(€€€Ñ½Ñ…°€ôÍÕ´¡Ø™½ÈØ¥¸ÍÑ…ÑÌ¹Ù…±Õ•Ì ¤¥˜¥Í¥¹ÍÑ…¹”¡Ø°¥¹Ğ¤¤(€€€‘•Ñ…¥°€ô€ˆ°€ˆ¹©½¥¸¡˜‰í­ôéíÙôˆ™½È¬°Ø¥¸Í½ÉÑ•¡ÍÑ…ÑÌ¹¥Ñ•µÌ ¤¤¤((€€€¥˜¹½Ğ…ÉÌ¹‘Éå}ÉÕ¸è(€€€€€€€İ¥Ñ ½Á•¸¡…ÉÌ¹µ‘}Á…Ñ °€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€˜¹İÉ¥Ñ”¡±•…¹•¤(€€€€€€€ÁÉ¥¹Ğ¡˜‹ŠrLí½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡…ÉÌ¹µ‘}Á…Ñ ¥ôèí‘•Ñ…¥±ôˆ¤(€€€•±Í”è(€€€€€€€ÁÉ¥¹Ğ¡˜‰m‘ÉäµÉÕ¹tí½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡…ÉÌ¹µ‘}Á…Ñ ¥ôèí‘•Ñ…¥±ôˆ¤((€€€É•ÑÕÉ¸€À(()¥˜}}¹…µ•}|€ôô€‰}}µ…¥¹}|ˆè(€€€ÍåÌ¹•á¥Ğ¡µ…¥¸ ¤¤

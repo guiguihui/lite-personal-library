@@ -46,7 +46,7 @@ def validate_file(path, all_files=None):
     issues = []
     fname = os.path.basename(path)
 
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         content = f.read()
         lines = content.splitlines()
 

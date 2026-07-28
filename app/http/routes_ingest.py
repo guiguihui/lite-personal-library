@@ -21,12 +21,13 @@ from fastapi import APIRouter, HTTPException, Request
 from app.http.schemas import (
     IngestExtractRequest,
     IngestFullRequest,
+    IngestRecleanRequest,
     IngestResponse,
     IngestTranslateRequest,
     IngestValidateRequest,
     JobStatus,
 )
-from app.ingest.jobs import create_job, get_job, list_jobs
+from app.ingest.jobs import create_job, get_job, list_jobs, update_job
 from app.ingest.pipeline import run_pipeline
 
 router = APIRouter(prefix="/api/ingest", tags=["ingest"])
@@ -40,6 +41,46 @@ def _start_pipeline_thread(job_id: str, request: Request) -> None:
         args=(job_id, cfg),
         daemon=True,
         name=f"ingest-{job_id}",
+    )
+    t.start()
+
+
+def _run_reclean_thread(job_id: str, cfg) -> None:
+    """后台线程:对已入库书重跑 clean + 触发增量 build。
+
+    不走 run_pipeline(reclean 不是 stage 流水线),直接调 run_reclean。
+    build 用 start_build 后台触发(不阻塞),与 pipeline 收尾一致。
+    """
+    from app.ingest.clean_adapter import run_reclean
+    from app.ingest.jobs import get_job as _get_job
+    from app.index.status import start_build
+
+    job = _get_job(job_id)
+    if job is None:
+        return
+    try:
+        result = run_reclean(job, cfg)
+        # 触发增量 build(content/ 文件 MD5 变 → 增量检测 → 重建索引)
+        try:
+            start_build("incremental", cfg.content_dir, cfg.pageindex_dir, "")
+        except Exception as exc:  # noqa: BLE001 — build 失败不影响 reclean 结果
+            from app.ingest.jobs import append_log
+            append_log(job_id, f"[reclean] build trigger failed: {exc}")
+        update_job(job_id, status="done", result=result)
+    except Exception as exc:  # noqa: BLE001
+        from app.ingest.jobs import append_log
+        append_log(job_id, f"[reclean] failed: {exc}")
+        update_job(job_id, status="failed", result={"error": str(exc)})
+
+
+def _start_reclean_thread(job_id: str, request: Request) -> None:
+    """启动后台线程跑 reclean。"""
+    cfg = request.app.state.app_config
+    t = threading.Thread(
+        target=_run_reclean_thread,
+        args=(job_id, cfg),
+        daemon=True,
+        name=f"reclean-{job_id}",
     )
     t.start()
 
@@ -115,9 +156,32 @@ async def full_endpoint(body: IngestFullRequest, request: Request) -> IngestResp
         pages=body.pages,
         strategy=body.strategy,
         stages=body.stages,
+        title=body.title,
+        author=body.author,
+        tags=body.tags,
     )
     job_id = create_job(extract_req)
     _start_pipeline_thread(job_id, request)
+    return IngestResponse(job_id=job_id, status="running")
+
+
+@router.post("/reclean", response_model=IngestResponse)
+async def reclean_endpoint(body: IngestRecleanRequest, request: Request) -> IngestResponse:
+    """对已入库书重跑 clean 阶段(修复伪标题等)。
+
+    直接对 content/ 下的正文文件跑 clean_markdown.clean(),写回,
+    触发增量 build(MD5 变 → 重建索引)。用于已入库但标题层级有问题的书。
+    """
+    extract_req = IngestExtractRequest(
+        input_pdf="",
+        doc_type=body.doc_type,
+        slug=body.slug,
+        pages=None,
+        strategy=None,
+        stages=("reclean",),  # 标记为 reclean 任务(不走 pipeline stage 路由)
+    )
+    job_id = create_job(extract_req)
+    _start_reclean_thread(job_id, request)
     return IngestResponse(job_id=job_id, status="running")
 
 

@@ -46,6 +46,8 @@
           api_key: '',
           remember_key: data.remember_key || false,
           use_llm_proxy: data.use_llm_proxy || false,
+          protocol: pcfg.protocol || 'auto',
+          pathMode: pcfg.path_mode || 'auto',
           _providers: data.providers || {},
           _has_key: !!pcfg.has_key
         };
@@ -62,6 +64,8 @@
       if (key === 'provider') return this._cache.provider || '';
       if (key === 'model') return this._cache.model || '';
       if (key === 'base_url') return this._cache.base_url || '';
+      if (key === 'protocol') return this._cache.protocol || 'auto';
+      if (key === 'pathMode') return this._cache.pathMode || 'auto';
       return this._cache[key] || '';
     },
 
@@ -106,7 +110,14 @@
       var model = this.get('model');
       var baseUrl = this.get('base_url');
       var apiKey = this.get('api_key');
-      return { provider: p, model: model, baseUrl: baseUrl, apiKey: apiKey };
+      return {
+        provider: p,
+        model: model,
+        baseUrl: baseUrl,
+        apiKey: apiKey,
+        protocol: this.get('protocol'),
+        pathMode: this.get('pathMode')
+      };
     }
   };
 

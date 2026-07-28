@@ -173,18 +173,61 @@
     });
   }
 
+  // ── 剪贴板复制(WebView2 navigator.clipboard + execCommand 兜底) ───────
+  // 用户要复制报错给 AI 助手,需兼容非安全上下文(本地 origin 可能无
+  // navigator.clipboard)。execCommand 兜底在用户点击的同步调用栈内(onClick)。
+  function copyToClipboardFallback(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function copyLogToClipboard(text) {
+    var done = function () {
+      if (window.LqdToast) window.LqdToast.show({ message: '日志已复制到剪贴板', type: 'success', duration: 3000 });
+    };
+    var fail = function (err) {
+      if (window.LqdToast) {
+        window.LqdToast.show({ message: '复制失败:' + (err && err.message ? err.message : '未知错误'), type: 'error', duration: 5000 });
+      }
+    };
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text).then(done, function (e) {
+        if (copyToClipboardFallback(text)) done();
+        else fail(e);
+      });
+    } else if (copyToClipboardFallback(text)) {
+      done();
+    } else {
+      fail(new Error('剪贴板不可用'));
+    }
+  }
+
   function showLog(id) {
     var item = window.YuuUploadQueue.get(id);
     if (!item) return;
+    var rawText = item.log.join('\n');  // 未转义纯文本,供复制(显示用 escapeHtml 后的)
     var lines = item.log.map(function (l) { return escapeHtml(l); }).join('\n');
     if (window.LqdModal) {
       window.LqdModal.alert({
         title: '上传日志',
         message: '<pre class="lqd-log-viewer">' + lines + '</pre>',
-        confirmLabel: '关闭'
+        confirmLabel: '关闭',
+        extraActions: [{ label: '复制日志', onClick: function () { copyLogToClipboard(rawText); } }]
       });
     } else {
-      alert('日志:\n' + lines);
+      alert('日志:\n' + rawText);
     }
   }
 
@@ -301,16 +344,23 @@
   }
 
   // ── 文件选择(pywebview 原生对话框优先) ────────────────────────────────
+  // 防重入:pywebview 的 create_file_dialog 是阻塞调用,await 期间若用户
+  // 再点按钮(或事件累积),会弹多个对话框"关一个又弹一个"。用锁串行化。
+  var _chooseFilesInFlight = false;
   async function chooseFiles() {
+    if (_chooseFilesInFlight) return;
     // 优先用 pywebview 原生对话框(返回真实路径)
     if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_files) {
+      _chooseFilesInFlight = true;
       try {
         var paths = await window.pywebview.api.choose_files();
         if (paths && paths.length) {
           handleFiles(null, paths);
           return;
         }
-      } catch (_) { /* 降级到 input */ }
+      } catch (_) { /* 降级到 input */ } finally {
+        _chooseFilesInFlight = false;
+      }
     }
     // 降级:浏览器 input(只给文件名,路径占位)
     var input = $('lqd-upload-input');
@@ -321,6 +371,13 @@
   function init(container) {
     renderSkeleton(container);
     state.els.container = container;
+    // 幂等:切 tab 回来时 container 是新 DOM,但若同一容器已绑过事件则跳过
+    // (防止 addEventListener 累积导致点一次弹多个对话框)
+    if (state.initialized && state.els._boundContainer === container) {
+      renderQueueList();
+      return;
+    }
+    state.els._boundContainer = container;
 
     // 拖拽
     var dz = $('lqd-upload-dropzone');

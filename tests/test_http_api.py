@@ -291,6 +291,44 @@ class TestSettings:
         )
         assert r.status_code == 400
 
+    def test_api_key_survives_subsequent_setting_updates(
+        self, client: TestClient
+    ) -> None:
+        """回归:set api_key 后再 PUT 其他字段(remember_key/model 等)不应丢 key。
+
+        根因:save_llm_config 重写 llm.yaml 时曾丢弃 _plain_keys 明文降级区。
+        前端 saveLLM 序列里 api_key 之后还有 remember_key,后者走 save_llm_config
+        重写,把刚写的 _plain_keys 冲掉 → get_api_key 返回空 → 401。
+        """
+        # 1. set api_key
+        r = client.put(
+            "/api/settings",
+            json={"key": "api_key", "value": "sk-survive-123", "provider": "custom"},
+        )
+        assert r.status_code == 200
+        # 2. 模拟前端 saveLLM 后续步骤:remember_key + model + path_mode
+        for key, value in [
+            ("remember_key", True),
+            ("model", "EB-GLM-5.2"),
+            ("path_mode", "suffix"),
+        ]:
+            r = client.put(
+                "/api/settings",
+                json={
+                    "key": key,
+                    "value": value,
+                    "provider": "custom" if key != "remember_key" else None,
+                },
+            )
+            assert r.status_code == 200, (key, r.text)
+        # 3. key 必须仍在
+        r = client.get("/api/settings/key", params={"provider": "custom"})
+        assert r.status_code == 200
+        assert r.json()["api_key"] == "sk-survive-123", "key 被 save_llm_config 冲掉了"
+        # 4. has_key 仍为 True
+        r = client.get("/api/settings")
+        assert r.json()["providers"]["custom"]["has_key"] is True
+
     def test_get_providers_shape(self, client: TestClient) -> None:
         r = client.get("/api/settings/providers")
         assert r.status_code == 200

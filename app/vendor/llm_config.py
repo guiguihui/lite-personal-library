@@ -80,6 +80,14 @@ def set_active_config(cfg, config_dir: str) -> None:
     _active_config_dir = config_dir
 
 
+def has_config() -> bool:
+    """是否已注入 app LlmConfig（供 clean_markdown 伪标题 LLM 调用判断）。
+
+    未注入（CLI 模式或未配置）→ 调用方降级到正则兜底。
+    """
+    return _active_cfg is not None and _active_config_dir is not None
+
+
 def _api_key_for(base_url: str) -> str:
     """Legacy env-var key resolution (fallback path only)."""
     if "deepseek" in base_url:
@@ -127,6 +135,41 @@ def get_tier(name: str):
     max_tokens = tier.get("max_tokens", _LEGACY_MAX_TOKENS.get(name, 8192))
     api_key = _api_key_for(base_url)
     return (api_key, base_url, model, max_tokens)
+
+
+def get_tier_full(name: str):
+    """Return (api_key, base_url, model, max_tokens, protocol, path_mode, provider).
+
+    7-tuple variant of get_tier for callers that need protocol/path_mode/provider
+    to drive request construction (e.g. translate_chapters via call_llm_once).
+
+    Resolution order mirrors get_tier:
+      1. If set_active_config() was called -> app.llm.config.resolve_for_tier_full
+         (returns provider, model, base_url, api_key, protocol, path_mode).
+      2. Else -> legacy config.yaml + .env (protocol/path_mode default to "auto").
+    """
+    # ── New path: app config injected ────────────────────────────────────
+    if _active_cfg is not None and _active_config_dir is not None:
+        try:
+            from app.llm.config import resolve_for_tier_full
+            provider, model, base_url, api_key, protocol, path_mode = resolve_for_tier_full(
+                name, _active_cfg, _active_config_dir
+            )
+            max_tokens = _LEGACY_MAX_TOKENS.get(name, 8192)
+            if api_key or model:
+                return (api_key, base_url, model, max_tokens, protocol, path_mode, provider)
+        except Exception:
+            pass  # app config unavailable -> degrade to legacy
+
+    # ── Legacy path: protocol/path_mode default to "auto" ─────────────────
+    tiers = (_legacy_yaml or {}).get("llm", {}).get("tiers", {}) if _legacy_yaml else {}
+    tier = tiers.get(name, {})
+    model = tier.get("model", _DEFAULT_MODEL)
+    base_url = tier.get("base_url", _DEFAULT_BASE_URL)
+    max_tokens = tier.get("max_tokens", _LEGACY_MAX_TOKENS.get(name, 8192))
+    api_key = _api_key_for(base_url)
+    provider = tier.get("provider", "deepseek")
+    return (api_key, base_url, model, max_tokens, "auto", "auto", provider)
 
 
 def get_pipeline_config() -> dict:

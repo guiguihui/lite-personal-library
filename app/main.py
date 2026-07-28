@@ -149,6 +149,9 @@ def main() -> int:
     # 后端 NoCacheFrontendMiddleware 已对 /frontend/* 发 no-store,但已落入
     # WebView2 磁盘缓存的旧资源仍会被复用,时间戳让 URL 唯一以彻底规避。
     load_url = f"{url}?t={int(time.time())}"
+    # debug=True 让 WebView2/EdgeChromium 开 F12 DevTools,便于排查前端 SSE/渲染问题。
+    # 临时排查用,正式发布可去掉。
+    webview_debug = True
     try:
         import webview
 
@@ -160,7 +163,7 @@ def main() -> int:
             min_size=(1000, 600),
             js_api=DesktopApi(),
         )
-        webview.start()
+        webview.start(debug=webview_debug)
     except ImportError:
         # pywebview 未安装 → 退化到浏览器打开(开发期)
         print(f"[pywebview not installed] open {load_url} in browser", file=sys.stderr)
@@ -196,8 +199,13 @@ class DesktopApi:
             win = webview.windows[0] if webview.windows else None
             if win is None:
                 return []
+            # pywebview 新版用 FileDialog.OPEN(老版 OPEN_DIALOG 已废弃,
+            # 每次调用打印 deprecation 警告)。优先新 API,降级老常量。
+            dialog_type = getattr(getattr(webview, "FileDialog", None), "OPEN", None)
+            if dialog_type is None:
+                dialog_type = webview.OPEN_DIALOG  # pragma: no cover — 老版 pywebview
             result = win.create_file_dialog(
-                webview.OPEN_DIALOG,
+                dialog_type,
                 file_types=file_types or [
                     "PDF Files (*.pdf)",
                     "EPUB Files (*.epub)",
@@ -219,7 +227,10 @@ class DesktopApi:
             win = webview.windows[0] if webview.windows else None
             if win is None:
                 return ""
-            result = win.create_file_dialog(webview.FOLDER_DIALOG)
+            dialog_type = getattr(getattr(webview, "FileDialog", None), "FOLDER", None)
+            if dialog_type is None:
+                dialog_type = webview.FOLDER_DIALOG  # pragma: no cover — 老版
+            result = win.create_file_dialog(dialog_type)
             return result if isinstance(result, str) else ""
         except Exception:
             return ""

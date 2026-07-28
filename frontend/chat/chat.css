@@ -666,3 +666,28 @@
 :root[data-effective-theme="dark"] .lqd-tool-step {
   background: rgba(31, 111, 235, 0.12);
 }
+
+/* ── 错误堆栈显示(agent.js catch 块,排查用) ── */
+.lqd-error-stack {
+  margin-top: var(--space-2, 8px);
+  font-size: 12px;
+  color: var(--fg-tertiary, #888);
+}
+
+.lqd-error-stack summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.lqd-error-stack pre {
+  margin: var(--space-1, 4px) 0 0;
+  padding: var(--space-2, 8px);
+  background: var(--bg-tertiary, rgba(127, 127, 127, 0.08));
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 11px;
+  line-height: 1.5;
+  max-height: 240px;
+  overflow: auto;
+}

@@ -13,16 +13,16 @@
 
   // 降级默认值(后端不可达时用,与后端 defaults.py 保持一致)
   var FALLBACK = {
-    anthropic: { model: 'claude-sonnet-4-6', base_url: 'https://api.anthropic.com' },
-    deepseek: { model: 'deepseek-v4-flash', base_url: 'https://api.deepseek.com' },
-    openai: { model: 'gpt-4o', base_url: 'https://api.openai.com' },
-    siliconflow: { model: 'deepseek-ai/DeepSeek-V3', base_url: 'https://api.siliconflow.cn' },
-    openrouter: { model: 'anthropic/claude-sonnet-4', base_url: 'https://openrouter.ai/api' },
-    zhipu: { model: 'glm-4', base_url: 'https://open.bigmodel.cn/api/paas/v4' },
-    dashscope: { model: 'qwen-plus', base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
-    ollama: { model: 'llama3', base_url: 'http://localhost:11434' },
-    gemini: { model: 'gemini-2.5-flash', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai' },
-    custom: { model: '', base_url: '' }
+    anthropic: { model: 'claude-sonnet-4-6', base_url: 'https://api.anthropic.com', protocol: 'auto', path_mode: 'auto' },
+    deepseek: { model: 'deepseek-v4-flash', base_url: 'https://api.deepseek.com', protocol: 'auto', path_mode: 'auto' },
+    openai: { model: 'gpt-4o', base_url: 'https://api.openai.com', protocol: 'auto', path_mode: 'auto' },
+    siliconflow: { model: 'deepseek-ai/DeepSeek-V3', base_url: 'https://api.siliconflow.cn', protocol: 'auto', path_mode: 'auto' },
+    openrouter: { model: 'anthropic/claude-sonnet-4', base_url: 'https://openrouter.ai/api', protocol: 'auto', path_mode: 'auto' },
+    zhipu: { model: 'glm-4', base_url: 'https://open.bigmodel.cn/api/paas/v4', protocol: 'auto', path_mode: 'auto' },
+    dashscope: { model: 'qwen-plus', base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', protocol: 'auto', path_mode: 'auto' },
+    ollama: { model: 'llama3', base_url: 'http://localhost:11434', protocol: 'auto', path_mode: 'auto' },
+    gemini: { model: 'gemini-2.5-flash', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai', protocol: 'auto', path_mode: 'auto' },
+    custom: { model: '', base_url: '', protocol: 'auto', path_mode: 'auto' }
   };
 
   var FALLBACK_NAMES = [

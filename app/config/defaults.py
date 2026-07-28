@@ -23,17 +23,18 @@ PROVIDER_NAMES: tuple[str, ...] = (
 )
 
 # provider → 默认 model + base_url(对齐 chat.js L266-292)
+# protocol/path_mode 全默认 "auto"(向后兼容;custom 端点由用户显式覆盖)
 PROVIDER_DEFAULTS: dict[str, dict[str, str]] = {
-    "anthropic": {"model": "claude-sonnet-4-6", "base_url": "https://api.anthropic.com"},
-    "deepseek": {"model": "deepseek-v4-flash", "base_url": "https://api.deepseek.com"},
-    "openai": {"model": "gpt-4o", "base_url": "https://api.openai.com"},
-    "siliconflow": {"model": "deepseek-ai/DeepSeek-V3", "base_url": "https://api.siliconflow.cn"},
-    "openrouter": {"model": "anthropic/claude-sonnet-4", "base_url": "https://openrouter.ai/api"},
-    "zhipu": {"model": "glm-4", "base_url": "https://open.bigmodel.cn/api/paas/v4"},
-    "dashscope": {"model": "qwen-plus", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
-    "ollama": {"model": "llama3", "base_url": "http://localhost:11434"},
-    "gemini": {"model": "gemini-2.5-flash", "base_url": "https://generativelanguage.googleapis.com/v1beta/openai"},
-    "custom": {"model": "", "base_url": ""},
+    "anthropic": {"model": "claude-sonnet-4-6", "base_url": "https://api.anthropic.com", "protocol": "auto", "path_mode": "auto"},
+    "deepseek": {"model": "deepseek-v4-flash", "base_url": "https://api.deepseek.com", "protocol": "auto", "path_mode": "auto"},
+    "openai": {"model": "gpt-4o", "base_url": "https://api.openai.com", "protocol": "auto", "path_mode": "auto"},
+    "siliconflow": {"model": "deepseek-ai/DeepSeek-V3", "base_url": "https://api.siliconflow.cn", "protocol": "auto", "path_mode": "auto"},
+    "openrouter": {"model": "anthropic/claude-sonnet-4", "base_url": "https://openrouter.ai/api", "protocol": "auto", "path_mode": "auto"},
+    "zhipu": {"model": "glm-4", "base_url": "https://open.bigmodel.cn/api/paas/v4", "protocol": "auto", "path_mode": "auto"},
+    "dashscope": {"model": "qwen-plus", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "protocol": "auto", "path_mode": "auto"},
+    "ollama": {"model": "llama3", "base_url": "http://localhost:11434", "protocol": "auto", "path_mode": "auto"},
+    "gemini": {"model": "gemini-2.5-flash", "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "protocol": "auto", "path_mode": "auto"},
+    "custom": {"model": "", "base_url": "", "protocol": "auto", "path_mode": "auto"},
 }
 
 
@@ -45,6 +46,8 @@ def default_providers() -> dict[str, LlmProviderConfig]:
             model=cfg["model"],
             base_url=cfg["base_url"],
             has_key=False,
+            protocol=cfg.get("protocol", "auto"),
+            path_mode=cfg.get("path_mode", "auto"),
         )
         for name, cfg in PROVIDER_DEFAULTS.items()
     }

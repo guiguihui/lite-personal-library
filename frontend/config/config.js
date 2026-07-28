@@ -64,6 +64,8 @@
     }).join('');
 
     var hasKey = pcfg.has_key ? '<span class="lqd-status-badge lqd-status-badge--done">已配置</span>' : '<span class="lqd-status-badge lqd-status-badge--failed">未配置</span>';
+    var proto = pcfg.protocol || 'auto';
+    var pm = pcfg.path_mode || 'auto';
 
     container.innerHTML =
       '<div class="lqd-config-section">' +
@@ -80,6 +82,24 @@
         '<div class="lqd-form-group">' +
           '<label class="lqd-form-label" for="lqd-cfg-model">Model</label>' +
           '<input id="lqd-cfg-model" type="text" class="lqd-form-input" value="' + escapeHtml(pcfg.model || defaults.model) + '" placeholder="' + escapeHtml(defaults.model) + '" />' +
+        '</div>' +
+        '<div class="lqd-form-group">' +
+          '<label class="lqd-form-label" for="lqd-cfg-protocol">协议</label>' +
+          '<select id="lqd-cfg-protocol" class="lqd-form-select" aria-describedby="lqd-cfg-protocol-hint">' +
+            '<option value="auto"' + (proto === 'auto' ? ' selected' : '') + '>自动(按 provider 推断)</option>' +
+            '<option value="anthropic"' + (proto === 'anthropic' ? ' selected' : '') + '>Anthropic (x-api-key)</option>' +
+            '<option value="openai"' + (proto === 'openai' ? ' selected' : '') + '>OpenAI 兼容 (Bearer)</option>' +
+          '</select>' +
+          '<div class="lqd-form-hint" id="lqd-cfg-protocol-hint">custom 端点必须显式选协议;内置 provider 用"自动"即可</div>' +
+        '</div>' +
+        '<div class="lqd-form-group">' +
+          '<label class="lqd-form-label" for="lqd-cfg-path-mode">路径模式</label>' +
+          '<select id="lqd-cfg-path-mode" class="lqd-form-select" aria-describedby="lqd-cfg-path-mode-hint">' +
+            '<option value="auto"' + (pm === 'auto' ? ' selected' : '') + '>自动(检测已知后缀)</option>' +
+            '<option value="full"' + (pm === 'full' ? ' selected' : '') + '>完整路径(不拼接后缀)</option>' +
+            '<option value="suffix"' + (pm === 'suffix' ? ' selected' : '') + '>强制拼接后缀</option>' +
+          '</select>' +
+          '<div class="lqd-form-hint" id="lqd-cfg-path-mode-hint">若 Base URL 已含完整请求路径(如 /v3/anthropic/model),选"完整路径"</div>' +
         '</div>' +
         '<div class="lqd-form-group">' +
           '<label class="lqd-form-label" for="lqd-cfg-api-key">API Key ' + hasKey + '</label>' +
@@ -115,10 +135,12 @@
     var pcfg = (state.settings && state.settings.providers && state.settings.providers[provider]) || {};
     $('lqd-cfg-base-url').value = pcfg.base_url || defaults.base_url;
     $('lqd-cfg-model').value = pcfg.model || defaults.model;
+    $('lqd-cfg-protocol').value = pcfg.protocol || 'auto';
+    $('lqd-cfg-path-mode').value = pcfg.path_mode || 'auto';
     $('lqd-cfg-api-key').value = '';
-    // 更新 has_key 徽章
+    // 更新 has_key 徽章(用 label for 定位,不依赖 DOM 位置)
     var hasKey = pcfg.has_key;
-    var badge = state.els.body.querySelector('.lqd-form-group:nth-child(4) .lqd-status-badge');
+    var badge = document.querySelector('label[for="lqd-cfg-api-key"] .lqd-status-badge');
     if (badge) {
       badge.className = 'lqd-status-badge lqd-status-badge--' + (hasKey ? 'done' : 'failed');
       badge.textContent = hasKey ? '已配置' : '未配置';
@@ -130,6 +152,8 @@
     var baseUrl = $('lqd-cfg-base-url').value.trim();
     var model = $('lqd-cfg-model').value.trim();
     var apiKey = $('lqd-cfg-api-key').value;
+    var protocol = $('lqd-cfg-protocol').value;
+    var pathMode = $('lqd-cfg-path-mode').value;
     var remember = $('lqd-cfg-remember').checked;
     var proxy = $('lqd-cfg-proxy').checked;
 
@@ -144,7 +168,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'active_provider', value: provider })
       });
-      // 更新 model/base_url
+      // 更新 model/base_url/protocol/path_mode
       await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -155,14 +179,16 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'base_url', value: baseUrl, provider: provider })
       });
-      // api_key(非空才写)
-      if (apiKey) {
-        await fetch('/api/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: 'api_key', value: apiKey, provider: provider })
-        });
-      }
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'protocol', value: protocol, provider: provider })
+      });
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'path_mode', value: pathMode, provider: provider })
+      });
       // remember_key
       await fetch('/api/settings', {
         method: 'PUT',
@@ -175,8 +201,23 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'use_llm_proxy', value: proxy })
       });
+      // api_key 最后写(非空才写)。
+      // 必须放在 remember_key/use_llm_proxy 之后:后两者的 PUT 走 save_llm_config
+      // 重写 llm.yaml,若在它们之前写 api_key,_plain_keys 明文 key 会被冲掉。
+      // 放最后确保 key 是落盘的最后一笔。
+      if (apiKey) {
+        await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'api_key', value: apiKey, provider: provider })
+        });
+      }
 
-      setTestStatus('success', 'LLM 配置已保存');
+      var note = '';
+      if (provider === 'custom' && protocol === 'anthropic') {
+        note = '(注:入库翻译暂仅支持 OpenAI 兼容端点,聊天主路径可用)';
+      }
+      setTestStatus('success', 'LLM 配置已保存' + note);
       // 重新加载
       await loadSettings();
       await renderLLMForm(state.els.body);
@@ -217,9 +258,10 @@
   async function testConnection() {
     var provider = $('lqd-cfg-provider').value;
     var baseUrl = ($('lqd-cfg-base-url').value || window.YuuProviders.getDefaults(provider).base_url).trim();
-    baseUrl = baseUrl.replace(/\/+$/, '');
     var model = ($('lqd-cfg-model').value || window.YuuProviders.getDefaults(provider).model).trim();
     var apiKey = $('lqd-cfg-api-key').value.trim() || await fetchApiKey(provider);
+    var protocol = $('lqd-cfg-protocol').value;
+    var pathMode = $('lqd-cfg-path-mode').value;
 
     if (!apiKey) {
       setTestStatus('error', '请先填写 API Key');
@@ -235,19 +277,61 @@
     btn.disabled = true;
 
     try {
-      var isAnthropic = provider === 'anthropic';
-      var url, headers, body;
-      if (isAnthropic) {
-        url = baseUrl + '/v1/messages';
+      var L = window.LqdChatLLM || {};
+      var proto = L.resolveProtocol ? L.resolveProtocol(provider, protocol) : (protocol === 'anthropic' || (protocol === 'auto' && provider === 'anthropic') ? 'anthropic' : 'openai');
+      var useProxy = window.LqdSettings && window.LqdSettings.get('use_llm_proxy');
+
+      // use_llm_proxy=true 时走后端代理测试。浏览器 fetch 不能设 User-Agent,
+      // 某些 Anthropic 协议代理(如澜智 lanz.hikvision.com)靠 UA 识别 Claude
+      // 客户端,浏览器直连必 403。走后端代理(httpx 能设 UA)才能真实反映连通性。
+      if (useProxy) {
+        var BASE = (window.LQD_CHAT_BASE || '').replace(/\/+$/, '');
+        var proxyResp = await fetch(BASE + '/api/llm/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: provider, model: model, base_url: baseUrl,
+            system: '', messages: [{ role: 'user', content: 'ping' }],
+            max_tokens: 8, tools: null, thinking: false, has_key: !!apiKey,
+            protocol: protocol, path_mode: pathMode
+          })
+        });
+        if (proxyResp.ok) {
+          // 代理返回 SSE 流,读第一个事件判断成功/失败
+          var reader = proxyResp.body.getReader();
+          var dec = new TextDecoder();
+          var firstChunk = await reader.read();
+          var firstText = firstChunk.value ? dec.decode(firstChunk.value) : '';
+          // 代理把上游错误包成 {"error":true,...}; 正常是 message_start 事件
+          if (firstText.indexOf('"error":true') !== -1 || firstText.indexOf('"error": true') !== -1) {
+            var em = '上游返回错误';
+            try { em = JSON.parse(firstText.replace(/^data:\s*/, '').trim()).message || em; } catch (_) {}
+            // 截断过长的上游错误信息
+            setTestStatus('error', '连接失败: ' + em.slice(0, 120));
+          } else {
+            setTestStatus('success', '连接成功(经后端代理)');
+          }
+          try { reader.cancel(); } catch (_) {}
+        } else {
+          setTestStatus('error', '代理请求失败: HTTP ' + proxyResp.status);
+        }
+        btn.disabled = false;
+        return;
+      }
+
+      // 直连模式(无代理)
+      var url = L.resolveEndpoint ? L.resolveEndpoint(baseUrl, proto, pathMode) : (baseUrl.replace(/\/+$/, '') + (proto === 'anthropic' ? '/v1/messages' : '/v1/chat/completions'));
+      var headers, body;
+      if (proto === 'anthropic') {
         headers = {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'User-Agent': 'Claude/1.0'
         };
         body = JSON.stringify({ model: model, max_tokens: 8, messages: [{ role: 'user', content: 'ping' }] });
       } else {
-        url = baseUrl + '/v1/chat/completions';
         headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey };
         body = JSON.stringify({ model: model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 8, stream: false });
       }

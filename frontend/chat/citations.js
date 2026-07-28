@@ -19,6 +19,11 @@
 
   function injectReferenceLinks(markdown, refMap) {
     if (!refMap || Object.keys(refMap).length === 0) return markdown || '';
+    // 防御:markdown 可能是 undefined/null/非字符串(上游流式异常中断等),
+    // 直接 .replace 会抛 "Cannot read properties of undefined (reading 'replace')",
+    // 与此前 'match' 同类(undefined 接收者),一并堵死。
+    if (markdown == null) return '';
+    if (typeof markdown !== 'string') markdown = String(markdown);
 
     var stash = [];
     var PH = function (i) { return 'CODE' + i + ''; };

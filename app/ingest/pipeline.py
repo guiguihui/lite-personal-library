@@ -23,6 +23,7 @@ from app.ingest.clean_adapter import run_clean
 from app.ingest.extract_adapter import run_extract
 from app.ingest.jobs import IngestJob, append_log, get_job, update_job
 from app.ingest.note_adapter import run_note
+from app.ingest.publish_adapter import run_publish
 from app.ingest.translate_adapter import run_translate
 from app.ingest.validate_adapter import run_validate
 
@@ -52,7 +53,7 @@ def run_pipeline(job_id: str, app_cfg: AppConfig) -> None:
             if stage == "extract":
                 prev_result = run_extract(job, app_cfg.pdfs_dir)
             elif stage == "clean":
-                prev_result = run_clean(job, prev_result)
+                prev_result = run_clean(job, prev_result, app_cfg)
             elif stage == "translate":
                 prev_result = run_translate(job, prev_result, app_cfg)
             elif stage == "validate":
@@ -63,6 +64,33 @@ def run_pipeline(job_id: str, app_cfg: AppConfig) -> None:
                 raise ValueError(f"unknown stage: {stage}")
 
             final_result["stages"][stage] = prev_result
+
+        # ── 收尾:publish + 触发增量索引构建(不在 stages 里,必做) ────────
+        # publish 把产物搬到 content/,build 让 library 可见。
+        # build 用 start_build 后台触发(不阻塞 pipeline;build 耗时 30s-2min,
+        # 不该让 ingest job 卡在 running)。build 触发失败只记 log(辅助步骤,
+        # 用户可手动在 manage 页重试)。
+        update_job(job_id, current_stage="publish")
+        append_log(job_id, "[pipeline] >>> stage: publish")
+        publish_result = run_publish(job, prev_result, app_cfg)
+        final_result["stages"]["publish"] = publish_result
+        final_result["published_path"] = publish_result.get("published_path")
+
+        try:
+            from app.index.status import start_build
+
+            build_job_id = start_build(
+                mode="incremental",
+                content_dir=app_cfg.content_dir,
+                pageindex_dir=app_cfg.pageindex_dir,
+                llm_model="",
+            )
+            final_result["build_job_id"] = build_job_id
+            append_log(job_id, f"[pipeline] build triggered: {build_job_id}")
+        except Exception as build_exc:
+            # build 触发失败不阻断入库(publish 已成功,产物在 content/)
+            append_log(job_id, f"[pipeline] build trigger failed: {build_exc}")
+            final_result["build_error"] = str(build_exc)
 
         update_job(
             job_id,

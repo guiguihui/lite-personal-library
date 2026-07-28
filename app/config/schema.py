@@ -26,12 +26,19 @@ class AppConfig:
 
 @dataclass(frozen=True)
 class LlmProviderConfig:
-    """单个 provider 的配置。api_key 不存这里(走 keyring),只存 has_key 标记。"""
+    """单个 provider 的配置。api_key 不存这里(走 keyring),只存 has_key 标记。
+
+    protocol/path_mode 用于自定义端点请求适配(见 app.llm.providers.resolve_*)。
+    - protocol: "auto" 按 provider 推断 | "anthropic" | "openai"
+    - path_mode: "auto" 检测已知后缀 | "full" base_url 即完整路径 | "suffix" 强制拼接
+    """
 
     provider: str
     model: str
     base_url: str
     has_key: bool = False
+    protocol: str = "auto"
+    path_mode: str = "auto"
 
 
 @dataclass(frozen=True)

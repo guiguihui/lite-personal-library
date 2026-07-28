@@ -5,6 +5,8 @@
  *
  * 用法:
  *   await LqdModal.alert({ title: '上传日志', message: '<pre>...</pre>', confirmLabel: '关闭' })
+ *   await LqdModal.alert({ title: '上传日志', message: '<pre>...</pre>', confirmLabel: '关闭',
+ *                          extraActions: [{ label: '复制日志', onClick: copyFn }] })
  *   const ok = await LqdModal.confirm({ title: '清除', message: '...', danger: true })
  *
  * 特性: role="dialog" aria-modal="true";焦点陷阱;Esc/背景点击取消;关闭后焦点回触发元素。
@@ -151,6 +153,22 @@
       cancelBtn.addEventListener('click', function () { close(false); });
       actions.appendChild(cancelBtn);
     }
+
+    // 额外自定义按钮(辅助操作,如"复制日志")。onClick 由调用方决定是否
+    // 调 LqdModal.close()——框架不自动关闭,以便复制后保持 modal 打开核对。
+    // 新 button 自动被 FOCUSABLE_SELECTOR(button:not([disabled]))命中,焦点
+    // 陷阱/Tab 循环无需改。autofocus 仍在 confirmBtn(主操作)。
+    var extras = Array.isArray(options.extraActions) ? options.extraActions : [];
+    extras.forEach(function (act) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'lqd-btn' + (act.className ? ' ' + act.className : '');
+      btn.textContent = act.label || '';
+      btn.addEventListener('click', function () {
+        if (typeof act.onClick === 'function') act.onClick();
+      });
+      actions.appendChild(btn);
+    });
 
     var confirmBtn = document.createElement('button');
     confirmBtn.className = 'lqd-btn lqd-btn--' + (options.danger ? 'danger' : 'primary');

@@ -27,6 +27,8 @@ class LlmProxyRequest(BaseModel):
     tools: list[dict[str, Any]] | None = None
     thinking: bool = False
     has_key: bool = False  # 前端从 /api/settings 读的 has_key 标记
+    protocol: str = "auto"  # 自定义端点协议:auto|anthropic|openai
+    path_mode: str = "auto"  # 自定义端点路径模式:auto|full|suffix
 
 
 @router.post("/proxy")
@@ -46,6 +48,8 @@ async def llm_proxy(body: LlmProxyRequest, request: Request):
             thinking=body.thinking,
             config_dir=cfg.config_dir,
             has_key=body.has_key,
+            protocol=body.protocol,
+            path_mode=body.path_mode,
         ):
             yield chunk
 

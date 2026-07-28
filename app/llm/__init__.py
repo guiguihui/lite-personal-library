@@ -9,9 +9,17 @@
 
 from __future__ import annotations
 
-from app.llm.config import resolve_active, resolve_for_tier  # noqa: F401
+from app.llm.config import (  # noqa: F401
+    resolve_active,
+    resolve_active_full,
+    resolve_for_tier,
+    resolve_for_tier_full,
+)
 from app.llm.providers import (  # noqa: F401
     PROVIDER_DEFAULTS,
     PROVIDER_NAMES,
     build_request,
+    resolve_endpoint,
+    resolve_protocol,
 )
+from app.llm.nonstream import LLMError, call_llm_once  # noqa: F401
