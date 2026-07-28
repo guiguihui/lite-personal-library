@@ -387,6 +387,991 @@ def flatten_tree_with_text(tree: list[dict], doc_id: str,
     """
     result = []
     for node in tree:
-     ó~=¶‰ËkºwµçjO¾òk¦–2[’âè¡Õ¹¬ƒêœ(€€€€€€€¹}¡Õ¹­Ì€ô±•¸¡¡Õ¹­Ì¤½È€Ä(€€€€€€€…À€ô¥¹Ğ¡¹}¡Õ¹­Ì€¨MQ=A]=I}}IQ%<¤(€€€€€€€™½ÈÑ½¬°±ÍĞ¥¸Á½ÍÑ¥¹Ì¹¥Ñ•µÌ ¤è(€€€€€€€€€€€¥˜±•¸¡±ÍĞ¤€ø…Àè(€€€€€€€€€€€€€€€‘É½ÁÁ•‘}Ñ½­•¹Ì€¬ô€Ä(€€€€€€€€€€€€€€€½¹Ñ¥¹Õ”(€€€€€€€€€€€™¥±Ñ•É•‘mÑ½­t€ô±ÍĞ(€€€€€€€€€€€­•ÁÑ}Ñ½­•¹Ì€¬ô€Ä(€€€€€€€É•ÑÕÉ¸™¥±Ñ•É•°­•ÁÑ}Ñ½­•¹Ì°‘É½ÁÁ•‘}Ñ½­•¹Ì(€€€€Œƒ–’kšZš†–êO¾òkšZš†êœƒš¾S’ú/–"“šZ·¾ò#R£šÖ»
-çš¾S’ú/¾ò3¦ÿ–7–Â<¹}‘½Ìƒš^Ø¥¹Ğƒš"«šZ·¢şšş¾ò$(€€€€Œ¹}‘½ÌôÈƒš^Ø€À¸ÌÔ¨ÈôÀ¸ß¾ò1‘½}‘˜øôÄƒ–6Ì€ÔÀ”€ø€ÌÔ”ƒ’òk¢Š¯’â‹ŠSŠS–¾ä€ÈƒšZš†–êL(€€€€Œƒ’îï’öW¢Ş£šZš†ŒÑ½­•¸ƒ¦ô€øÌÔ—¾ò3¢şgšb¿–B#Bj¾ò ÈƒšZš†–êO’â·¢Ş£šZš†ŒôÔÀ”ƒ†»–º{’â7–2ë–"¾ò'(€€€¥‘}‘½}µ…À€ô}‰Õ¥±‘}¥‘}‘½}µ…À¡¡Õ¹­Ì¤(€€€™½ÈÑ½¬°±ÍĞ¥¸Á½ÍÑ¥¹Ì¹¥Ñ•µÌ ¤è(€€€€€€€‘½}‘˜€ô}‘½}±•Ù•±}‘˜¡±ÍĞ°¥‘}‘½}µ…À¤(€€€€€€€¥˜‘½}‘˜€¼¹}‘½Ì€øMQ=A]=I}}IQ%<è(€€€€€€€€€€€‘É½ÁÁ•‘}Ñ½­•¹Ì€¬ô€Ä(€€€€€€€€€€€½¹Ñ¥¹Õ”(€€€€€€€™¥±Ñ•É•‘mÑ½­t€ô±ÍĞ(€€€€€€€­•ÁÑ}Ñ½­•¹Ì€¬ô€Ä(€€€É•ÑÕÉ¸™¥±Ñ•É•°­•ÁÑ}Ñ½­•¹Ì°‘É½ÁÁ•‘}Ñ½­•¹Ì(()‘•˜İÉ¥Ñ•}¥¹Ù•ÉÑ•‘}¥¹‘•à¡…±±}¡Õ¹­}¹½‘•Ìè±¥ÍÑm‘¥Ñt°±½‰…±}‘½Ìè±¥ÍÑm‘¥Ñt¤€´ø9½¹”è(€€€€ˆˆ‹šz–îë–£–Æ ¡Õ¹­Ì¹©Í½¸€¬¥¹Ù•ÉÑ•µ¥¹‘•à¹©Í½»((€€€…±±}¡Õ¹­}¹½‘•Ìèƒš&šr'šZš†j–â›š¶šZš&–æÏ¢*
-ç¾ò!‘½}¥ƒ–"îš^ƒ–ê?¾ò3¢şg¦3š2$‘½Œƒ¦7–îè¡Õ¹¯¾ò'(€€€±½‰…±}‘½ÌèƒR£’ê8‘½}µ•Ñ‡¾ò!‘½}Ñ¥Ñ±”€¼ÑåÁ—¾ò'(€€€€ˆˆˆ(€€€‘½}µ•Ñ„€ôí‘l‰¥‰tè™½È¥¸±½‰…±}‘½Íô(€€€€Œƒš2$‘½Œƒ–"îšz–îè¡Õ¹¬€¬Á½ÍÑ¥¹Ï¾ò#š¾?šZš†.³®,Á½ÍÑ¥¹Ï¾ò3šr–B8µ•É—¾ò$(€€€‰å}‘½Œè‘¥ÑmÍÑÈ°±¥ÍÑm‘¥Ñut€ôíô(€€€™½È¸¥¸…±±}¡Õ¹­}¹½‘•Ìè(€€€€€€€‰å}‘½Œ¹Í•Ñ‘•™…Õ±Ğ¡¹l‰‘½}¥‰t°mt¤¹…ÁÁ•¹¡¸¤((€€€…±±}¡Õ¹­Ìè±¥ÍÑm‘¥Ñt€ômt(€€€…±±}Á½ÍÑ¥¹Ìè±¥ÍÑm‘¥Ñt€ômt(€€€™½È‘½}¥°¹½‘•Ì¥¸‰å}‘½Œ¹¥Ñ•µÌ ¤è(€€€€€€€µ•Ñ„€ô‘½}µ•Ñ„¹•Ğ¡‘½}¥°íô¤(€€€€€€€‘½}µ•Ñ…}™½É}¡Õ¹¬€ôì(€€€€€€€€€€€€‰‘½}¥ˆè‘½}¥°(€€€€€€€€€€€€‰Ñ¥Ñ±”ˆèµ•Ñ„¹•Ğ ‰Ñ¥Ñ±”ˆ°‘½}¥¤°(€€€€€€€€€€€€‰ÑåÁ”ˆèµ•Ñ„¹•Ğ ‰ÑåÁ”ˆ°€ˆˆ¤°(€€€€€€€ô(€€€€€€€¡Õ¹­Ì°Á½ÍÑ¥¹Ì€ô‰Õ¥±‘}¡Õ¹­Í}…¹‘}Á½ÍÑ¥¹Ì¡¹½‘•Ì°‘½}µ•Ñ…}™½É}¡Õ¹¬¤(€€€€€€€…±±}¡Õ¹­Ì¹•áÑ•¹¡¡Õ¹­Ì¤(€€€€€€€…±±}Á½ÍÑ¥¹Ì¹…ÁÁ•¹¡Á½ÍÑ¥¹Ì¤((€€€µ•É•‘}Á½ÍÑ¥¹Ì€ôµ•É•}Á½ÍÑ¥¹Ì¡…±±}Á½ÍÑ¥¹Ì¤(€€€€Œƒ–sR£¢¾7š"«šZ·¾òkšZš†êœ¾ò#–’kšZš†–êO¾ò'š"X¡Õ¹¬ƒêœ¾ò#–6WšZš†–êO¦–2[¾ò'(€€€€ŒƒšZš†êœ€ôÑ½­•¸ƒ–ë:Ã–r£–’k–ÂG’â«’â7–B0‘½Œƒ¦3–’kšZš†–êO’â,€øÌÔ”ƒšZš†š&7’â‹–ò¾ò0(€€€€Œƒ¢şgš‚ß–6WšZš†¦®c¦ŠGj¦Š–~¢¾7¾ò#–š‹¢ö›’ö4‹–>«–r£¢şd€Äƒšr³’æ›¦®c¦ŠG¾ò'’â7¢Š¯¢¾¿šv¾òl(€€€€Œƒ¢Ş£šZš†¦®c¦ŠGjr–sR£¢¾7¾ò ‹j¿’ê¿š:—–>Œ‹¾ò'’î7¢Š¯’â‹–ò’î—š:Ÿ’öO¿(€€€¹}¡Õ¹­Ì€ô±•¸¡…±±}¡Õ¹­Ì¤½È€Ä(€€€™¥±Ñ•É•°­•ÁÑ}Ñ½­•¹Ì°‘É½ÁÁ•‘}Ñ½­•¹Ì€ô}™¥±Ñ•É}ÍÑ½Áİ½É‘Ì¡µ•É•‘}Á½ÍÑ¥¹Ì°…±±}¡Õ¹­Ì¤((€€€¡Õ¹­Í}Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰¡Õ¹­Ì¹©Í½¸ˆ¤(€€€İ¥Ñ ½Á•¸¡¡Õ¹­Í}Á…Ñ °€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€ŒƒÒŸ–D)M=;¾ò#š^€¥¹‘•¹Ó¾ò'ŠSŠS–’ŸšZ’îÛr€ÈÀ´ÌÀ”ƒ’öO¼(€€€€€€€©Í½¸¹‘ÕµÀ¡ì‰¡Õ¹­Ìˆè…±±}¡Õ¹­Íô°˜°•¹ÍÕÉ•}…Í¥¤õ…±Í”°Í•Á…É…Ñ½ÉÌô ˆ°ˆ°€ˆèˆ¤¤(€€€Á½ÍÑ¥¹Í}Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰¥¹Ù•ÉÑ•µ¥¹‘•à¹©Í½¸ˆ¤(€€€İ¥Ñ ½Á•¸¡Á½ÍÑ¥¹Í}Á…Ñ °€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€©Í½¸¹‘ÕµÀ¡ì‰Á½ÍÑ¥¹Ìˆè™¥±Ñ•É•°€‰¹Õµ}¡Õ¹­Ìˆè¹}¡Õ¹­Íô°˜°(€€€€€€€€€€€€€€€€€•¹ÍÕÉ•}…Í¥¤õ…±Í”°Í•Á…É…Ñ½ÉÌô ˆ°ˆ°€ˆèˆ¤¤(€€€ÁÉ¥¹Ğ¡˜ˆ€¡Õ¹­Ìè€€€€€€í¹}¡Õ¹­Íô¡Õ¹­Ì°€ˆ(€€€€€€€€€˜‰í­•ÁÑ}Ñ½­•¹ÍôÑ½­•¹Ì€¡‘É½ÁÁ•í‘É½ÁÁ•‘}Ñ½­•¹ÍôÍÑ½Áİ½É‘Ì°…ÀõíÍÑ½Áİ½É‘}…Áô¤ˆ¤(()‘•˜¡…¹•‘}‘½Ì¡™¥±•}Á…Ñ¡Ìè±¥ÍÑmÍÑÉt¤€´øÍ•ÑmÑÕÁ±•mÍÑÈ°ÍÑÉutè(€€€€ˆˆ‰5…À¡…¹•™¥±”Á…Ñ¡ÌÑ¼…™™•Ñ•€¡ÑåÁ”°Í±Õœ¤Á…¥ÉÌ¸(€€€™¥±•}Á…Ñ¡Ì…É”É•±…Ñ¥Ù”Ñ¼½¹Ñ•¹Ğ¼€¡”¹œ¸€‰½½­Ì½Í±Õœ½ ÀÄ¹µœ¤¸(€€€€ˆˆˆ(€€€‘½Ì€ôÍ•Ğ ¤(€€€™½ÈÁ…Ñ ¥¸™¥±•}Á…Ñ¡Ìè(€€€€€€€Á…ÉÑÌ€ôÁ…Ñ ¹É•Á±…” ‰qpˆ°€ˆ¼ˆ¤¹ÍÁ±¥Ğ ˆ¼ˆ¤(€€€€€€€¥˜Á…ÉÑÍlÁt€ôô€‰‰½½­Ìˆ…¹±•¸¡Á…ÉÑÌ¤€øô€Èè(€€€€€€€€€€€‘½Ì¹…‘  ‰‰½½¬ˆ°Á…ÉÑÍlÅt¤¤(€€€€€€€•±¥˜Á…ÉÑÍlÁt€ôô€‰Á…Á•ÉÌˆ…¹±•¸¡Á…ÉÑÌ¤€øô€Èè(€€€€€€€€€€€‘½Ì¹…‘  ‰Á…Á•Èˆ°Á…ÉÑÍlÅt¤¤(€€€€€€€•±¥˜Á…ÉÑÍlÁt€ôô€‰¹½Ñ•Ìˆ…¹Á…ÉÑÍl´Åt¹•¹‘Íİ¥Ñ  ˆ¹µˆ¤…¹Á…ÉÑÍl´Åt€„ô€‰}¥¹‘•à¹µˆè(€€€€€€€€€€€‘½Ì¹…‘  ‰¹½Ñ”ˆ°½Ì¹Á…Ñ ¹ÍÁ±¥Ñ•áĞ¡Á…ÉÑÍl´Åt¥lÁt¤¤(€€€É•ÑÕÉ¸‘½Ì(()‘•˜ÁÉ½•ÍÍ}½¹•}‘½Œ¡‘½}ÑåÁ”èÍÑÈ°Í±ÕœèÍÑÈ¤€´øÑÕÁ±•m‘¥Ğğ9½¹”°±¥ÍÑm‘¥Ñt°±¥ÍÑm‘¥Ñutè(€€€€ˆˆ‰AÉ½•ÍÌ„Í¥¹±”‘½Õµ•¹Ğ…¹É•ÑÕÉ¸€¡‘½}ÑÉ•”°™±…Ñ}¹½‘•Ì°¡Õ¹­}¹½‘•Ì¤¸ˆˆˆ(€€€¥˜‘½}ÑåÁ”€ôô€‰‰½½¬ˆè(€€€€€€€‰½½­}‘¥È€ô½Ì¹Á…Ñ ¹©½¥¸¡=9Q9Q}%H°€‰‰½½­Ìˆ°Í±Õœ¤(€€€€€€€¥˜½Ì¹Á…Ñ ¹¥Í‘¥È¡‰½½­}‘¥È¤è(€€€€€€€€€€€É•ÑÕÉ¸ÁÉ½•ÍÍ}‰½½¬¡Í±Õœ°‰½½­}‘¥È¤(€€€•±¥˜‘½}ÑåÁ”€ôô€‰Á…Á•Èˆè(€€€€€€€Á…Á•É}‘¥È€ô½Ì¹Á…Ñ ¹©½¥¸¡=9Q9Q}%H°€‰Á…Á•ÉÌˆ°Í±Õœ¤(€€€€€€€¥˜½Ì¹Á…Ñ ¹¥Í‘¥È¡Á…Á•É}‘¥È¤è(€€€€€€€€€€€É•ÑÕÉ¸ÁÉ½•ÍÍ}Á…Á•È¡Í±Õœ°Á…Á•É}‘¥È¤(€€€•±¥˜‘½}ÑåÁ”€ôô€‰¹½Ñ”ˆè(€€€€€€€¹½Ñ•}Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡=9Q9Q}%H°€‰¹½Ñ•Ìˆ°˜‰íÍ±Õô¹µˆ¤(€€€€€€€¥˜½Ì¹Á…Ñ ¹¥Í™¥±”¡¹½Ñ•}Á…Ñ ¤è(€€€€€€€€€€€É•ÑÕÉ¸ÁÉ½•ÍÍ}¹½Ñ”¡Í±Õœ°¹½Ñ•}Á…Ñ ¤(€€€É•ÑÕÉ¸9½¹”°mt°mt(()‘•˜Á…Ñ¡}¥¹‘•á•Ì¡‘½}ÑåÁ”èÍÑÈ°Í±ÕœèÍÑÈ°‘½}ÑÉ•”è‘¥Ğğ9½¹”°™±…Ğè±¥ÍÑm‘¥Ñt°(€€€€€€€€€€€€€€€€€¡Õ¹­}¹½‘•Ìè±¥ÍÑm‘¥Ñtğ9½¹”€ô9½¹”¤€´ø9½¹”è(€€€€ˆˆ‰%¹Í•ÉĞ½ÕÁ‘…Ñ”½ÈÉ•µ½Ù”•¹ÑÉ¥•Ì™½È„Í¥¹±”‘½Œ¥¸±½‰…°µ¥¹‘•à€¬¹½‘”µ¥¹‘•à(€€€€¬¡Õ¹­Ì½¥¹Ù•ÉÑ•µ¥¹‘•à¸ˆˆˆ(€€€¥}Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰±½‰…°µ¥¹‘•à¹©Í½¸ˆ¤(€€€¹¥}Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰¹½‘”µ¥¹‘•à¹©Í½¸ˆ¤((€€€¤€ôì‰‘½Ìˆèmuô(€€€¹¤€ôì‰¹½‘•Ìˆèmuô(€€€¥˜½Ì¹Á…Ñ ¹•á¥ÍÑÌ¡¥}Á…Ñ ¤è(€€€€€€€İ¥Ñ ½Á•¸¡¥}Á…Ñ °€‰Èˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€¤€ô©Í½¸¹±½…¡˜¤(€€€¥˜½Ì¹Á…Ñ ¹•á¥ÍÑÌ¡¹¥}Á…Ñ ¤è(€€€€€€€İ¥Ñ ½Á•¸¡¹¥}Á…Ñ °€‰Èˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€¹¤€ô©Í½¸¹±½…¡˜¤((€€€€ŒI•µ½Ù”½±•¹ÑÉ¥•Ì™½ÈÑ¡¥Ì‘½Œ(€€€¥l‰‘½Ì‰t€ôm™½È¥¸¥l‰‘½Ì‰t¥˜¹½Ğ€¡¹•Ğ ‰¥ˆ¤€ôôÍ±Õœ…¹¹•Ğ ‰ÑåÁ”ˆ¤€ôô‘½}ÑåÁ”¥t(€€€¹¥l‰¹½‘•Ì‰t€ôm¸™½È¸¥¸¹¥l‰¹½‘•Ì‰t¥˜¸¹•Ğ ‰‘½}¥ˆ¤€„ôÍ±Õt((€€€€Œ‘¹•Ü•¹ÑÉ¥•Ì¥˜‘½Œİ…ÌÉ•‰Õ¥±ĞÍÕ•ÍÍ™Õ±±ä(€€€¥˜‘½}ÑÉ•”¥Ì¹½Ğ9½¹”è(€€€€€€€•¹ÑÉä€ôì(€€€€€€€€€€€€‰¥ˆèÍ±Õœ°€‰ÑåÁ”ˆè‘½}ÑåÁ”°(€€€€€€€€€€€€‰Ñ¥Ñ±”ˆè‘½}ÑÉ••l‰Ñ¥Ñ±”‰t°(€€€€€€€€€€€€‰…ÕÑ¡½Èˆè‘½}ÑÉ•”¹•Ğ ‰…ÕÑ¡½Èˆ°€ˆˆ¤°(€€€€€€€€€€€€‰‘•ÍÉ¥ÁÑ¥½¸ˆè‘½}ÑÉ•”¹•Ğ ‰‘•ÍÉ¥ÁÑ¥½¸ˆ°€ˆˆ¤°(€€€€€€€€€€€€‰Ñ…Ìˆè‘½}ÑÉ•”¹•Ğ ‰Ñ…Ìˆ°mt¤°(€€€€€€€ô(€€€€€€€¥˜‘½}ÑåÁ”€ôô€‰‰½½¬ˆè(€€€€€€€€€€€•¹ÑÉål‰Á…Ñ ‰t€ô˜ˆ½‰½½­Ì½íÍ±Õô¼ˆ(€€€€€€€€€€€•¹ÑÉål‰ÕÉ°‰t€ô˜ˆ½‰½½­Ì½íÍ±Õô¹¡Ñµ°ˆ(€€€€€€€•±¥˜‘½}ÑåÁ”€ôô€‰Á…Á•Èˆè(€€€€€€€€€€€•¹ÑÉål‰Á…Ñ ‰t€ô˜ˆ½Á…Á•ÉÌ½íÍ±Õô¼ˆ(€€€€€€€€€€€•¹ÑÉål‰ÕÉ°‰t€ô˜ˆ½Á…Á•ÉÌ½íÍ±Õô¹¡Ñµ°ˆ(€€€€€€€€€€€•¹ÑÉål‰å•…È‰t€ô‘½}ÑÉ•”¹•Ğ ‰å•…Èˆ°€ˆˆ¤(€€€€€€€•±¥˜‘½}ÑåÁ”€ôô€‰¹½Ñ”ˆè(€€€€€€€€€€€•¹ÑÉål‰Á…Ñ ‰t€ô€ˆ½¹½Ñ•Ì¼ˆ(€€€€€€€€€€€•¹ÑÉål‰ÕÉ°‰t€ô˜ˆ½¹½Ñ•Ì½íÍ±Õô¹¡Ñµ°ˆ(€€€€€€€€€€€•¹ÑÉål‰‘…Ñ”‰t€ô‘½}ÑÉ•”¹•Ğ ‰‘…Ñ”ˆ°€ˆˆ¤(€€€€€€€€€€€•¹ÑÉål‰Í½ÕÉ•}ÑåÁ”‰t€ô‘½}ÑÉ•”¹•Ğ ‰Í½ÕÉ•}ÑåÁ”ˆ°€ˆˆ¤(€€€€€€€€€€€•¹ÑÉål‰Í½ÕÉ•}Ñ¥Ñ±”‰t€ô‘½}ÑÉ•”¹•Ğ ‰Í½ÕÉ•}Ñ¥Ñ±”ˆ°€ˆˆ¤(€€€€€€€¥l‰‘½Ì‰t¹…ÁÁ•¹¡•¹ÑÉä¤(€€€€€€€¹¥l‰¹½‘•Ì‰t¹•áÑ•¹¡™±…Ğ¤((€€€İ¥Ñ ½Á•¸¡¥}Á…Ñ °€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€©Í½¸¹‘ÕµÀ¡¤°˜°¥¹‘•¹ĞôÈ°•¹ÍÕÉ•}…Í¥¤õ…±Í”¤(€€€İ¥Ñ ½Á•¸¡¹¥}Á…Ñ °€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€©Í½¸¹‘ÕµÀ¡¹¤°˜°¥¹‘•¹ĞôÈ°•¹ÍÕÉ•}…Í¥¤õ…±Í”¤((€€€€Œƒ–B3š¶—šnÓšZÃ–Kš:KÒ‹–òW¾ò!¡Õ¹­Ì€¬Á½ÍÑ¥¹Ï¾ò$(€€€¥˜¡Õ¹­}¹½‘•Ì¥Ì¹½Ğ9½¹”è(€€€€€€€Á…Ñ¡}¥¹Ù•ÉÑ•‘}¥¹‘•à¡Í±Õœ°‘½}ÑÉ•”°¡Õ¹­}¹½‘•Ì¤(()‘•˜Á…Ñ¡}¥¹Ù•ÉÑ•‘}¥¹‘•à¡Í±ÕœèÍÑÈ°‘½}ÑÉ•”è‘¥Ğğ9½¹”°¡Õ¹­}¹½‘•Ìè±¥ÍÑm‘¥Ñt¤€´ø9½¹”è(€€€€ˆˆ‹–Š{¦?šnÓšZÃ–6WšZš†–r ¡Õ¹­Ì¹©Í½¸€¬¥¹Ù•ÉÑ•µ¥¹‘•à¹©Í½¸ƒ’â·jšv‡n»((€€€ƒ¶[V—¾òk–#ï¦f“¢¾”‘½Œƒjš^œ¡Õ¹¯¾ò3–7’âëšZÀ¡Õ¹¬ƒ¦7šZÃ–"¦7–£–Æ–R¿’â ¡Õ¹­}¥(€€€ƒ¾ò#–>[:Ãšr'šr–’œ¡Õ¹­}¥ƒ’æ/–B;îŸî·ò[–>ß¾ò'¾ò3¦7–îë¢¾”‘½ŒƒjÁ½ÍÑ¥¹Ìƒ–æÛ–B#–æÛ(€€€Á½ÍÑ¥¹œƒš‚ó–ò?’âèm¥‘}¹Õ´°Ñ™w¾ò#’â8‰Õ¥±‘}¡Õ¹­Í}…¹‘}Á½ÍÑ¥¹Ìƒ’â¢Ó¾ò'(€€€€ˆˆˆ(€€€¡Õ¹­Í}Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰¡Õ¹­Ì¹©Í½¸ˆ¤(€€€Á½ÍÑ¥¹Í}Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰¥¹Ù•ÉÑ•µ¥¹‘•à¹©Í½¸ˆ¤((€€€‘…Ñ„€ôì‰¡Õ¹­Ìˆèmuô(€€€¥˜½Ì¹Á…Ñ ¹•á¥ÍÑÌ¡¡Õ¹­Í}Á…Ñ ¤è(€€€€€€€İ¥Ñ ½Á•¸¡¡Õ¹­Í}Á…Ñ °€‰Èˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€‘…Ñ„€ô©Í½¸¹±½…¡˜¤(€€€Á¥‘à€ôì‰Á½ÍÑ¥¹Ìˆèíô°€‰¹Õµ}¡Õ¹­Ìˆè€Áô(€€€¥˜½Ì¹Á…Ñ ¹•á¥ÍÑÌ¡Á½ÍÑ¥¹Í}Á…Ñ ¤è(€€€€€€€İ¥Ñ ½Á•¸¡Á½ÍÑ¥¹Í}Á…Ñ °€‰Èˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€Á¥‘à€ô©Í½¸¹±½…¡˜¤((€€€¡Õ¹­Ìè±¥ÍÑm‘¥Ñt€ô‘…Ñ„¹•Ğ ‰¡Õ¹­Ìˆ°mt¤(€€€Á½ÍÑ¥¹Ìè‘¥Ğ€ôÁ¥‘à¹•Ğ ‰Á½ÍÑ¥¹Ìˆ°íô¤((€€€€Œƒš:£¢şl¡Õ¹­}¥ƒ¢º‡šVÃ–f£–"Ã:Ãšr'šr–’Ÿ–ó’æ/–B;¾ò#’şw¢¾–Š{¦?–"¦7j¥ƒ’â7–Ëª¾ò$(€€€µ…á}¹Õ´€ô€À(€€€™½ÈŒ¥¸¡Õ¹­Ìè(€€€€€€€¥€ôŒ¹•Ğ ‰¡Õ¹­}¥ˆ°€ˆˆ¤(€€€€€€€¥˜¥¹ÍÑ…ÉÑÍİ¥Ñ  ‰Œˆ¤è(€€€€€€€€€€€ÑÉäè(€€€€€€€€€€€€€€€µ…á}¹Õ´€ôµ…à¡µ…á}¹Õ´°¥¹Ğ¡¥‘lÄét¤¤(€€€€€€€€€€€•á•ÁĞY…±Õ•ÉÉ½Èè(€€€€€€€€€€€€€€€Á…ÍÌ(€€€€Œƒï¦f“¢¾”‘½Œƒjš^œ¡Õ¹¯¾ò3¢ºÃ–öWš^œ¡Õ¹¬ƒjšVÃ–ğ¥“¾ò#R£’ê8Á½ÍÑ¥¹ÌƒšâB¾ò$(€€€½±‘}¹ÕµÌ€ôÍ•Ğ ¤(€€€­•ÁĞ€ômt(€€€™½ÈŒ¥¸¡Õ¹­Ìè(€€€€€€€¥˜Œ¹•Ğ ‰‘½}¥ˆ¤€ôôÍ±Õœè(€€€€€€€€€€€¥€ôŒ¹•Ğ ‰¡Õ¹­}¥ˆ°€ˆˆ¤(€€€€€€€€€€€¥˜¥¹ÍÑ…ÉÑÍİ¥Ñ  ‰Œˆ¤è(€€€€€€€€€€€€€€€ÑÉäè(€€€€€€€€€€€€€€€€€€€½±‘}¹ÕµÌ¹…‘¡¥¹Ğ¡¥‘lÄét¤¤(€€€€€€€€€€€€€€€•á•ÁĞY…±Õ•ÉÉ½Èè(€€€€€€€€€€€€€€€€€€€Á…ÍÌ(€€€€€€€•±Í”è(€€€€€€€€€€€­•ÁĞ¹…ÁÁ•¹¡Œ¤(€€€¡Õ¹­Ì€ô­•ÁĞ(€€€€Œƒ’î8Á½ÍÑ¥¹Ìƒ’â·šâš:'š^œ¡Õ¹¬ƒjÁ½ÍÑ¥¹Ÿ¾ò!Á½ÍÑ¥¹œ€ôm¥‘}¹Õ´°Ñ™w¾ò$(€€€¥˜½±‘}¹ÕµÌè(€€€€€€€•µÁÑå}Ñ½­•¹Ì€ômt(€€€€€€€™½ÈÑ½¬°±ÍĞ¥¸Á½ÍÑ¥¹Ì¹¥Ñ•µÌ ¤è(€€€€€€€€€€€Á½ÍÑ¥¹ÍmÑ½­t€ômÀ™½ÈÀ¥¸±ÍĞ¥˜ÁlÁt¹½Ğ¥¸½±‘}¹ÕµÍt(€€€€€€€€€€€¥˜¹½ĞÁ½ÍÑ¥¹ÍmÑ½­tè(€€€€€€€€€€€€€€€•µÁÑå}Ñ½­•¹Ì¹…ÁÁ•¹¡Ñ½¬¤(€€€€€€€™½ÈĞ¥¸•µÁÑå}Ñ½­•¹Ìè(€€€€€€€€€€€‘•°Á½ÍÑ¥¹ÍmÑt((€€€€Œƒ’âëšZÀ¡Õ¹¬ƒ–"¦4¥ƒ–æÛ¦7–îèÁ½ÍÑ¥¹Ì(€€€¥˜‘½}ÑÉ•”¥Ì¹½Ğ9½¹”…¹¡Õ¹­}¹½‘•Ìè(€€€€€€€}!U9-}=U9QIlÁt€ôµ…á}¹Õ´(€€€€€€€‘½}µ•Ñ„€ôì‰‘½}¥ˆèÍ±Õœ°€‰Ñ¥Ñ±”ˆè‘½}ÑÉ•”¹•Ğ ‰Ñ¥Ñ±”ˆ°Í±Õœ¤°(€€€€€€€€€€€€€€€€€€€€‰ÑåÁ”ˆè‘½}ÑÉ•”¹•Ğ ‰ÑåÁ”ˆ°€ˆˆ¥ô(€€€€€€€¹•İ}¡Õ¹­Ì°¹•İ}Á½ÍÑ¥¹Ì€ô‰Õ¥±‘}¡Õ¹­Í}…¹‘}Á½ÍÑ¥¹Ì¡¡Õ¹­}¹½‘•Ì°‘½}µ•Ñ„¤(€€€€€€€¡Õ¹­Ì¹•áÑ•¹¡¹•İ}¡Õ¹­Ì¤(€€€€€€€™½ÈÑ½¬°±ÍĞ¥¸¹•İ}Á½ÍÑ¥¹Ì¹¥Ñ•µÌ ¤è(€€€€€€€€€€€Á½ÍÑ¥¹Ì¹Í•Ñ‘•™…Õ±Ğ¡Ñ½¬°mt¤¹•áÑ•¹¡±ÍĞ¤((€€€€Œƒ–Š{¦?’æ–êSR£–sR£¢¾7š"«šZ·¾ò#’â;–£¦?’â¢Ó¾òkšZš†êœ¾ò$(€€€¹}¡Õ¹­Ì€ô±•¸¡¡Õ¹­Ì¤½È€Ä(€€€™¥±Ñ•É•°}­•ÁĞ°}‘É½ÁÁ•€ô}™¥±Ñ•É}ÍÑ½Áİ½É‘Ì¡Á½ÍÑ¥¹Ì°¡Õ¹­Ì¤((€€€‘…Ñ…l‰¡Õ¹­Ì‰t€ô¡Õ¹­Ì(€€€Á¥‘à€ôì‰Á½ÍÑ¥¹Ìˆè™¥±Ñ•É•°€‰¹Õµ}¡Õ¹­Ìˆè¹}¡Õ¹­Íô(€€€İ¥Ñ ½Á•¸¡¡Õ¹­Í}Á…Ñ °€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€©Í½¸¹‘ÕµÀ¡‘…Ñ„°˜°•¹ÍÕÉ•}…Í¥¤õ…±Í”°Í•Á…É…Ñ½ÉÌô ˆ°ˆ°€ˆèˆ¤¤(€€€İ¥Ñ ½Á•¸¡Á½ÍÑ¥¹Í}Á…Ñ °€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€©Í½¸¹‘ÕµÀ¡Á¥‘à°˜°•¹ÍÕÉ•}…Í¥¤õ…±Í”°Í•Á…É…Ñ½ÉÌô ˆ°ˆ°€ˆèˆ¤¤(()‘•˜}¥¹É•µ•¹Ñ…±}‰Õ¥± ¤€´ø¥¹Ğè(€€€€ˆˆ‹–Š{¦?šz–îèë’î¦7–îë–>cšnÓšZš†–æØÁ…Ñ ƒÒ‹–òW¢şS–n{¦7–îëjšZš†šVÃ((€€€ƒ¢¾ïš¢‡–v_êŸ–£–Æ =9Q9Q}%H½MQQ%}%H½%9IAI%9QM}%1£RÄ‰Õ¥± ¤µ½¹­•äµÁ…Ñ §(€€€€ˆˆˆ(€€€•á¥ÍÑ¥¹œ€ô±½…‘}™¥¹•ÉÁÉ¥¹ÑÌ ¤(€€€¡…¹•€ô¡…¹•‘}™¥±•Ì¡•á¥ÍÑ¥¹œ¤(€€€¥˜¹½Ğ¡…¹•è(€€€€€€€ÁÉ¥¹Ğ ‰A…•%¹‘•àè¹½Ñ¡¥¹œ¡…¹•°Í­¥ÁÁ¥¹œ‰Õ¥±¸ˆ¤(€€€€€€€É•ÑÕÉ¸€À(€€€‘½Ì€ô¡…¹•‘}‘½Ì¡¡…¹•¤(€€€ÁÉ¥¹Ğ¡˜‰A…•%¹‘•àèí±•¸¡¡…¹•¥ô™¥±•Ì¡…¹•ƒŠHí±•¸¡‘½Ì¥ô‘½ÌÑ¼É•‰Õ¥±ˆ¤(€€€½Ì¹µ…­•‘¥ÉÌ¡½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰‰½½­Ìˆ¤°•á¥ÍÑ}½¬õQÉÕ”¤(€€€½Ì¹µ…­•‘¥ÉÌ¡½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰Á…Á•ÉÌˆ¤°•á¥ÍÑ}½¬õQÉÕ”¤(€€€½Ì¹µ…­•‘¥ÉÌ¡½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰¹½Ñ•Ìˆ¤°•á¥ÍÑ}½¬õQÉÕ”¤(€€€É•‰Õ¥±Ğ€ô€À(€€€™½È‘½}ÑåÁ”°Í±Õœ¥¸Í½ÉÑ•¡‘½Ì¤è(€€€€€€€‘½}ÑÉ•”°™±…Ğ°¡Õ¹­}¹½‘•Ì€ôÁÉ½•ÍÍ}½¹•}‘½Œ¡‘½}ÑåÁ”°Í±Õœ¤(€€€€€€€¥˜‘½}ÑÉ•”¥Ì9½¹”è(€€€€€€€€€€€ÁÉ¥¹Ğ¡˜ˆ€mÍ­¥Át€í‘½}ÑåÁ•ô½íÍ±Õô€¡¹¼½¹Ñ•¹Ğ¤ˆ¤(€€€€€€€€€€€Á…Ñ¡}¥¹‘•á•Ì¡‘½}ÑåÁ”°Í±Õœ°9½¹”°mt°mt¤(€€€€€€€€€€€©Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°˜‰í‘½}ÑåÁ•õÌˆ°˜‰íÍ±Õô¹©Í½¸ˆ¤(€€€€€€€€€€€¥˜½Ì¹Á…Ñ ¹•á¥ÍÑÌ¡©Á…Ñ ¤è(€€€€€€€€€€€€€€€½Ì¹É•µ½Ù”¡©Á…Ñ ¤(€€€€€€€€€€€½¹Ñ¥¹Õ”(€€€€€€€½ÕÑ}Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°˜‰í‘½}ÑåÁ•õÌˆ°˜‰íÍ±Õô¹©Í½¸ˆ¤(€€€€€€€İ¥Ñ ½Á•¸¡½ÕÑ}Á…Ñ °€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€©Í½¸¹‘ÕµÀ¡‘½}ÑÉ•”°˜°¥¹‘•¹ĞôÈ°•¹ÍÕÉ•}…Í¥¤õ…±Í”¤(€€€€€€€Á…Ñ¡}¥¹‘•á•Ì¡‘½}ÑåÁ”°Í±Õœ°‘½}ÑÉ•”°™±…Ğ°¡Õ¹­}¹½‘•Ì¤(€€€€€€€ÁÉ¥¹Ğ¡˜ˆ€mí‘½}ÑåÁ•õtíÍ±Õô€€¡í±•¸¡™±…Ğ¥ô¹½‘•Ì¤ˆ¤(€€€€€€€É•‰Õ¥±Ğ€¬ô€Ä(€€€ÕÁ‘…Ñ•}™¥¹•ÉÁÉ¥¹ÑÌ ¤(€€€ÁÉ¥¹Ğ¡˜‰A…•%¹‘•àè¥¹É•µ•¹Ñ…°‰Õ¥±‘½¹”¸ˆ¤(€€€É•ÑÕÉ¸É•‰Õ¥±Ğ(()‘•˜‰Õ¥± (€€€½¹Ñ•¹Ñ}‘¥ÈèÍÑÈ°(€€€Á…•¥¹‘•á}‘¥ÈèÍÑÈ°(€€€±±µ}µ½‘•°èÍÑÈ€ô€ˆˆ°(€€€µ½‘”èÍÑÈ€ô€‰™Õ±°ˆ°(¤€´ø‘¥Ğè(€€€€ˆˆ‹–B3¢şo¢/–>¿¢ÂR£jÒ‹–òWšz–îë–—–>Œ£’úl…ÁÀ¹¥¹‘•à¹‰Õ¥±‘•Èƒ¢ÂR §((€€€½¹Ñ•¹Ñ}‘¥Èè€€€ƒ––ºçš‚ä£–¾ç–êS–:|=9Q9Q}%H¤(€€€Á…•¥¹‘•á}‘¥Èè€ƒ¢úO–ëš‚ä£–¾ç–êS–:|MQQ%}%H¤(€€€±±µ}µ½‘•°è€€€€€€±¥Ñ•±±´ƒš¢‡–z/’âÈìˆˆ€ôƒšr³–rÃ¦–2X£’â7¢Â114¤(€€€µ½‘”è€€€€€€€€€€€‰™Õ±°ˆƒ–£¦<ğ€‰¥¹É•µ•¹Ñ…°ˆƒ–Š{¦<((€€€ƒ¢şS–nx‘¥Ğè(€€€€€½¬è€€€€€€€€€€€‰½½°³šb¿–B›š"C–*|(€€€€€‘½Í}‰Õ¥±Ğè€€€¥¹Ğ³šr³š²‡šz–îè¿¦7–îëjšZš†šVÀ(€€€€€±½œè€€€€€€€€€€±¥ÍÑmÍÑÉt±ÍÑ‘½ÕĞƒš6W¢:Ü£š2'¢†0¤(€€€€€‘ÕÉ…Ñ¥½¹}Í•Œè€™±½…Ğ³¢_š^Ø£H¤(€€€€€•ÉÉ½Èè€€€€€€€€ÍÑÈğ9½¹”³–ò–âã’ş‡š¼¡½¬õ…±Í”ƒš^Û–†¯–¤((€€€ƒ–º{:Àéµ½¹­•äµÁ…Ñ ƒš¢‡–v_êŸ–£–Æ =9Q9Q}%H½MQQ%}%H½115}5=0½%9IAI%9QM}%1°(€€€ƒ¢ŞDµ…¥¸ ¤¡}¥¹É•µ•¹Ñ…±}‰Õ¥±¤³š6W¢:ÜÍÑ‘½ÕĞƒ–"À±½œ±ÑÉä½™¥¹…±±äƒš‹–’7–:–ó(€€€ƒ’â7šRç–:|µ…¥¸ ¤½}}µ…¥¹}|ƒ–v\³’şwVd1$ƒ–ó–ºç(€€€€ˆˆˆ(€€€¥µÁ½ÉĞ½¹Ñ•áÑ±¥ˆ(€€€¥µÁ½ÉĞ¥¼(€€€¥µÁ½ÉĞÑ¥µ”(€€€¥µÁ½ÉĞÑÉ…•‰…¬((€€€Í…Ù•€ô€¡=9Q9Q}%H°MQQ%}%H°%9IAI%9QM}%1°115}5=0¤(€€€±½}‰Õ˜€ô¥¼¹MÑÉ¥¹%< ¤(€€€ĞÀ€ôÑ¥µ”¹Ñ¥µ” ¤(€€€‘½Í}‰Õ¥±Ğ€ô€À(€€€•ÉÉ½ÈèÍÑÈğ9½¹”€ô9½¹”(€€€½¬€ô…±Í”(€€€ÑÉäè(€€€€€€€€Œ€Ä¤Á…Ñ ƒ’â'’â«–:–/–£–Æ (€€€€€€€±½‰…±Ì ¥l‰=9Q9Q}%H‰t€ôÍÑÈ¡½¹Ñ•¹Ñ}‘¥È¤(€€€€€€€±½‰…±Ì ¥l‰MQQ%}%H‰t€ôÍÑÈ¡Á…•¥¹‘•á}‘¥È¤(€€€€€€€±½‰…±Ì ¥l‰115}5=0‰t€ô±±µ}µ½‘•°½È€ˆˆ(€€€€€€€€Œ€È¤ƒ¦7º_šÒûR–£–Æ ¡%9IAI%9QM}%1ƒ–ş¦†ï¢Şv MQQ%}%Hƒ¢ÖÀ³–B›–"gš2êç–’Ç¦4¤(€€€€€€€±½‰…±Ì ¥l‰%9IAI%9QM}%1‰t€ô½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€ˆ¹™¥¹•ÉÁÉ¥¹ÑÌ¹©Í½¸ˆ¤(€€€€€€€€Œ€Ì¤ƒ†»’şw¢úO–ëš‚çn»–öW–¶c–r (€€€€€€€½Ì¹µ…­•‘¥ÉÌ¡MQQ%}%H°•á¥ÍÑ}½¬õQÉÕ”¤(€€€€€€€½Ì¹µ…­•‘¥ÉÌ¡½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰‰½½­Ìˆ¤°•á¥ÍÑ}½¬õQÉÕ”¤(€€€€€€€½Ì¹µ…­•‘¥ÉÌ¡½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰Á…Á•ÉÌˆ¤°•á¥ÍÑ}½¬õQÉÕ”¤(€€€€€€€½Ì¹µ…­•‘¥ÉÌ¡½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰¹½Ñ•Ìˆ¤°•á¥ÍÑ}½¬õQÉÕ”¤((€€€€€€€İ¥Ñ ½¹Ñ•áÑ±¥ˆ¹É•‘¥É•Ñ}ÍÑ‘½ÕĞ¡±½}‰Õ˜¤è(€€€€€€€€€€€¥˜µ½‘”€ôô€‰¥¹É•µ•¹Ñ…°ˆè(€€€€€€€€€€€€€€€‘½Í}‰Õ¥±Ğ€ô}¥¹É•µ•¹Ñ…±}‰Õ¥± ¤(€€€€€€€€€€€•±Í”è(€€€€€€€€€€€€€€€µ…¥¸ ¤(€€€€€€€€€€€€€€€€Œƒ–£¦?šz–îë–B;î¢º„‘½ÌƒšVÀ£¢¾ì±½‰…°µ¥¹‘•à¹©Í½¸¤(€€€€€€€€€€€€€€€¥}Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡MQQ%}%H°€‰±½‰…°µ¥¹‘•à¹©Í½¸ˆ¤(€€€€€€€€€€€€€€€¥˜½Ì¹Á…Ñ ¹•á¥ÍÑÌ¡¥}Á…Ñ ¤è(€€€€€€€€€€€€€€€€€€€İ¥Ñ ½Á•¸¡¥}Á…Ñ °€‰Èˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€€€€€€€€€€€€€¤€ô©Í½¸¹±½…¡˜¤(€€€€€€€€€€€€€€€€€€€‘½Í}‰Õ¥±Ğ€ô±•¸¡¤¹•Ğ ‰‘½Ìˆ°mt¤¤(€€€€€€€½¬€ôQÉÕ”(€€€•á•ÁĞá•ÁÑ¥½¸…Ì•áŒè€€Œ¹½Å„è	1ÀÀÄ(€€€€€€€•ÉÉ½È€ô˜‰íÑåÁ”¡•áŒ¤¹}}¹…µ•}}ôèí•áõq¹íÑÉ…•‰…¬¹™½Éµ…Ñ}•áŒ ¥ôˆ(€€€€€€€€Œƒš*+–ŞËš6W¢:ßjÍÑ‘½ÕĞƒ’æ’şwVd(€€€€€€€±½}‰Õ˜¹İÉ¥Ñ”¡˜‰q¹m‰Õ¥±•ÉÉ½Étí•ÉÉ½Éõq¸ˆ¤(€€€™¥¹…±±äè(€€€€€€€€Œ€Ğ¤ƒš‹–’4£¢şo¢/êŸ¦jSšì³¦ÿ–7šÆ‡š~O–B;î·¢ÂR ¤(€€€€€€€€ (€€€€€€€€€€€±½‰…±Ì ¥l‰=9Q9Q}%H‰t°(€€€€€€€€€€€±½‰…±Ì ¥l‰MQQ%}%H‰t°(€€€€€€€€€€€±½‰…±Ì ¥l‰%9IAI%9QM}%1‰t°(€€€€€€€€€€€±½‰…±Ì ¥l‰115}5=0‰t°(€€€€€€€€¤€ôÍ…Ù•((€€€±½}±¥¹•Ì€ôm±¸™½È±¸¥¸±½}‰Õ˜¹•ÑÙ…±Õ” ¤¹ÍÁ±¥Ñ±¥¹•Ì ¤¥˜±¸¹ÍÑÉ¥À ¥t(€€€É•ÑÕÉ¸ì(€€€€€€€€‰½¬ˆè½¬°(€€€€€€€€‰‘½Í}‰Õ¥±Ğˆè‘½Í}‰Õ¥±Ğ°(€€€€€€€€‰±½œˆè±½}±¥¹•Ì°(€€€€€€€€‰‘ÕÉ…Ñ¥½¹}Í•ŒˆèÉ½Õ¹¡Ñ¥µ”¹Ñ¥µ” ¤€´ĞÀ°€Ì¤°(€€€€€€€€‰•ÉÉ½Èˆè•ÉÉ½È°(€€€ô(()¥˜}}¹…µ•}|€ôô€‰}}µ…¥¹}|ˆè(€€€¥¹É•µ•¹Ñ…°€ô€ˆ´µ¥¹É•µ•¹Ñ…°ˆ¥¸ÍåÌ¹…ÉØ(€€€¥˜¥¹É•µ•¹Ñ…°è(€€€€€€€}¥¹É•µ•¹Ñ…±}‰Õ¥± ¤(€€€•±Í”è(€€€€€€€µ…¥¸ ¤(
+        crumb = breadcrumb + [node["title"]]
+        children = node.get("nodes") or []
+        # åªä¸ºæœ‰å®é™…æ­£æ–‡çš„èŠ‚ç‚¹ç”Ÿæˆ chunk èŠ‚ç‚¹ï¼ˆå®¹å™¨èŠ‚ç‚¹ text å¤ªçŸ­ï¼Œè·³è¿‡ï¼‰
+        text = node.get("text", "")
+        if text and len(text) > 30:
+            result.append({
+                "doc_id": doc_id,
+                "node_id": node["node_id"],
+                "title": node["title"],
+                "breadcrumb": crumb,
+                "summary": node.get("summary") or text[:200].replace("\n", " ").strip(),
+                "text": text,
+                "source_md": node.get("source_md", ""),
+                "line_num": node.get("line_num", 0),
+            })
+        if children:
+            result.extend(flatten_tree_with_text(children, doc_id, crumb))
+    return result
+
+
+
+def extract_terms(title: str) -> list[str]:
+    """Extract searchable terms from a title string."""
+    # Split on common separators, keep words >= 2 chars
+    parts = re.split(r"[\sÂ·\-\â€”\.\,\;\:\!\?\(\)\[\]\{\}]+", title)
+    terms = []
+    for p in parts:
+        p = p.strip()
+        if len(p) >= 2:
+            terms.append(p)
+    return list(dict.fromkeys(terms))  # dedup, preserve order
+
+
+# â”€â”€ tokenizerï¼ˆä¸ chat.js / retrieval.js çš„ tokenize() è¡Œä¸ºå¯¹é½ï¼‰ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# å…³é”®ï¼šæ„å»ºæœŸ postings çš„ token å¿…é¡»ä¸è¿è¡ŒæœŸæŸ¥è¯¢ token å®Œå…¨ä¸€è‡´ï¼Œå¦åˆ™æŸ¥ä¸åˆ°ã€‚
+# JS é€»è¾‘ï¼šè‹±æ–‡ [a-zA-Z][a-zA-Z0-9]{1,} lower + æ•°å­— \d{2,} + CJK 2-gramã€‚
+_EN_RE = re.compile(r"[a-zA-Z][a-zA-Z0-9]{1,}")
+_NUM_RE = re.compile(r"\d{2,}")
+_CJK_RE = re.compile(r"[ä¸€-é¿¿]+")
+
+
+def tokenize_raw(text: str) -> list[str]:
+    """ä¿ç•™é‡å¤ï¼ˆBM25 çœŸå® TF ç”¨ï¼‰ã€‚ä¸ retrieval.js tokenizeRaw å¯¹é½ã€‚"""
+    if not text:
+        return []
+    tokens: list[str] = []
+    tokens.extend(w.lower() for w in _EN_RE.findall(text))
+    tokens.extend(_NUM_RE.findall(text))
+    for seg in _CJK_RE.findall(text):
+        for i in range(len(seg) - 1):
+            tokens.append(seg[i:i + 2])  # 2-gram
+    return tokens
+
+
+def tokenize_unique(text: str) -> list[str]:
+    """å»é‡ä¿æŒåºï¼ˆDF / postings å€™é€‰ç”¨ï¼‰ã€‚ä¸ retrieval.js tokenizeUnique å¯¹é½ã€‚"""
+    seen: set[str] = set()
+    out = []
+    for t in tokenize_raw(text):
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
+def tokenize(text: str) -> list[str]:
+    """ä¿ç•™é‡å¤ï¼ˆBM25 TF ç”¨ï¼‰â€”â€”ä¸ retrieval.js tokenize å¯¹é½ã€‚
+    å†å² APIï¼šæ—§ä»£ç ç”¨æ­¤åï¼Œé˜¶æ®µ 2 æ”¹ä¸ºä¿ç•™é‡å¤ä»¥ä¿® TF å¤±çœŸã€‚
+    """
+    return tokenize_raw(text)
+
+
+# â”€â”€ æ­£æ–‡ chunk åˆ‡åˆ† + å€’æ’ postings æ„å»º â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# è®©æ­£æ–‡æ·±å¤„çš„äº‹å®å¯è¢«ç¬¬ä¸€é˜¶æ®µæ£€ç´¢å‘½ä¸­ï¼ˆä¿®å¤ summary æˆªæ–­å¯¼è‡´æ­£æ–‡å¤§éƒ¨åˆ†ä¸å¯æœç´¢ï¼‰ã€‚
+# chunk ç²’åº¦ï¼šä¸­æ–‡ ~500 å­—ç¬¦ï¼Œé‡å  ~100ï¼Œä¼˜å…ˆæ®µè½è¾¹ç•Œã€‚
+
+CHUNK_TARGET_CHARS = 500
+CHUNK_OVERLAP_CHARS = 100
+# åœç”¨è¯é˜ˆå€¼ï¼šDF è¶…è¿‡æ­¤æ¯”ä¾‹çš„ token è§†ä¸ºåœç”¨è¯ï¼ˆIDF æä½ï¼Œå ä½“ç§¯ä¸åŒºåˆ†ï¼‰ï¼Œå†™å…¥æ—¶ä¸¢å¼ƒã€‚
+STOPWORD_DF_RATIO = 0.35
+_CHUNK_COUNTER = [0]  # å…¨å±€ chunk_id è®¡æ•°å™¨ï¼ˆè¿›ç¨‹çº§ï¼‰
+
+
+def _next_chunk_id() -> str:
+    _CHUNK_COUNTER[0] += 1
+    return f"c{_CHUNK_COUNTER[0]:06d}"
+
+
+def reset_chunk_counter() -> None:
+    """æ¯ä¸ªå…¨é‡/å¢é‡æ„å»ºå¼€å§‹å‰é‡ç½®ï¼ˆä¿è¯å¯å¤ç°çš„ chunk_idï¼‰ã€‚"""
+    _CHUNK_COUNTER[0] = 0
+
+
+def split_into_chunks(text: str, target: int = CHUNK_TARGET_CHARS,
+                      overlap: int = CHUNK_OVERLAP_CHARS) -> list[tuple[str, int, int]]:
+    """æŠŠæ­£æ–‡åˆ‡æˆ ~target å­—ç¬¦çš„ chunkï¼Œé‡å  overlap å­—ç¬¦ã€‚
+
+    ä¼˜å…ˆæ®µè½è¾¹ç•Œï¼ˆç©ºè¡Œåˆ‡åˆ†ï¼‰ï¼Œå•æ®µè¶…é•¿å†æŒ‰ target ç¡¬åˆ‡ã€‚
+    è¿”å› [(chunk_text, start_char, end_char), ...]ï¼Œchar åç§»ç›¸å¯¹äº textã€‚
+    """
+    if not text or not text.strip():
+        return []
+    paragraphs = [p for p in re.split(r"\n\s*\n", text) if p.strip()]
+    if not paragraphs:
+        return []
+    chunks: list[tuple[str, int, int]] = []
+    buf = ""
+    buf_start = 0
+    pos = 0  # å½“å‰åœ¨ text ä¸­çš„å­—ç¬¦æ¸¸æ ‡
+
+    def flush(end_pos: int) -> None:
+        nonlocal buf, buf_start
+        if buf.strip():
+            chunks.append((buf.strip(), buf_start, end_pos))
+        # é‡å ï¼šä¿ç•™æœ«å°¾ overlap å­—ç¬¦ä½œä¸ºä¸‹ä¸€æ®µèµ·ç‚¹
+        if overlap > 0 and len(buf) > overlap:
+            tail = buf[-overlap:]
+            buf = tail
+            buf_start = end_pos - overlap
+        else:
+            buf = ""
+            buf_start = end_pos
+
+    for para in paragraphs:
+        # å•æ®µè¶…é•¿ â†’ ç›´æ¥æŒ‰ target åˆ‡ï¼ˆä¸å†ç­‰ç´¯åŠ ï¼‰
+        if len(para) >= target:
+            if buf.strip():
+                flush(pos)
+            i = 0
+            while i < len(para):
+                piece = para[i:i + target]
+                chunks.append((piece.strip(), pos + i, pos + i + len(piece)))
+                i += target - overlap if (target - overlap) > 0 else target
+            # æ®µåæ¸¸æ ‡æ¨è¿›ï¼ˆpara æœ«å°¾ + åŸæ®µé—´åˆ†éš”ï¼‰
+            pos += len(para) + 2  # \n\n è¿‘ä¼¼
+            continue
+        # ç´¯åŠ æ®µè½
+        if len(buf) + len(para) + 2 > target and buf:
+            flush(pos)
+        if not buf:
+            buf_start = pos
+        buf = (buf + "\n\n" + para) if buf else para
+        pos += len(para) + 2  # æ®µé—´ \n\n
+    flush(pos)
+    return chunks
+
+
+def build_chunks_and_postings(flat_nodes: list[dict], doc_meta: dict) -> tuple[list[dict], dict]:
+    """ä¸º flat_nodes ç”Ÿæˆæ­£æ–‡ chunk + å€’æ’ postingsã€‚
+
+    flat_nodes: node-index é£æ ¼çš„èŠ‚ç‚¹ï¼ˆå« title/breadcrumb/summary/source_md/line_numï¼‰ã€‚
+        æ³¨æ„æ­¤å¤„æ­£æ–‡ text ä¸åœ¨ node-index é‡Œâ€”â€”è°ƒç”¨æ–¹éœ€å…ˆæŠŠæ­£æ–‡å¡è¿› node["text"]ã€‚
+    doc_meta: {doc_id, doc_title, doc_type, ...} ç”¨äº chunk å…ƒæ•°æ®ã€‚
+
+    è¿”å› (chunks, postings)ï¼š
+      chunks: [{chunk_id, doc_id, node_id, title, breadcrumb, body, summary,
+                source_md, line_num, line_end}, ...]
+      postings: {token: [{c: chunk_id, tf: int}, ...]}
+    """
+    chunks: list[dict] = []
+    postings: dict[str, list[dict]] = {}
+    doc_id = doc_meta.get("doc_id", "")
+    doc_title = doc_meta.get("title", "")
+    doc_type = doc_meta.get("type", "")
+    for node in flat_nodes:
+        body = node.get("text", "") or ""
+        title = node.get("title", "")
+        breadcrumb = node.get("breadcrumb", [])
+        source_md = node.get("source_md", "")
+        line_num = node.get("line_num", 0)
+        node_id = node.get("node_id", "")
+        # çŸ­æ­£æ–‡ä¸åˆ‡ï¼Œæ•´æ®µä¸€ä¸ª chunk
+        if len(body) <= CHUNK_TARGET_CHARS:
+            pieces = [(body, 0, len(body))] if body.strip() else []
+        else:
+            pieces = split_into_chunks(body)
+        for ci, (piece, _cstart, cend) in enumerate(pieces):
+            chunk_id = _next_chunk_id()
+            chunk = {
+                "chunk_id": chunk_id,
+                "doc_id": doc_id,
+                "node_id": node_id,
+                # summary ä¸å­˜â€”â€”node-index.json å·²æœ‰ï¼Œè¿è¡ŒæœŸæŒ‰ node_id å…³è”ï¼Œçœ ~8MB
+                "title": title,
+                "breadcrumb": breadcrumb,
+                "body": piece,
+                "source_md": source_md,
+                "line_num": line_num,
+            }
+            chunks.append(chunk)
+            # postingsï¼šbody + title + breadcrumb ä¸€èµ· token åŒ–ï¼ˆæ ‡é¢˜æƒé‡åœ¨è¿è¡ŒæœŸ BM25F åŠ ï¼‰
+            combined = f"{title} {' '.join(breadcrumb)} {piece}"
+            toks = tokenize(combined)
+            # chunk å†… TFï¼ˆä¿ç•™é‡å¤â€”â€”è¿™æ˜¯é˜¶æ®µ 2 æ­£ç¡® BM25 çš„åŸºç¡€ï¼‰
+            tf_map: dict[str, int] = {}
+            for t in toks:
+                tf_map[t] = tf_map.get(t, 0) + 1
+            # ç´§å‡‘æ ¼å¼ï¼šposting = [cid_num, tf]ï¼ˆcid_num ä¸ºæ•´æ•°ï¼Œè¿è¡ŒæœŸæ‹¼å› c000001ï¼‰
+            cid_num = _CHUNK_COUNTER[0]
+            for t, tf in tf_map.items():
+                postings.setdefault(t, []).append([cid_num, tf])
+    return chunks, postings
+
+
+def merge_postings(all_postings: list[dict]) -> dict:
+    """åˆå¹¶å¤šä¸ªæ–‡æ¡£çš„ postings dict â†’ å…¨å±€ postingsã€‚
+
+    all_postings: [{token: [{c, tf}, ...]}, ...]
+    åŒ token çš„ posting list åˆå¹¶ï¼ˆchunk_id å…¨å±€å”¯ä¸€ï¼Œæ— éœ€å†å»é‡ï¼‰ã€‚
+    """
+    merged: dict[str, list[dict]] = {}
+    for p in all_postings:
+        for tok, lst in p.items():
+            merged.setdefault(tok, []).extend(lst)
+    return merged
+
+
+
+# â”€â”€ document processing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+def process_book(slug: str, book_dir: str) -> tuple[dict | None, list[dict]]:
+    """Build PageIndex tree for a book by merging all chapter files.
+    Returns (doc_tree, flat_nodes_for_index)."""
+    index_path = os.path.join(book_dir, "_index.md")
+    if not os.path.exists(index_path):
+        return None, []
+
+    with open(index_path, "r", encoding="utf-8") as f:
+        index_text = f.read()
+    meta, _, _ = parse_front_matter(index_text)
+    book_title = meta.get("title", slug)
+
+    # Collect chapter files sorted by weight
+    chapters = []
+    for fname in sorted(os.listdir(book_dir)):
+        if not fname.endswith(".md") or fname == "_index.md":
+            continue
+        fpath = os.path.join(book_dir, fname)
+        with open(fpath, "r", encoding="utf-8") as f:
+            content = f.read()
+        ch_meta, body, body_offset = parse_front_matter(content)
+        ch_title = ch_meta.get("title", os.path.splitext(fname)[0])
+        ch_weight = ch_meta.get("weight", 999)
+        chapters.append((ch_weight, ch_title, body, body_offset, fname))
+
+    chapters.sort(key=lambda x: x[0])
+
+    # Build tree: book â†’ chapters â†’ sections
+    all_nodes = []
+    book_root = {
+        "title": book_title,
+        "node_id": "",  # filled later
+        "text": meta.get("description", ""),
+        "nodes": [],
+    }
+
+    for _, ch_title, body, body_offset, fname in chapters:
+        body_lines = body.split("\n")
+        headings = extract_headings(body, 0)
+        if not headings:
+            continue
+        attach_text(headings, body_lines, len(body_lines))
+        ch_tree = build_tree(headings)
+
+        # Wrap chapter in a chapter-level nodeï¼ˆçº¯å®¹å™¨ï¼štext æ”¾ descriptionï¼Œä¸é‡å¤æ­£æ–‡ï¼‰
+        # åˆ†æ–‡ä»¶æ¨¡å¼ä¸‹æ­£æ–‡å…¨åœ¨å­èŠ‚ç‚¹é‡Œï¼Œchapter åªåšå±‚çº§å®¹å™¨
+        ch_description = ch_meta.get("description", "")
+        ch_source_md = f"{RAW_PATH_PREFIX}/books/{slug}/{fname}"
+        ch_node = {
+            "title": ch_title,
+            "node_id": "",
+            "text": ch_description,  # front matter descriptionï¼Œéæ­£æ–‡ï¼ˆsummary ç”Ÿæˆç”¨ï¼‰
+            "line_num": headings[0].get("line_num", 0) if headings else 0,
+            "line_end": headings[-1].get("line_end", 0) if headings else 0,
+            "source_md": ch_source_md,
+            "nodes": ch_tree,
+        }
+        # å­èŠ‚ç‚¹ç»§æ‰¿ chapter çš„ source_mdï¼ˆåœ¨åŒä¸€æ–‡ä»¶é‡Œï¼‰
+        def propagate_source(nodes, src):
+            for n in nodes:
+                n["source_md"] = src
+                if n.get("nodes"):
+                    propagate_source(n["nodes"], src)
+        propagate_source(ch_tree, ch_source_md)
+        book_root["nodes"].append(ch_node)
+
+    # Assign IDs
+    counter = [0]
+    for ch_node in book_root["nodes"]:
+        counter[0] += 1
+        ch_node["node_id"] = str(counter[0]).zfill(4)
+        assign_node_ids(ch_node.get("nodes", []), counter)
+
+    # Flatten for node-index
+    book_url_prefix = f"/books/{slug}/"
+    # Generate summaries (LLM if LLM_MODEL set, else truncated fallback)
+    # Must run BEFORE flatten (chapter nodes need summary filled) and clean_tree
+    inject_summaries(book_root["nodes"], f"book/{slug}")
+
+    # Flatten for node-index (after summaries are injected)
+    # The URL for chapter content needs the chapter filename
+    flat_nodes = []
+    chapter_files = [c[4] for c in chapters]  # fnames in order
+    ch_idx = 0
+    for ch_node in book_root["nodes"]:
+        ch_fname = os.path.splitext(chapter_files[ch_idx])[0] + ".html"
+        ch_url = f"{book_url_prefix}{ch_fname}"
+        # Add chapter node itself
+        ch_text = ch_node.get("text", "")
+        flat_nodes.append({
+            "doc_id": slug,
+            "node_id": ch_node["node_id"],
+            "title": ch_node["title"],
+            "breadcrumb": [book_title, ch_node["title"]],
+            "url": f"{ch_url}#pi-node-{ch_node['node_id']}",
+            "terms": extract_terms(ch_node["title"]),
+            "summary": ch_node.get("summary") or ch_text[:200].replace("\n", " ").strip(),
+            "line_num": ch_node.get("line_num", 0),
+        })
+        # Flatten children
+        child_flat = flatten_tree(ch_node.get("nodes", []), slug,
+                                  [book_title, ch_node["title"]], ch_url)
+        flat_nodes.extend(child_flat)
+        ch_idx += 1
+
+    # åœ¨ clean_tree å‰¥ç¦» text ä¹‹å‰ï¼Œå…ˆæŠ½å‡ºå¸¦æ­£æ–‡çš„æ‰å¹³èŠ‚ç‚¹ï¼ˆä¾› chunk åˆ‡åˆ†ï¼‰
+    chunk_nodes = []
+    for ch_node in book_root["nodes"]:
+        chunk_nodes.extend(
+            flatten_tree_with_text(ch_node.get("nodes", []), slug, [book_title, ch_node["title"]])
+        )
+
+    # Clean treeï¼ˆä¿®å¤ï¼šclean_tree è¿”å›æ–°åˆ—è¡¨ï¼Œå¿…é¡»èµ‹å›ï¼Œå¦åˆ™ä¹¦æ ‘ JSON ä»ä¿ç•™å®Œæ•´ textï¼‰
+    book_root["node_id"] = "0000"
+    for ch_node in book_root["nodes"]:
+        ch_node["nodes"] = clean_tree(ch_node.get("nodes", []))
+
+    doc_tree = {
+        "doc_name": slug,
+        "type": "book",
+        "title": book_title,
+        "author": meta.get("author", ""),
+        "description": meta.get("description", ""),
+        "tags": meta.get("tags", []),
+        "structure": book_root["nodes"],
+    }
+    return doc_tree, flat_nodes, chunk_nodes
+
+
+def process_paper(slug: str, paper_dir: str) -> tuple[dict | None, list[dict], list[dict]]:
+    """Build PageIndex tree for a paper from its _index.md.
+    Returns (doc_tree, flat_nodes_for_index, chunk_nodes_with_text)."""
+    index_path = os.path.join(paper_dir, "_index.md")
+    if not os.path.exists(index_path):
+        return None, [], []
+
+    with open(index_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    meta, body, body_offset = parse_front_matter(content)
+    doc_title = meta.get("title", slug)
+    body_lines = body.split("\n")
+    headings = extract_headings(body, 0)
+    if not headings:
+        return None, [], []
+
+    attach_text(headings, body_lines, len(body_lines))
+    tree = build_tree(headings)
+    assign_node_ids(tree)
+
+    # æ‰€æœ‰èŠ‚ç‚¹æŒ‡å‘åŒä¸€ç¯‡ mdï¼ˆpaper æ˜¯å•æ–‡ä»¶ _index.mdï¼‰
+    paper_source_md = f"{RAW_PATH_PREFIX}/papers/{slug}/_index.md"
+    def propagate_paper_source(nodes):
+        for n in nodes:
+            n["source_md"] = paper_source_md
+            if n.get("nodes"):
+                propagate_paper_source(n["nodes"])
+    propagate_paper_source(tree)
+
+    doc_url = f"/papers/{slug}/index.html"
+
+    # Generate summaries (LLM if LLM_MODEL set, else truncated fallback)
+    # Must run BEFORE flatten and clean_tree (both read node.summary)
+    inject_summaries(tree, f"paper/{slug}")
+
+    flat = flatten_tree(tree, slug, [doc_title], doc_url)
+    # clean_tree å‰å…ˆæŠ½å¸¦æ­£æ–‡çš„æ‰å¹³èŠ‚ç‚¹ï¼ˆä¾› chunk åˆ‡åˆ†ï¼‰
+    chunk_nodes = flatten_tree_with_text(tree, slug, [doc_title])
+
+    doc_tree = {
+        "doc_name": slug,
+        "type": "paper",
+        "title": doc_title,
+        "author": meta.get("author", ""),
+        "year": meta.get("year", ""),
+        "description": meta.get("description", ""),
+        "tags": meta.get("tags", []),
+        "structure": clean_tree(tree),
+    }
+    return doc_tree, flat, chunk_nodes
+
+
+def process_note(slug: str, note_path: str) -> tuple[dict | None, list[dict], list[dict]]:
+    """Build PageIndex tree for a standalone note .md file.
+    Returns (doc_tree, flat_nodes_for_index, chunk_nodes_with_text)."""
+    with open(note_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    meta, body, body_offset = parse_front_matter(content)
+    doc_title = meta.get("title", slug)
+    body_lines = body.split("\n")
+    headings = extract_headings(body, 0)
+    if not headings:
+        return None, [], []
+
+    attach_text(headings, body_lines, len(body_lines))
+    tree = build_tree(headings)
+    assign_node_ids(tree)
+
+    # æ‰€æœ‰èŠ‚ç‚¹æŒ‡å‘åŒä¸€ç¯‡ mdï¼ˆnote æ˜¯å•æ–‡ä»¶ slug.mdï¼‰
+    note_source_md = f"{RAW_PATH_PREFIX}/notes/{slug}.md"
+    def propagate_note_source(nodes):
+        for n in nodes:
+            n["source_md"] = note_source_md
+            if n.get("nodes"):
+                propagate_note_source(n["nodes"])
+    propagate_note_source(tree)
+
+    doc_url = f"/notes/{slug}.html"
+
+    # Generate summaries (LLM if LLM_MODEL set, else truncated fallback)
+    # Must run BEFORE flatten and clean_tree (both read node.summary)
+    inject_summaries(tree, f"note/{slug}")
+
+    flat = flatten_tree(tree, slug, [doc_title], doc_url)
+    # clean_tree å‰å…ˆæŠ½å¸¦æ­£æ–‡çš„æ‰å¹³èŠ‚ç‚¹ï¼ˆä¾› chunk åˆ‡åˆ†ï¼‰
+    chunk_nodes = flatten_tree_with_text(tree, slug, [doc_title])
+
+    doc_tree = {
+        "doc_name": slug,
+        "type": "note",
+        "title": doc_title,
+        "author": meta.get("author", ""),
+        "date": str(meta.get("date", "")),
+        "description": meta.get("description", ""),
+        "tags": meta.get("tags", []),
+        "source_type": meta.get("source_type", ""),
+        "source_title": meta.get("source_title", ""),
+        "structure": clean_tree(tree),
+    }
+    return doc_tree, flat, chunk_nodes
+
+
+# â”€â”€ main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+def main():
+    os.makedirs(os.path.join(STATIC_DIR, "books"), exist_ok=True)
+    os.makedirs(os.path.join(STATIC_DIR, "papers"), exist_ok=True)
+    os.makedirs(os.path.join(STATIC_DIR, "notes"), exist_ok=True)
+
+    global_docs: list[dict] = []
+    all_nodes: list[dict] = []
+    all_chunk_nodes: list[dict] = []  # å¸¦æ­£æ–‡çš„æ‰å¹³èŠ‚ç‚¹ï¼ˆä¾› chunk å€’æ’ç´¢å¼•ï¼‰
+    reset_chunk_counter()
+
+    # â”€â”€ books â”€â”€
+    books_dir = os.path.join(CONTENT_DIR, "books")
+    if os.path.isdir(books_dir):
+        for slug in sorted(os.listdir(books_dir)):
+            book_dir = os.path.join(books_dir, slug)
+            if not os.path.isdir(book_dir) or slug.startswith("_"):
+                continue
+            doc_tree, flat, chunk_nodes = process_book(slug, book_dir)
+            if doc_tree is None:
+                continue
+
+            out_path = os.path.join(STATIC_DIR, "books", f"{slug}.json")
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(doc_tree, f, indent=2, ensure_ascii=False)
+            print(f"  [book]  {slug}  ({len(flat)} nodes)")
+
+            global_docs.append({
+                "id": slug,
+                "type": "book",
+                "title": doc_tree["title"],
+                "author": doc_tree["author"],
+                "description": doc_tree["description"],
+                "tags": doc_tree["tags"],
+                "path": f"/books/{slug}/",
+                "url": f"/books/{slug}.html",
+            })
+            all_nodes.extend(flat)
+            all_chunk_nodes.extend(chunk_nodes)
+
+    # â”€â”€ papers â”€â”€
+    papers_dir = os.path.join(CONTENT_DIR, "papers")
+    if os.path.isdir(papers_dir):
+        for slug in sorted(os.listdir(papers_dir)):
+            paper_dir = os.path.join(papers_dir, slug)
+            if not os.path.isdir(paper_dir) or slug.startswith("_"):
+                continue
+            doc_tree, flat, chunk_nodes = process_paper(slug, paper_dir)
+            if doc_tree is None:
+                continue
+
+            out_path = os.path.join(STATIC_DIR, "papers", f"{slug}.json")
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(doc_tree, f, indent=2, ensure_ascii=False)
+            print(f"  [paper] {slug}  ({len(flat)} nodes)")
+
+            global_docs.append({
+                "id": slug,
+                "type": "paper",
+                "title": doc_tree["title"],
+                "author": doc_tree["author"],
+                "year": doc_tree.get("year", ""),
+                "description": doc_tree["description"],
+                "tags": doc_tree["tags"],
+                "path": f"/papers/{slug}/",
+                "url": f"/papers/{slug}.html",
+            })
+            all_nodes.extend(flat)
+            all_chunk_nodes.extend(chunk_nodes)
+
+    # â”€â”€ notes â”€â”€
+    notes_dir = os.path.join(CONTENT_DIR, "notes")
+    if os.path.isdir(notes_dir):
+        for fname in sorted(os.listdir(notes_dir)):
+            if not fname.endswith(".md") or fname == "_index.md":
+                continue
+            slug = os.path.splitext(fname)[0]
+            note_path = os.path.join(notes_dir, fname)
+            doc_tree, flat, chunk_nodes = process_note(slug, note_path)
+            if doc_tree is None:
+                continue
+
+            out_path = os.path.join(STATIC_DIR, "notes", f"{slug}.json")
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(doc_tree, f, indent=2, ensure_ascii=False)
+            print(f"  [note]  {slug}  ({len(flat)} nodes)")
+
+            global_docs.append({
+                "id": slug,
+                "type": "note",
+                "title": doc_tree["title"],
+                "author": doc_tree["author"],
+                "date": doc_tree.get("date", ""),
+                "description": doc_tree["description"],
+                "tags": doc_tree["tags"],
+                "source_type": doc_tree.get("source_type", ""),
+                "source_title": doc_tree.get("source_title", ""),
+                "path": f"/notes/",
+                "url": f"/notes/{slug}.html",
+            })
+            all_nodes.extend(flat)
+            all_chunk_nodes.extend(chunk_nodes)
+
+    # â”€â”€ write global-index.json â”€â”€
+    global_path = os.path.join(STATIC_DIR, "global-index.json")
+    with open(global_path, "w", encoding="utf-8") as f:
+        json.dump({"docs": global_docs}, f, indent=2, ensure_ascii=False)
+    print(f"\n  global-index: {len(global_docs)} docs")
+
+    # â”€â”€ write node-index.json â”€â”€
+    node_index_path = os.path.join(STATIC_DIR, "node-index.json")
+    with open(node_index_path, "w", encoding="utf-8") as f:
+        json.dump({"nodes": all_nodes}, f, indent=2, ensure_ascii=False)
+    print(f"  node-index:   {len(all_nodes)} nodes")
+
+    # â”€â”€ build + write inverted index (æ­£æ–‡ chunk å€’æ’ç´¢å¼•) â”€â”€
+    write_inverted_index(all_chunk_nodes, global_docs)
+
+    # â”€â”€ size summary â”€â”€
+    total_kb = 0
+    for root, _, files in os.walk(STATIC_DIR):
+        for fname in files:
+            total_kb += os.path.getsize(os.path.join(root, fname))
+    print(f"  total size:   {total_kb / 1024:.1f} KB")
+
+    # å…¨é‡é‡å»ºåä¹Ÿå†™ fingerprintsï¼Œå¦åˆ™ä¸‹æ¬¡ --incremental ä¼šå†æ¬¡å…¨é‡
+    update_fingerprints()
+
+
+def _build_cid_doc_map(chunks: list[dict]) -> dict[int, str]:
+    """æ„å»º cid_num â†’ doc_id æ˜ å°„ï¼ˆä¾›æ–‡æ¡£çº§ DF è®¡ç®—ç”¨ï¼‰ã€‚
+
+    chunk_id å½¢å¦‚ "c009067"ï¼ˆè§ _next_chunk_idï¼‰ï¼Œå‰¥å‰ç¼€è½¬ intã€‚
+    """
+    m: dict[int, str] = {}
+    for c in chunks:
+        cid = c.get("chunk_id", "")
+        if cid.startswith("c"):
+            try:
+                m[int(cid[1:])] = c.get("doc_id", "")
+            except ValueError:
+                continue
+    return m
+
+
+def _doc_level_df(posting_list: list, cid_doc_map: dict[int, str]) -> int:
+    """ç®— token çš„æ–‡æ¡£çº§ DFï¼šå‡ºç°åœ¨å¤šå°‘ä¸ªä¸åŒ doc é‡Œã€‚
+
+    posting æ ¼å¼ [cid_num, tf]ï¼ˆè§ build_chunks_and_postings L588ï¼‰ï¼Œå– p[0] æŸ¥ doc_idã€‚
+    """
+    docs: set[str] = set()
+    for p in posting_list:
+        cid_num = p[0] if isinstance(p, list) else p
+        if isinstance(cid_num, int):
+            doc = cid_doc_map.get(cid_num, "")
+            if doc:
+                docs.add(doc)
+    return len(docs)
+
+
+def _filter_stopwords(
+    postings: dict[str, list], chunks: list[dict]
+) -> tuple[dict[str, list], int, int]:
+    """åœç”¨è¯è¿‡æ»¤ï¼šæ–‡æ¡£çº§ DFï¼ˆå¤šæ–‡æ¡£åº“ï¼‰æˆ– chunk çº§ DFï¼ˆå•æ–‡æ¡£åº“é€€åŒ–ï¼‰ã€‚
+
+    è¿”å› (filtered_postings, kept_tokens, dropped_tokens)ã€‚
+    å•æ–‡æ¡£åº“ï¼ˆn_docs<=1ï¼‰æ–‡æ¡£çº§ DF æ— æ„ä¹‰ï¼ˆæ‰€æœ‰ token éƒ½åœ¨ 1/1=100% docï¼‰ï¼Œ
+    é€€åŒ–ä¸º chunk çº§ DF é¿å…å…¨æ€ã€‚å¤šæ–‡æ¡£åº“ç”¨æ–‡æ¡£çº§ DFï¼šä¸€ä¸ª token åœ¨ >35% çš„
+    **æ–‡æ¡£**é‡Œå‡ºç°æ‰ä¸¢å¼ƒâ€”â€”è¿™æ ·"è½¦ä½"åªåœ¨ 1 ä¸ªæ–‡æ¡£é«˜é¢‘ä¸ä¼šè¢«è¯¯æ€ï¼Œ
+    è€Œ"çš„/äº†"è¿™ç§è·¨æ–‡æ¡£é«˜é¢‘çš„çœŸåœç”¨è¯ä»è¢«ä¸¢å¼ƒã€‚
+    """
+    doc_ids = {c.get("doc_id", "") for c in chunks if c.get("doc_id", "")}
+    n_docs = len(doc_ids)
+    kept_tokens = 0
+    dropped_tokens = 0
+    filtered: dict[str, list] = {}
+    if n_docs <= 1:
+        # å•æ–‡æ¡£åº“ï¼šé€€åŒ–ä¸º chunk çº§ DF
+        n_chunks = len(chunks) or 1
+        cap = int(n_chunks * STOPWORD_DF_RATIO)
+        for tok, lst in postings.items():
+            if len(lst) > cap:
+                dropped_tokens += 1
+                continue
+            filtered[tok] = lst
+            kept_tokens += 1
+        return filtered, kept_tokens, dropped_tokens
+    # å¤šæ–‡æ¡£åº“ï¼šæ–‡æ¡£çº§ DF æ¯”ä¾‹åˆ¤æ–­ï¼ˆç”¨æµ®ç‚¹æ¯”ä¾‹ï¼Œé¿å…å° n_docs æ—¶ int æˆªæ–­è¿‡æ¿€ï¼‰
+    # n_docs=2 æ—¶ 0.35*2=0.7ï¼Œdoc_df>=1 å³ 50% > 35% ä¼šè¢«ä¸¢â€”â€”å¯¹ 2 æ–‡æ¡£åº“
+    # ä»»ä½•è·¨æ–‡æ¡£ token éƒ½ >35%ï¼Œè¿™æ˜¯åˆç†çš„ï¼ˆ2 æ–‡æ¡£åº“ä¸­è·¨æ–‡æ¡£=50% ç¡®å®ä¸åŒºåˆ†ï¼‰ã€‚
+    cid_doc_map = _build_cid_doc_map(chunks)
+    for tok, lst in postings.items():
+        doc_df = _doc_level_df(lst, cid_doc_map)
+        if doc_df / n_docs > STOPWORD_DF_RATIO:
+            dropped_tokens += 1
+            continue
+        filtered[tok] = lst
+        kept_tokens += 1
+    return filtered, kept_tokens, dropped_tokens
+
+
+def write_inverted_index(all_chunk_nodes: list[dict], global_docs: list[dict]) -> None:
+    """æ„å»ºå…¨å±€ chunks.json + inverted-index.jsonã€‚
+
+    all_chunk_nodes: æ‰€æœ‰æ–‡æ¡£çš„å¸¦æ­£æ–‡æ‰å¹³èŠ‚ç‚¹ï¼ˆdoc_id åˆ†ç»„æ— åºï¼Œè¿™é‡ŒæŒ‰ doc é‡å»º chunkï¼‰ã€‚
+    global_docs: ç”¨äº doc_metaï¼ˆdoc_title / typeï¼‰ã€‚
+    """
+    doc_meta = {d["id"]: d for d in global_docs}
+    # æŒ‰ doc åˆ†ç»„æ„å»º chunk + postingsï¼ˆæ¯æ–‡æ¡£ç‹¬ç«‹ postingsï¼Œæœ€å mergeï¼‰
+    by_doc: dict[str, list[dict]] = {}
+    for n in all_chunk_nodes:
+        by_doc.setdefault(n["doc_id"], []).append(n)
+
+    all_chunks: list[dict] = []
+    all_postings: list[dict] = []
+    for doc_id, nodes in by_doc.items():
+        meta = doc_meta.get(doc_id, {})
+        doc_meta_for_chunk = {
+            "doc_id": doc_id,
+            "title": meta.get("title", doc_id),
+            "type": meta.get("type", ""),
+        }
+        chunks, postings = build_chunks_and_postings(nodes, doc_meta_for_chunk)
+        all_chunks.extend(chunks)
+        all_postings.append(postings)
+
+    merged_postings = merge_postings(all_postings)
+    # åœç”¨è¯æˆªæ–­ï¼šæ–‡æ¡£çº§ DFï¼ˆå¤šæ–‡æ¡£åº“ï¼‰æˆ– chunk çº§ DFï¼ˆå•æ–‡æ¡£åº“é€€åŒ–ï¼‰ã€‚
+    # æ–‡æ¡£çº§ DF = token å‡ºç°åœ¨å¤šå°‘ä¸ªä¸åŒ doc é‡Œã€‚å¤šæ–‡æ¡£åº“ä¸‹ >35% æ–‡æ¡£æ‰ä¸¢å¼ƒï¼Œ
+    # è¿™æ ·å•æ–‡æ¡£é«˜é¢‘çš„é¢†åŸŸè¯ï¼ˆå¦‚"è½¦ä½"åªåœ¨è¿™ 1 æœ¬ä¹¦é«˜é¢‘ï¼‰ä¸è¢«è¯¯æ€ï¼›
+    # è·¨æ–‡æ¡£é«˜é¢‘çš„çœŸåœç”¨è¯ï¼ˆ"çš„/äº†/æ¥å£"ï¼‰ä»è¢«ä¸¢å¼ƒä»¥æ§ä½“ç§¯ã€‚
+    n_chunks = len(all_chunks) or 1
+    filtered, kept_tokens, dropped_tokens = _filter_stopwords(merged_postings, all_chunks)
+
+    chunks_path = os.path.join(STATIC_DIR, "chunks.json")
+    with open(chunks_path, "w", encoding="utf-8") as f:
+        # ç´§å‡‘ JSONï¼ˆæ—  indentï¼‰â€”â€”å¤§æ–‡ä»¶çœ 20-30% ä½“ç§¯
+        json.dump({"chunks": all_chunks}, f, ensure_ascii=False, separators=(",", ":"))
+    postings_path = os.path.join(STATIC_DIR, "inverted-index.json")
+    with open(postings_path, "w", encoding="utf-8") as f:
+        json.dump({"postings": filtered, "num_chunks": n_chunks}, f,
+                  ensure_ascii=False, separators=(",", ":"))
+    print(f"  chunks:       {n_chunks} chunks, "
+          f"{kept_tokens} tokens (dropped {dropped_tokens} stopwords, cap={stopword_cap})")
+
+
+def changed_docs(file_paths: list[str]) -> set[tuple[str, str]]:
+    """Map changed file paths to affected (type, slug) pairs.
+    file_paths are relative to content/ (e.g. 'books/slug/ch01.md').
+    """
+    docs = set()
+    for path in file_paths:
+        parts = path.replace("\\", "/").split("/")
+        if parts[0] == "books" and len(parts) >= 2:
+            docs.add(("book", parts[1]))
+        elif parts[0] == "papers" and len(parts) >= 2:
+            docs.add(("paper", parts[1]))
+        elif parts[0] == "notes" and parts[-1].endswith(".md") and parts[-1] != "_index.md":
+            docs.add(("note", os.path.splitext(parts[-1])[0]))
+    return docs
+
+
+def process_one_doc(doc_type: str, slug: str) -> tuple[dict | None, list[dict], list[dict]]:
+    """Process a single document and return (doc_tree, flat_nodes, chunk_nodes)."""
+    if doc_type == "book":
+        book_dir = os.path.join(CONTENT_DIR, "books", slug)
+        if os.path.isdir(book_dir):
+            return process_book(slug, book_dir)
+    elif doc_type == "paper":
+        paper_dir = os.path.join(CONTENT_DIR, "papers", slug)
+        if os.path.isdir(paper_dir):
+            return process_paper(slug, paper_dir)
+    elif doc_type == "note":
+        note_path = os.path.join(CONTENT_DIR, "notes", f"{slug}.md")
+        if os.path.isfile(note_path):
+            return process_note(slug, note_path)
+    return None, [], []
+
+
+def patch_indexes(doc_type: str, slug: str, doc_tree: dict | None, flat: list[dict],
+                  chunk_nodes: list[dict] | None = None) -> None:
+    """Insert/update or remove entries for a single doc in global-index + node-index
+    + chunks/inverted-index."""
+    gi_path = os.path.join(STATIC_DIR, "global-index.json")
+    ni_path = os.path.join(STATIC_DIR, "node-index.json")
+
+    gi = {"docs": []}
+    ni = {"nodes": []}
+    if os.path.exists(gi_path):
+        with open(gi_path, "r", encoding="utf-8") as f:
+            gi = json.load(f)
+    if os.path.exists(ni_path):
+        with open(ni_path, "r", encoding="utf-8") as f:
+            ni = json.load(f)
+
+    # Remove old entries for this doc
+    gi["docs"] = [d for d in gi["docs"] if not (d.get("id") == slug and d.get("type") == doc_type)]
+    ni["nodes"] = [n for n in ni["nodes"] if n.get("doc_id") != slug]
+
+    # Add new entries if doc was rebuilt successfully
+    if doc_tree is not None:
+        entry = {
+            "id": slug, "type": doc_type,
+            "title": doc_tree["title"],
+            "author": doc_tree.get("author", ""),
+            "description": doc_tree.get("description", ""),
+            "tags": doc_tree.get("tags", []),
+        }
+        if doc_type == "book":
+            entry["path"] = f"/books/{slug}/"
+            entry["url"] = f"/books/{slug}.html"
+        elif doc_type == "paper":
+            entry["path"] = f"/papers/{slug}/"
+            entry["url"] = f"/papers/{slug}.html"
+            entry["year"] = doc_tree.get("year", "")
+        elif doc_type == "note":
+            entry["path"] = "/notes/"
+            entry["url"] = f"/notes/{slug}.html"
+            entry["date"] = doc_tree.get("date", "")
+            entry["source_type"] = doc_tree.get("source_type", "")
+            entry["source_title"] = doc_tree.get("source_title", "")
+        gi["docs"].append(entry)
+        ni["nodes"].extend(flat)
+
+    with open(gi_path, "w", encoding="utf-8") as f:
+        json.dump(gi, f, indent=2, ensure_ascii=False)
+    with open(ni_path, "w", encoding="utf-8") as f:
+        json.dump(ni, f, indent=2, ensure_ascii=False)
+
+    # åŒæ­¥æ›´æ–°å€’æ’ç´¢å¼•ï¼ˆchunks + postingsï¼‰
+    if chunk_nodes is not None:
+        patch_inverted_index(slug, doc_tree, chunk_nodes)
+
+
+def patch_inverted_index(slug: str, doc_tree: dict | None, chunk_nodes: list[dict]) -> None:
+    """å¢é‡æ›´æ–°å•æ–‡æ¡£åœ¨ chunks.json + inverted-index.json ä¸­çš„æ¡ç›®ã€‚
+
+    ç­–ç•¥ï¼šå…ˆç§»é™¤è¯¥ doc çš„æ—§ chunkï¼Œå†ä¸ºæ–° chunk é‡æ–°åˆ†é…å…¨å±€å”¯ä¸€ chunk_id
+    ï¼ˆå–ç°æœ‰æœ€å¤§ chunk_id ä¹‹åç»§ç»­ç¼–å·ï¼‰ï¼Œé‡å»ºè¯¥ doc çš„ postings å¹¶åˆå¹¶ã€‚
+    posting æ ¼å¼ä¸º [cid_num, tf]ï¼ˆä¸ build_chunks_and_postings ä¸€è‡´ï¼‰ã€‚
+    """
+    chunks_path = os.path.join(STATIC_DIR, "chunks.json")
+    postings_path = os.path.join(STATIC_DIR, "inverted-index.json")
+
+    data = {"chunks": []}
+    if os.path.exists(chunks_path):
+        with open(chunks_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    pidx = {"postings": {}, "num_chunks": 0}
+    if os.path.exists(postings_path):
+        with open(postings_path, "r", encoding="utf-8") as f:
+            pidx = json.load(f)
+
+    chunks: list[dict] = data.get("chunks", [])
+    postings: dict = pidx.get("postings", {})
+
+    # æ¨è¿› chunk_id è®¡æ•°å™¨åˆ°ç°æœ‰æœ€å¤§å€¼ä¹‹åï¼ˆä¿è¯å¢é‡åˆ†é…çš„ id ä¸å†²çªï¼‰
+    max_num = 0
+    for c in chunks:
+        cid = c.get("chunk_id", "")
+        if cid.startswith("c"):
+            try:
+                max_num = max(max_num, int(cid[1:]))
+            except ValueError:
+                pass
+    # ç§»é™¤è¯¥ doc çš„æ—§ chunkï¼Œè®°å½•æ—§ chunk çš„æ•°å€¼ idï¼ˆç”¨äº postings æ¸…ç†ï¼‰
+    old_nums = set()
+    kept = []
+    for c in chunks:
+        if c.get("doc_id") == slug:
+            cid = c.get("chunk_id", "")
+            if cid.startswith("c"):
+                try:
+                    old_nums.add(int(cid[1:]))
+                except ValueError:
+                    pass
+        else:
+            kept.append(c)
+    chunks = kept
+    # ä» postings ä¸­æ¸…æ‰æ—§ chunk çš„ postingï¼ˆposting = [cid_num, tf]ï¼‰
+    if old_nums:
+        empty_tokens = []
+        for tok, lst in postings.items():
+            postings[tok] = [p for p in lst if p[0] not in old_nums]
+            if not postings[tok]:
+                empty_tokens.append(tok)
+        for t in empty_tokens:
+            del postings[t]
+
+    # ä¸ºæ–° chunk åˆ†é… id å¹¶é‡å»º postings
+    if doc_tree is not None and chunk_nodes:
+        _CHUNK_COUNTER[0] = max_num
+        doc_meta = {"doc_id": slug, "title": doc_tree.get("title", slug),
+                    "type": doc_tree.get("type", "")}
+        new_chunks, new_postings = build_chunks_and_postings(chunk_nodes, doc_meta)
+        chunks.extend(new_chunks)
+        for tok, lst in new_postings.items():
+            postings.setdefault(tok, []).extend(lst)
+
+    # å¢é‡ä¹Ÿåº”ç”¨åœç”¨è¯æˆªæ–­ï¼ˆä¸å…¨é‡ä¸€è‡´ï¼šæ–‡æ¡£çº§ DFï¼‰
+    n_chunks = len(chunks) or 1
+    filtered, _kept, _dropped = _filter_stopwords(postings, chunks)
+
+    data["chunks"] = chunks
+    pidx = {"postings": filtered, "num_chunks": n_chunks}
+    with open(chunks_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+    with open(postings_path, "w", encoding="utf-8") as f:
+        json.dump(pidx, f, ensure_ascii=False, separators=(",", ":"))
+
+
+def _incremental_build() -> int:
+    """å¢é‡æ„å»º:ä»…é‡å»ºå˜æ›´æ–‡æ¡£å¹¶ patch ç´¢å¼•ã€‚è¿”å›é‡å»ºçš„æ–‡æ¡£æ•°ã€‚
+
+    è¯»æ¨¡å—çº§å…¨å±€ CONTENT_DIR/STATIC_DIR/FINGERPRINTS_FILE(ç”± build() monkey-patch)ã€‚
+    """
+    existing = load_fingerprints()
+    changed = changed_files(existing)
+    if not changed:
+        print("PageIndex: nothing changed, skipping build.")
+        return 0
+    docs = changed_docs(changed)
+    print(f"PageIndex: {len(changed)} files changed â†’ {len(docs)} docs to rebuild")
+    os.makedirs(os.path.join(STATIC_DIR, "books"), exist_ok=True)
+    os.makedirs(os.path.join(STATIC_DIR, "papers"), exist_ok=True)
+    os.makedirs(os.path.join(STATIC_DIR, "notes"), exist_ok=True)
+    rebuilt = 0
+    for doc_type, slug in sorted(docs):
+        doc_tree, flat, chunk_nodes = process_one_doc(doc_type, slug)
+        if doc_tree is None:
+            print(f"  [skip]  {doc_type}/{slug} (no content)")
+            patch_indexes(doc_type, slug, None, [], [])
+            jpath = os.path.join(STATIC_DIR, f"{doc_type}s", f"{slug}.json")
+            if os.path.exists(jpath):
+                os.remove(jpath)
+            continue
+        out_path = os.path.join(STATIC_DIR, f"{doc_type}s", f"{slug}.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(doc_tree, f, indent=2, ensure_ascii=False)
+        patch_indexes(doc_type, slug, doc_tree, flat, chunk_nodes)
+        print(f"  [{doc_type}] {slug}  ({len(flat)} nodes)")
+        rebuilt += 1
+    update_fingerprints()
+    print(f"PageIndex: incremental build done.")
+    return rebuilt
+
+
+def build(
+    content_dir: str,
+    pageindex_dir: str,
+    llm_model: str = "",
+    mode: str = "full",
+) -> dict:
+    """åŒè¿›ç¨‹å¯è°ƒç”¨çš„ç´¢å¼•æ„å»ºå…¥å£(ä¾› app.index.builder è°ƒç”¨)ã€‚
+
+    content_dir:    å†…å®¹æ ¹(å¯¹åº”åŸ CONTENT_DIR)
+    pageindex_dir:  è¾“å‡ºæ ¹(å¯¹åº”åŸ STATIC_DIR)
+    llm_model:       litellm æ¨¡å‹ä¸²;"" = æœ¬åœ°é€€åŒ–(ä¸è°ƒ LLM)
+    mode:           "full" å…¨é‡ | "incremental" å¢é‡
+
+    è¿”å› dict:
+      ok:            bool,æ˜¯å¦æˆåŠŸ
+      docs_built:    int,æœ¬æ¬¡æ„å»º/é‡å»ºçš„æ–‡æ¡£æ•°
+      log:           list[str],stdout æ•è·(æŒ‰è¡Œ)
+      duration_sec:  float,è€—æ—¶(ç§’)
+      error:         str | None,å¼‚å¸¸ä¿¡æ¯(ok=False æ—¶å¡«å……)
+
+    å®ç°:monkey-patch æ¨¡å—çº§å…¨å±€ CONTENT_DIR/STATIC_DIR/LLM_MODEL/FINGERPRINTS_FILE,
+    è·‘ main()(_incremental_build),æ•è· stdout åˆ° log,try/finally æ¢å¤åŸå€¼ã€‚
+    ä¸æ”¹åŸ main()/__main__ å—,ä¿ç•™ CLI å…¼å®¹ã€‚
+    """
+    import contextlib
+    import io
+    import time
+    import traceback
+
+    saved = (CONTENT_DIR, STATIC_DIR, FINGERPRINTS_FILE, LLM_MODEL)
+    log_buf = io.StringIO()
+    t0 = time.time()
+    docs_built = 0
+    error: str | None = None
+    ok = False
+    try:
+        # 1) patch ä¸‰ä¸ªåŸå§‹å…¨å±€
+        globals()["CONTENT_DIR"] = str(content_dir)
+        globals()["STATIC_DIR"] = str(pageindex_dir)
+        globals()["LLM_MODEL"] = llm_model or ""
+        # 2) é‡ç®—æ´¾ç”Ÿå…¨å±€(FINGERPRINTS_FILE å¿…é¡»è·Ÿç€ STATIC_DIR èµ°,å¦åˆ™æŒ‡çº¹å¤±é…)
+        globals()["FINGERPRINTS_FILE"] = os.path.join(STATIC_DIR, ".fingerprints.json")
+        # 3) ç¡®ä¿è¾“å‡ºæ ¹ç›®å½•å­˜åœ¨
+        os.makedirs(STATIC_DIR, exist_ok=True)
+        os.makedirs(os.path.join(STATIC_DIR, "books"), exist_ok=True)
+        os.makedirs(os.path.join(STATIC_DIR, "papers"), exist_ok=True)
+        os.makedirs(os.path.join(STATIC_DIR, "notes"), exist_ok=True)
+
+        with contextlib.redirect_stdout(log_buf):
+            if mode == "incremental":
+                docs_built = _incremental_build()
+            else:
+                main()
+                # å…¨é‡æ„å»ºåç»Ÿè®¡ docs æ•°(è¯» global-index.json)
+                gi_path = os.path.join(STATIC_DIR, "global-index.json")
+                if os.path.exists(gi_path):
+                    with open(gi_path, "r", encoding="utf-8") as f:
+                        gi = json.load(f)
+                    docs_built = len(gi.get("docs", []))
+        ok = True
+    except Exception as exc:  # noqa: BLE001
+        error = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
+        # æŠŠå·²æ•è·çš„ stdout ä¹Ÿä¿ç•™
+        log_buf.write(f"\n[build error] {error}\n")
+    finally:
+        # 4) æ¢å¤(è¿›ç¨‹çº§éš”ç¦»,é¿å…æ±¡æŸ“åç»­è°ƒç”¨)
+        (
+            globals()["CONTENT_DIR"],
+            globals()["STATIC_DIR"],
+            globals()["FINGERPRINTS_FILE"],
+            globals()["LLM_MODEL"],
+        ) = saved
+
+    log_lines = [ln for ln in log_buf.getvalue().splitlines() if ln.strip()]
+    return {
+        "ok": ok,
+        "docs_built": docs_built,
+        "log": log_lines,
+        "duration_sec": round(time.time() - t0, 3),
+        "error": error,
+    }
+
+
+if __name__ == "__main__":
+    incremental = "--incremental" in sys.argv
+    if incremental:
+        _incremental_build()
+    else:
+        main()

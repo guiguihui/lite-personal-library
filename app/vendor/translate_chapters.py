@@ -340,5 +340,812 @@ def strip_echoed_english(text: str) -> tuple[str, int]:
     i = 0
     while i < len(paras):
         para = paras[i].strip()
- ïmµ¶‰Ëkºwµçq˜¹}±½…‘•€ô…±Í”((€€€€€€€¥˜™É•Í è(€€€€€€€€€€€É•ÑÕÉ¸€€Œ…±±•Èİ¥±°ÑÉ•…Ğ…Ì•µÁÑä((€€€€€€€Í•±˜¹}±½… ¤((€€€‘•˜}±½…¡Í•±˜¤è(€€€€€€€€ˆˆ‰1½…ÁÉ½É•ÍÌ¹©Í½¸…¹±½ÍÍ…Éä¹©Í½¸¸•É…‘”Ñ¼•µÁÑä½¸½ÉÉÕÁÑ¥½¸¸ˆˆˆ(€€€€€€€ÑÉäè(€€€€€€€€€€€¥˜½Ì¹Á…Ñ ¹•á¥ÍÑÌ¡Í•±˜¹ÁÉ½É•ÍÍ}Á…Ñ ¤è(€€€€€€€€€€€€€€€İ¥Ñ ½Á•¸¡Í•±˜¹ÁÉ½É•ÍÍ}Á…Ñ °•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€€€€€€€€€Í•±˜¹}‘…Ñ„€ô©Í½¸¹±½…¡˜¤(€€€€€€€€€€€€€€€Í•±˜¹}±½…‘•€ôQÉÕ”(€€€€€€€•á•ÁĞ€¡©Í½¸¹)M=9•½‘•ÉÉ½È°=MÉÉ½È¤è(€€€€€€€€€€€Í•±˜¹}‘…Ñ„€ôíô€€Œ½ÉÉÕÁĞƒŠPÍÑ…ÉĞ™É•Í (€€€€€€€€€€€Í•±˜¹}±½…‘•€ô…±Í”((€€€€€€€€Œ1½…•á¥ÍÑ¥¹œ±½ÍÍ…ÉäÍ¼É•ÍÕµ”…¸É”µ¥¹©•ĞÑ•ÉµÌ¥¹Ñ¼Ñ¡”±¥Ù”‘¥Ğ(€€€€€€€ÑÉäè(€€€€€€€€€€€¥˜½Ì¹Á…Ñ ¹•á¥ÍÑÌ¡Í•±˜¹±½ÍÍ…Éå}Á…Ñ ¤è(€€€€€€€€€€€€€€€İ¥Ñ ½Á•¸¡Í•±˜¹±½ÍÍ…Éå}Á…Ñ °•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€€€€€€€€€Í•±˜¹}±½ÍÍ…Éä€ô©Í½¸¹±½…¡˜¤(€€€€€€€•á•ÁĞ€¡©Í½¸¹)M=9•½‘•ÉÉ½È°=MÉÉ½È¤è(€€€€€€€€€€€Í•±˜¹}±½ÍÍ…Éä€ôíô((€€€€€€€€ŒI•‰Õ¥±±½ÍÍ…Éä™É½´Á•Èµ¡…ÁÑ•ÈÉ•½É‘Ì¥˜±½ÍÍ…Éä¹©Í½¸İ…Ìµ¥ÍÍ¥¹œ(€€€€€€€¥˜¹½ĞÍ•±˜¹}±½ÍÍ…Éä…¹Í•±˜¹}‘…Ñ„è(€€€€€€€€€€€™½ÈÉ•Œ¥¸Í•±˜¹}‘…Ñ„¹Ù…±Õ•Ì ¤è(€€€€€€€€€€€€€€€Í•±˜¹}±½ÍÍ…Éä¹ÕÁ‘…Ñ”¡É•Œ¹•Ğ ‰±½ÍÍ…Éå}Ñ•ÉµÌˆ°íô¤¤((€€€ÁÉ½Á•ÉÑä(€€€‘•˜±½ÍÍ…Éä¡Í•±˜¤€´ø‘¥Ğè(€€€€€€€É•ÑÕÉ¸‘¥Ğ¡Í•±˜¹}±½ÍÍ…Éä¤((€€€‘•˜Í¡½Õ±‘}Í­¥À¡Í•±˜°Á…Ñ èÍÑÈ¤€´ø‰½½°è(€€€€€€€€ˆˆ‰QÉÕ”¥˜¡…ÁÑ•Èİ…ÌÑÉ…¹Í±…Ñ•½¬…¹Í½ÕÉ”¥ÌÕ¹¡…¹•¸ˆˆˆ(€€€€€€€™¹…µ”€ô½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡Á…Ñ ¤(€€€€€€€É•Œ€ôÍ•±˜¹}‘…Ñ„¹•Ğ¡™¹…µ”¤(€€€€€€€¥˜¹½ĞÉ•Œ½ÈÉ•Œ¹•Ğ ‰ÍÑ…ÑÕÌˆ¤€„ô€‰½¬ˆè(€€€€€€€€€€€É•ÑÕÉ¸…±Í”(€€€€€€€ÑÉäè(€€€€€€€€€€€É•ÑÕÉ¸É•Œ¹•Ğ ‰Í½ÕÉ•}¡…Í ˆ¤€ôô}Í¡„ÈÔÙ}™¥±”¡Á…Ñ ¤(€€€€€€€•á•ÁĞ=MÉÉ½Èè(€€€€€€€€€€€É•ÑÕÉ¸…±Í”((€€€‘•˜ÍÑ…ÑÕÍ}½˜¡Í•±˜°Á…Ñ èÍÑÈ¤€´øÍÑÈè(€€€€€€€É•ÑÕÉ¸Í•±˜¹}‘…Ñ„¹•Ğ¡½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡Á…Ñ ¤°íô¤¹•Ğ ‰ÍÑ…ÑÕÌˆ°€‰Á•¹‘¥¹œˆ¤((€€€…Íå¹Œ‘•˜É•½É¡Í•±˜°Á…Ñ èÍÑÈ°ÍÑ…ÑÕÌèÍÑÈ°…ÑÑ•µÁÑÌè¥¹Ğ°±½ÍÍ…Éå}Ñ•ÉµÌè‘¥Ğ¤è(€€€€€€€€ˆˆ‰I•½É„¡…ÁÑ•ÈÌÉ•ÍÕ±Ğ…¹Á•ÉÍ¥ÍĞ¥µµ•‘¥…Ñ•±ä¸ˆˆˆ(€€€€€€€™¹…µ”€ô½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡Á…Ñ ¤(€€€€€€€…Íå¹Œİ¥Ñ Í•±˜¹}±½¬è(€€€€€€€€€€€ÑÉäè(€€€€€€€€€€€€€€€Í½ÕÉ•}¡…Í €ô}Í¡„ÈÔÙ}™¥±”¡Á…Ñ ¤(€€€€€€€€€€€•á•ÁĞ=MÉÉ½Èè(€€€€€€€€€€€€€€€Í½ÕÉ•}¡…Í €ô€ˆˆ(€€€€€€€€€€€Í•±˜¹}‘…Ñ…m™¹…µ•t€ôì(€€€€€€€€€€€€€€€€‰ÍÑ…ÑÕÌˆèÍÑ…ÑÕÌ°(€€€€€€€€€€€€€€€€‰Í½ÕÉ•}¡…Í ˆèÍ½ÕÉ•}¡…Í °(€€€€€€€€€€€€€€€€‰…ÑÑ•µÁÑÌˆè…ÑÑ•µÁÑÌ°(€€€€€€€€€€€€€€€€‰±½ÍÍ…Éå}Ñ•ÉµÌˆè±½ÍÍ…Éå}Ñ•ÉµÌ°(€€€€€€€€€€€ô(€€€€€€€€€€€€Œ5•É”Ñ•ÉµÌ¥¹Ñ¼Ñ¡”±¥Ù”±½ÍÍ…Éä(€€€€€€€€€€€Í•±˜¹}±½ÍÍ…Éä¹ÕÁ‘…Ñ”¡±½ÍÍ…Éå}Ñ•ÉµÌ¤(€€€€€€€€€€€Í•±˜¹}Á•ÉÍ¥ÍĞ ¤((€€€‘•˜}Á•ÉÍ¥ÍĞ¡Í•±˜¤è(€€€€€€€€ˆˆ‰]É¥Ñ”ÁÉ½É•ÍÌ¹©Í½¸€¬±½ÍÍ…Éä¹©Í½¸…Ñ½µ¥…±±ä€¡…±±•È¡½±‘Ì±½¬¤¸ˆˆˆ(€€€€€€€½Ì¹µ…­•‘¥ÉÌ¡Í•±˜¹ÍÑ…Ñ•}‘¥È°•á¥ÍÑ}½¬õQÉÕ”¤(€€€€€€€ÑµÀ€ôÍ•±˜¹ÁÉ½É•ÍÍ}Á…Ñ €¬€ˆ¹ÑµÀˆ(€€€€€€€İ¥Ñ ½Á•¸¡ÑµÀ°€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€©Í½¸¹‘ÕµÀ¡Í•±˜¹}‘…Ñ„°˜°•¹ÍÕÉ•}…Í¥¤õ…±Í”°¥¹‘•¹ĞôÈ¤(€€€€€€€½Ì¹É•Á±…”¡ÑµÀ°Í•±˜¹ÁÉ½É•ÍÍ}Á…Ñ ¤((€€€€€€€İ¥Ñ ½Á•¸¡Í•±˜¹±½ÍÍ…Éå}Á…Ñ °€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€©Í½¸¹‘ÕµÀ¡Í•±˜¹}±½ÍÍ…Éä°˜°•¹ÍÕÉ•}…Í¥¤õ…±Í”°¥¹‘•¹ĞôÈ¤((€€€‘•˜ÍÕµµ…Éä¡Í•±˜¤€´ø‘¥Ğè(€€€€€€€€ˆˆ‰I•ÑÕÉ¸í½¬°Í­¥ÁÁ•‘}Í••°µ…¹Õ…°°•ÉÉ½È°Á•¹‘¥¹ô½Õ¹ÑÌ¸ˆˆˆ(€€€€€€€½Õ¹ÑÌ€ôì‰½¬ˆè€À°€‰µ…¹Õ…°ˆè€À°€‰•ÉÉ½Èˆè€À°€‰Á•¹‘¥¹œˆè€À°€‰Í­¥ÁÁ•‘}¡¥¹•Í”ˆè€Áô(€€€€€€€™½ÈÉ•Œ¥¸Í•±˜¹}‘…Ñ„¹Ù…±Õ•Ì ¤è(€€€€€€€€€€€Ì€ôÉ•Œ¹•Ğ ‰ÍÑ…ÑÕÌˆ°€‰Á•¹‘¥¹œˆ¤(€€€€€€€€€€€¥˜Ì¥¸½Õ¹ÑÌè(€€€€€€€€€€€€€€€½Õ¹ÑÍmÍt€¬ô€Ä(€€€€€€€€€€€•±¥˜Ì€ôô€‰Í­¥ÁÁ•ˆè(€€€€€€€€€€€€€€€½Õ¹ÑÍl‰Í­¥ÁÁ•‘}¡¥¹•Í”‰t€¬ô€Ä(€€€€€€€É•ÑÕÉ¸½Õ¹ÑÌ(((ŒƒŠRŠR 5…¥¸İ½É­™±½ÜƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR )…Íå¹Œ‘•˜ÑÉ…¹Í±…Ñ•}‰½½¬¡‰½½­}‘¥ÈèÍÑÈ°½¹ÕÉÉ•¹äè¥¹Ğ°Í••‘}½Õ¹Ğè¥¹Ğ°µ…á}É•ÑÉäè¥¹Ğ°(€€€€€€€€€€€€€€€€€€€€€€€€™É•Í è‰½½°€ô…±Í”°ÉÕ¹}Å„è‰½½°€ôQÉÕ”¤è(€€€¥˜¹½ĞA%}-dè(€€€€€€€ÁÉ¥¹Ğ ‰ÉÉ½ÈèAM-}A%}-d¹½ĞÍ•Ğ¸¡•¬€¹•¹Øˆ°™¥±”õÍåÌ¹ÍÑ‘•ÉÈ¤(€€€€€€€É•ÑÕÉ¸€Ä((€€€€Œ±¥•¹Ğƒ’â7–7¦r¢šŠSŠQ}ÑÉ…¹Í±…Ñ•}½¹”ƒšRçR …±±}±±µ}½¹”£–>3–6?¢º»¦¦4§(€€€€ŒÑÉ…¹Í±…Ñ•}¡…ÁÑ•Èƒj±¥•¹Ğƒ–>šVÃ’şwVd9½¹”£–BG–B;–ó–ºç¶û–B4§((€€€€Œ½±±•Ğ¡…ÁÑ•È™¥±•Ìè ¨¹µ€¬ÁÉ•™…”¹µ€¡¥˜•á¥ÍÑÌ¤°•á±Õ‘¥¹œ}¥¹‘•à¹µ(€€€™¥±•Ì€ôÍ½ÉÑ•¡±½ˆ¹±½ˆ¡½Ì¹Á…Ñ ¹©½¥¸¡‰½½­}‘¥È°€‰ ¨¹µˆ¤¤¤(€€€€Œ±Í¼¥¹±Õ‘”ÁÉ•™…”¹µ¥˜¥Ğ•á¥ÍÑÌ…¹¥Í¸Ğ…±É•…‘ä¥¸Ñ¡”±¥ÍĞ(€€€ÁÉ•™…”€ô½Ì¹Á…Ñ ¹©½¥¸¡‰½½­}‘¥È°€‰ÁÉ•™…”¹µˆ¤(€€€¥˜½Ì¹Á…Ñ ¹•á¥ÍÑÌ¡ÁÉ•™…”¤…¹ÁÉ•™…”¹½Ğ¥¸™¥±•Ìè(€€€€€€€™¥±•Ì¹¥¹Í•ÉĞ À°ÁÉ•™…”¤(€€€¥˜¹½Ğ™¥±•Ìè(€€€€€€€€Œ™…±±‰…¬è…¹ä€¹µ•á•ÁĞ}¥¹‘•à¹µ(€€€€€€€™¥±•Ì€ôÍ½ÉÑ•¡˜™½È˜¥¸±½ˆ¹±½ˆ¡½Ì¹Á…Ñ ¹©½¥¸¡‰½½­}‘¥È°€ˆ¨¹µˆ¤¤¥˜¹½Ğ˜¹•¹‘Íİ¥Ñ  ‰}¥¹‘•à¹µˆ¤¤(€€€¥˜¹½Ğ™¥±•Ìè(€€€€€€€ÁÉ¥¹Ğ¡˜‰9¼€¹µ™¥±•Ì™½Õ¹¥¸í‰½½­}‘¥Éôˆ°™¥±”õÍåÌ¹ÍÑ‘•ÉÈ¤(€€€€€€€É•ÑÕÉ¸€Ä((€€€Ñ½Ñ…°€ô±•¸¡™¥±•Ì¤(€€€Í••‘Ì€ô™¥±•ÍléÍ••‘}½Õ¹Ñt(€€€É•ÍĞ€ô™¥±•ÍmÍ••‘}½Õ¹Ğét(€€€ÑÉ…­•È€ôAÉ½É•ÍÍQÉ…­•È¡‰½½­}‘¥È°™É•Í õ™É•Í ¤(€€€±½ÍÍ…Éä€ôÑÉ…­•È¹±½ÍÍ…Éä€€ŒÉ•ÍÕµ”èÁ¥¬ÕÀÑ•ÉµÌ™É½´ÁÉ¥½ÈÉÕ¸(€€€½¹™±¥ÑÌ€ômt(€€€É•ÍÕ±ÑÌ€ômt((€€€€ŒA…ÉÑ¥Ñ¥½¸èÍ­¥À…±É•…‘äµ½¬¡…ÁÑ•ÉÌ°ÑÉ…¹Í±…Ñ”Ñ¡”É•ÍĞ(€€€Í­¥ÁÁ•‘}™¥±•Ì€ôm˜™½È˜¥¸™¥±•Ì¥˜ÑÉ…­•È¹Í¡½Õ±‘}Í­¥À¡˜¥t(€€€Ñ½‘½}™¥±•Ì€ôm˜™½È˜¥¸™¥±•Ì¥˜¹½ĞÑÉ…­•È¹Í¡½Õ±‘}Í­¥À¡˜¥t(€€€¥˜Í­¥ÁÁ•‘}™¥±•Ìè(€€€€€€€ÁÉ¥¹Ğ¡˜‹šZ·
-çî·¢ŞG¾òk¢ŞÏ¢şí±•¸¡Í­¥ÁÁ•‘}™¥±•Ì¥ôƒ®ƒ–ŞË–º3š"C¾ò#–ÄíÑ½Ñ…±ôƒ®ƒ¾ò$ˆ¤(€€€€€€€™½È˜¥¸Í­¥ÁÁ•‘}™¥±•Ìè(€€€€€€€€€€€™¹…µ”€ô½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡˜¤(€€€€€€€€€€€É•ÍÕ±ÑÌ¹…ÁÁ•¹ ¡™¹…µ”°ÑÉ…­•È¹ÍÑ…ÑÕÍ}½˜¡˜¤½È€‰½¬ˆ°€À°€‹–ŞËòO–¶`ˆ¤¤(€€€¥˜¹½ĞÑ½‘½}™¥±•Ìè(€€€€€€€ÁÉ¥¹Ğ ‹š&šr'®ƒ¢*–ŞËşï¢¾G–º3š"C¾ò3š^ƒ¦r¦7¢ŞGˆ¤(€€€€€€€±½ÍÍ…Éä€ôÑÉ…­•È¹±½ÍÍ…Éä(€€€•±Í”è(€€€€€€€€ŒI”µÁ…ÉÑ¥Ñ¥½¸Ñ½‘¼¥¹Ñ¼Í••‘Ì½É•ÍĞ™½ÈÑ¡”…Ñ¥Ù”ÉÕ¸(€€€€€€€…Ñ¥Ù•}Í••‘Ì€ôm˜™½È˜¥¸Ñ½‘½}™¥±•Ì¥˜˜¥¸Í••‘ÍuléÍ••‘}½Õ¹Ñt(€€€€€€€…Ñ¥Ù•}É•ÍĞ€ôm˜™½È˜¥¸Ñ½‘½}™¥±•Ì¥˜˜¹½Ğ¥¸…Ñ¥Ù•}Í••‘Ít(€€€€€€€€Œ%˜…±°Í••‘Ìİ•É”Í­¥ÁÁ•°ÁÉ½µ½Ñ”•…É±¥•ÍĞÑ½‘¼¡…ÁÑ•ÉÌ…ÌÍ••‘Ì¸(€€€€€€€€ŒAÉ½µ½Ñ•¡…ÁÑ•ÉÌ…É”9=PÑÉÕ”Í••‘ÌƒŠPÑ¡”±½ÍÍ…Éä…±É•…‘ä•á¥ÍÑÌ™É½´(€€€€€€€€ŒÑ¡”ÁÉ¥½ÈÉÕ¸°Í¼¥Í}Í••µÕÍĞ‰”…±Í”€¡Í••õQÉÕ”Í­¥ÁÌ±½ÍÍ…Éä½¹Ñ•áĞ¤¸(€€€€€€€ÁÉ½µ½Ñ•€ô…±Í”(€€€€€€€¥˜¹½Ğ…Ñ¥Ù•}Í••‘Ì…¹…Ñ¥Ù•}É•ÍĞè(€€€€€€€€€€€…Ñ¥Ù•}Í••‘Ì€ô…Ñ¥Ù•}É•ÍÑléµ¥¸¡Í••‘}½Õ¹Ğ°±•¸¡…Ñ¥Ù•}É•ÍĞ¤¥t(€€€€€€€€€€€…Ñ¥Ù•}É•ÍĞ€ô…Ñ¥Ù•}É•ÍÑm±•¸¡…Ñ¥Ù•}Í••‘Ì¤ét(€€€€€€€€€€€ÁÉ½µ½Ñ•€ôQÉÕ”((€€€€€€€ÁÉ¥¹Ğ¡˜‹şï¢¾Dí±•¸¡Ñ½‘½}™¥±•Ì¥ôƒ®€ğƒ7–¶@í±•¸¡…Ñ¥Ù•}Í••‘Ì¥ôƒ’âË¢†0€¬í±•¸¡…Ñ¥Ù•}É•ÍĞ¥ôƒ–æÛ¢†0£–æÛ–>Dõí½¹ÕÉÉ•¹åô¤ˆ¤(€€€€€€€¥˜ÁÉ½µ½Ñ•è(€€€€€€€€€€€ÁÉ¥¹Ğ¡˜ˆ€€£7–¶C–ŞË–r£’â+š²‡–º3š"C¾ò3š>C–6í±•¸¡…Ñ¥Ù•}Í••‘Ì¥ôƒ®ƒ’âË¢†3¢†—¢¾G¾ò3–’7R£–ŞËšr'šr¿¢¾·¢† ¤ˆ¤(€€€€€€€ÁÉ¥¹Ğ¡˜‰AÉ½Ù¥‘•Èèí	M}UI1ôğ5½‘•°èí5=1õq¸ˆ¤((€€€€€€€€ŒƒŠRŠR A¡…Í”€ÄèÍ••¡…ÁÑ•ÉÌ€¡Í•É¥…°¤ƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR (€€€€€€€€Œ¥Í}Í••½¹±äİ¡•¸Ñ¡•É”Ì¹¼±½ÍÍ…Éäå•Ğ€¡ÑÉÕ”™¥ÉÍĞÉÕ¸¤¸(€€€€€€€€ŒAÉ½µ½Ñ•¡…ÁÑ•ÉÌ½¸É•ÍÕµ”ÕÍ”Ñ¡”•á¥ÍÑ¥¹œ±½ÍÍ…ÉäƒŠH¥Í}Í••õ…±Í”¸(€€€€€€€Í••‘}¥Í}Í••€ô¹½Ğ‰½½°¡±½ÍÍ…Éä¤(€€€€€€€™½È¤°˜¥¸•¹Õµ•É…Ñ”¡…Ñ¥Ù•}Í••‘Ì¤è(€€€€€€€€€€€™¹…µ”€ô½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡˜¤(€€€€€€€€€€€ÁÉ¥¹Ğ¡˜‰mí¤¬Åô½í±•¸¡Ñ½‘½}™¥±•Ì¥õtí™¹…µ•ôƒşï¢¾G’â´¸¸¸ˆ°•¹ôˆˆ°™±ÕÍ õQÉÕ”¤(€€€€€€€€€€€ÍÑ…ÑÕÌ°É•ÑÉ¥•Ì°¥ÍÍÕ•Ì°¹•İ}Ñ•ÉµÌ€ô…İ…¥ĞÑÉ…¹Í±…Ñ•}¡…ÁÑ•È (€€€€€€€€€€€€€€€9½¹”°˜°±½ÍÍ…Éä°¥Í}Í••õÍ••‘}¥Í}Í••°µ…á}É•ÑÉäõµ…á}É•ÑÉä°(€€€€€€€€€€€€€€€Í•´õ…Íå¹¥¼¹M•µ…Á¡½É” Ä¤(€€€€€€€€€€€€¤(€€€€€€€€€€€µ•É•}±½ÍÍ…Éä¡±½ÍÍ…Éä°¹•İ}Ñ•ÉµÌ°™¹…µ”°½¹™±¥ÑÌ¤(€€€€€€€€€€€…İ…¥ĞÑÉ…­•È¹É•½É¡˜°ÍÑ…ÑÕÌ°É•ÑÉ¥•Ì°¹•İ}Ñ•ÉµÌ¤(€€€€€€€€€€€Ñ…œ€ô€‹ŠrLˆ¥˜ÍÑ…ÑÕÌ€ôô€‰½¬ˆ•±Í”€ ‹Š>´ˆ¥˜ÍÑ…ÑÕÌ€ôô€‰Í­¥ÁÁ•ˆ•±Í”€ ‹Šj€ˆ¥˜ÍÑ…ÑÕÌ€ôô€‰µ…¹Õ…°ˆ•±Í”€‹Šr\ˆ¤¤(€€€€€€€€€€€É•ÑÉå}¥¹™¼€ô˜ˆ€£¦7¢¾UíÉ•ÑÉ¥•Í÷š²„¤ˆ¥˜É•ÑÉ¥•Ì•±Í”€ˆˆ(€€€€€€€€€€€ÁÉ¥¹Ğ¡˜‰qÉíÑ…ômí¤¬Åô½í±•¸¡Ñ½‘½}™¥±•Ì¥õtí™¹…µ•õíÉ•ÑÉå}¥¹™½ôƒŠPí¥ÍÍÕ•Íôˆ¤(€€€€€€€€€€€É•ÍÕ±ÑÌ¹…ÁÁ•¹ ¡™¹…µ”°ÍÑ…ÑÕÌ°É•ÑÉ¥•Ì°¥ÍÍÕ•Ì¤¤((€€€€€€€€ŒƒŠRŠR A¡…Í”€ÈèÉ•µ…¥¹¥¹œ¡…ÁÑ•ÉÌ€¡Á…É…±±•°¤ƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR (€€€€€€€¥˜…Ñ¥Ù•}É•ÍĞè(€€€€€€€€€€€Í•´€ô…Íå¹¥¼¹M•µ…Á¡½É”¡½¹ÕÉÉ•¹ä¤(€€€€€€€€€€€½™™Í•Ğ€ô±•¸¡…Ñ¥Ù•}Í••‘Ì¤€¬±•¸¡Í­¥ÁÁ•‘}™¥±•Ì¤((€€€€€€€€€€€…Íå¹Œ‘•˜ÉÕ¹}½¹”¡¥‘à°™Á…Ñ ¤è(€€€€€€€€€€€€€€€™¹…µ”€ô½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡™Á…Ñ ¤(€€€€€€€€€€€€€€€€ŒÍ¹…ÁÍ¡½Ğ±½ÍÍ…Éä…ĞÑ…Í¬É•…Ñ¥½¸Ñ¥µ”€¡Í••Ñ•ÉµÌ¤(€€€€€€€€€€€€€€€°€ô‘¥Ğ¡±½ÍÍ…Éä¤(€€€€€€€€€€€€€€€ÍÑ…ÑÕÌ°É•ÑÉ¥•Ì°¥ÍÍÕ•Ì°¹•İ}Ñ•ÉµÌ€ô…İ…¥ĞÑÉ…¹Í±…Ñ•}¡…ÁÑ•È (€€€€€€€€€€€€€€€€€€€9½¹”°™Á…Ñ °°°¥Í}Í••õ…±Í”°µ…á}É•ÑÉäõµ…á}É•ÑÉä°Í•´õÍ•´(€€€€€€€€€€€€€€€€¤(€€€€€€€€€€€€€€€µ•É•}±½ÍÍ…Éä¡±½ÍÍ…Éä°¹•İ}Ñ•ÉµÌ°™¹…µ”°½¹™±¥ÑÌ¤(€€€€€€€€€€€€€€€…İ…¥ĞÑÉ…­•È¹É•½É¡™Á…Ñ °ÍÑ…ÑÕÌ°É•ÑÉ¥•Ì°¹•İ}Ñ•ÉµÌ¤(€€€€€€€€€€€€€€€Ñ…œ€ô€‹ŠrLˆ¥˜ÍÑ…ÑÕÌ€ôô€‰½¬ˆ•±Í”€ ‹Š>´ˆ¥˜ÍÑ…ÑÕÌ€ôô€‰Í­¥ÁÁ•ˆ•±Í”€ ‹Šj€ˆ¥˜ÍÑ…ÑÕÌ€ôô€‰µ…¹Õ…°ˆ•±Í”€‹Šr\ˆ¤¤(€€€€€€€€€€€€€€€É•ÑÉå}¥¹™¼€ô˜ˆ€£¦7¢¾UíÉ•ÑÉ¥•Í÷š²„¤ˆ¥˜É•ÑÉ¥•Ì•±Í”€ˆˆ(€€€€€€€€€€€€€€€ÁÉ¥¹Ğ¡˜‰íÑ…ômí½™™Í•Ğ­¥‘à¬Åô½íÑ½Ñ…±õtí™¹…µ•õíÉ•ÑÉå}¥¹™½ôƒŠPí¥ÍÍÕ•Íôˆ¤(€€€€€€€€€€€€€€€É•ÑÕÉ¸€¡™¹…µ”°ÍÑ…ÑÕÌ°É•ÑÉ¥•Ì°¥ÍÍÕ•Ì¤((€€€€€€€€€€€Ñ…Í­Ì€ômÉÕ¹}½¹”¡¤°˜¤™½È¤°˜¥¸•¹Õµ•É…Ñ”¡…Ñ¥Ù•}É•ÍĞ¥t(€€€€€€€€€€€Á…É…±±•±}É•ÍÕ±ÑÌ€ô…İ…¥Ğ…Íå¹¥¼¹…Ñ¡•È ©Ñ…Í­Ì°É•ÑÕÉ¹}•á•ÁÑ¥½¹ÌõQÉÕ”¤(€€€€€€€€€€€™½ÈÈ¥¸Á…É…±±•±}É•ÍÕ±ÑÌè(€€€€€€€€€€€€€€€¥˜¥Í¥¹ÍÑ…¹”¡È°á•ÁÑ¥½¸¤è(€€€€€€€€€€€€€€€€€€€É•ÍÕ±ÑÌ¹…ÁÁ•¹  ‰Õ¹­¹½İ¸ˆ°€‰•ÉÉ½Èˆ°€À°ÍÑÈ¡È¤¤¤(€€€€€€€€€€€€€€€•±Í”è(€€€€€€€€€€€€€€€€€€€É•ÍÕ±ÑÌ¹…ÁÁ•¹¡È¤((€€€€ŒƒŠRŠR I•Á½ÉĞƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR (€€€…¡•€ô±•¸¡Í­¥ÁÁ•‘}™¥±•Ì¤(€€€½¬€ôÍÕ´ Ä™½È|°Ì°|°|¥¸É•ÍÕ±ÑÌ¥˜Ì€ôô€‰½¬ˆ¤(€€€Í­¥ÁÁ•€ôÍÕ´ Ä™½È|°Ì°|°|¥¸É•ÍÕ±ÑÌ¥˜Ì€ôô€‰Í­¥ÁÁ•ˆ¤(€€€µ…¹Õ…°€ôÍÕ´ Ä™½È|°Ì°|°|¥¸É•ÍÕ±ÑÌ¥˜Ì€ôô€‰µ…¹Õ…°ˆ¤(€€€•ÉÉ½ÉÌ€ôÍÕ´ Ä™½È|°Ì°|°|¥¸É•ÍÕ±ÑÌ¥˜Ì€ôô€‰•ÉÉ½Èˆ¤((€€€ÁÉ¥¹Ğ¡˜‰q¹ìœôœ¨ØÁôˆ¤(€€€ÁÉ¥¹Ğ¡˜‹şï¢¾G–º3š"C¾òií½­ôƒ¦k¢ş£–B¬í…¡•‘ôƒòO–¶`¤€¼íÍ­¥ÁÁ•‘ôƒ¢ŞÏ¢ş£’â·šZ¤€¼íµ…¹Õ…±ôƒ¦r’êë–Ş”€¼í•ÉÉ½ÉÍôƒ¦Rg¢¾¿¾ò#–ÄíÑ½Ñ…±ôƒ®ƒ¾ò$ˆ¤(€€€ÁÉ¥¹Ğ¡˜‹šr¿¢¾·¢†£¾òií±•¸¡±½ÍÍ…Éä¥ôƒšv„ƒŠHíÑÉ…­•È¹±½ÍÍ…Éå}Á…Ñ¡ôˆ¤(€€€¥˜½¹™±¥ÑÌè(€€€€€€€ÁÉ¥¹Ğ¡˜‰q»Šj€ƒšr¿¢¾·–Ëªí±•¸¡½¹™±¥ÑÌ¥ôƒ–’¾òhˆ¤(€€€€€€€™½ÈŒ¥¸½¹™±¥ÑÌè(€€€€€€€€€€€ÁÉ¥¹Ğ¡˜ˆ€ílÑ•É´uôèíl•á¥ÍÑ¥¹œuôÙÌíl¹•Üuô€¡¥¸ílÍ½ÕÉ”uô¤ˆ¤((€€€¥˜µ…¹Õ…°è(€€€€€€€ÁÉ¥¹Ğ ‰q»¦r’êë–Ş—šš~—j®ƒ¢*¾òhˆ¤(€€€€€€€™½È™¹…µ”°ÍÑ…ÑÕÌ°|°¥ÍÍÕ•Ì¥¸É•ÍÕ±ÑÌè(€€€€€€€€€€€¥˜ÍÑ…ÑÕÌ€ôô€‰µ…¹Õ…°ˆè(€€€€€€€€€€€€€€€ÁÉ¥¹Ğ¡˜ˆ€í™¹…µ•ôèí¥ÍÍÕ•Íôˆ¤((€€€€ŒƒŠRŠR ½¹Í¥ÍÑ•¹äE€¡½ÁÑ¥½¹…°°…™Ñ•ÈÑÉ…¹Í±…Ñ¥½¸¤ƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR (€€€¥˜ÉÕ¹}Å„…¹}A%A1%9¹•Ğ ‰½¹Í¥ÍÑ•¹å}Å„ˆ¤…¹¹½Ğ•ÉÉ½ÉÌè(€€€€€€€ÑÉäè(€€€€€€€€€€€™É½´½¹Í¥ÍÑ•¹å}Å„¥µÁ½ÉĞÉÕ¹}½¹Í¥ÍÑ•¹å}Å„(€€€€€€€€€€€ÁÉ¥¹Ğ ‰q»¢Ş£®ƒ’â¢ÓšŸš&¯š><¸¸¸ˆ¤(€€€€€€€€€€€Å…}¥ÍÍÕ•Ì€ô…İ…¥ĞÉÕ¹}½¹Í¥ÍÑ•¹å}Å„¡‰½½­}‘¥È°±½ÍÍ…Éä¤(€€€€€€€€€€€¥˜Å…}¥ÍÍÕ•Ìè(€€€€€€€€€€€€€€€É•Á½ÉÑ}Á…Ñ €ô½Ì¹Á…Ñ ¹©½¥¸¡‰½½­}‘¥È°€ˆ¹ÑÉ…¹Í±…Ñ•}ÍÑ…Ñ”ˆ°€‰½¹Í¥ÍÑ•¹å}É•Á½ÉĞ¹µˆ¤(€€€€€€€€€€€€€€€½Ì¹µ…­•‘¥ÉÌ¡½Ì¹Á…Ñ ¹‘¥É¹…µ”¡É•Á½ÉÑ}Á…Ñ ¤°•á¥ÍÑ}½¬õQÉÕ”¤(€€€€€€€€€€€€€€€İ¥Ñ ½Á•¸¡É•Á½ÉÑ}Á…Ñ °€‰Üˆ°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤…Ì˜è(€€€€€€€€€€€€€€€€€€€˜¹İÉ¥Ñ”¡Å…}¥ÍÍÕ•Ì¤(€€€€€€€€€€€€€€€ÁÉ¥¹Ğ¡˜ˆ€ƒ–>G:ÀíÅ…}¥ÍÍÕ•Ì¹½Õ¹Ğ œŒŒŒœ¥ôƒÆï¦^»¦Š`ƒŠHíÉ•Á½ÉÑ}Á…Ñ¡ôˆ¤(€€€€€€€€€€€•±Í”è(€€€€€€€€€€€€€€€ÁÉ¥¹Ğ ˆ€ƒŠrLƒš^ƒ’â¢ÓšŸ¦^»¦Š`ˆ¤(€€€€€€€•á•ÁĞ%µÁ½ÉÑÉÉ½Èè(€€€€€€€€€€€Á…ÍÌ€€Œ½¹Í¥ÍÑ•¹å}Å„¹Áä¹½Ğ…Ù…¥±…‰±”ƒŠPÍ­¥ÀÍ¥±•¹Ñ±ä(€€€€€€€•á•ÁĞá•ÁÑ¥½¸…Ì”è(€€€€€€€€€€€ÁÉ¥¹Ğ¡˜ˆ€ƒŠj€ƒ’â¢ÓšŸš&¯š>?–’Ç¢Ò”èí•ôˆ°™¥±”õÍåÌ¹ÍÑ‘•ÉÈ¤((€€€É•ÑÕÉ¸€Ä¥˜•ÉÉ½ÉÌ•±Í”€À(()…Íå¹Œ‘•˜ÑÉ…¹Í±…Ñ•}Í¥¹±”¡Á…Ñ èÍÑÈ°µ…á}É•ÑÉäè¥¹Ğ°½¹}ÁÉ½É•ÍÌõ9½¹”¤è(€€€€ˆˆ‰M¥¹±”µ™¥±”µ½‘”€¡™½ÈÁ…Á•ÉÌ¤¸9¼±½ÍÍ…Éä¸((€€€½¹}ÁÉ½É•ÍÌ¡‘½¹”°Ñ½Ñ…°¤¥Ì™½Éİ…É‘•Ñ¼ÑÉ…¹Í±…Ñ•}¡…ÁÑ•È™½È¡Õ¹¬µ±•Ù•°(€€€ÁÉ½É•ÍÌÉ•Á½ÉÑ¥¹œ€¡”¹œ¸Ñ¼„©½ˆ±½œ¤¸(€€€€ˆˆˆ(€€€¥˜¹½ĞA%}-dè(€€€€€€€ÁÉ¥¹Ğ ‰ÉÉ½ÈèAM-}A%}-d¹½ĞÍ•Ğ¸ˆ°™¥±”õÍåÌ¹ÍÑ‘•ÉÈ¤(€€€€€€€É•ÑÕÉ¸€Ä((€€€™¹…µ”€ô½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡Á…Ñ ¤(€€€ÁÉ¥¹Ğ¡˜‹şï¢¾Dí™¹…µ•ô¸¸¸ˆ¤((€€€ÍÑ…ÑÕÌ°É•ÑÉ¥•Ì°¥ÍÍÕ•Ì°|€ô…İ…¥ĞÑÉ…¹Í±…Ñ•}¡…ÁÑ•È (€€€€€€€9½¹”°Á…Ñ °íô°¥Í}Í••õ…±Í”°µ…á}É•ÑÉäõµ…á}É•ÑÉä°Í•´õ…Íå¹¥¼¹M•µ…Á¡½É” Ä¤°¥¹}Á±…”õ…±Í”°½¹}ÁÉ½É•ÍÌõ½¹}ÁÉ½É•ÍÌ(€€€€¤(€€€Ñ…œ€ô€‹ŠrLˆ¥˜ÍÑ…ÑÕÌ€ôô€‰½¬ˆ•±Í”€ ‹Š>´ˆ¥˜ÍÑ…ÑÕÌ€ôô€‰Í­¥ÁÁ•ˆ•±Í”€ ‹Šj€ˆ¥˜ÍÑ…ÑÕÌ€ôô€‰µ…¹Õ…°ˆ•±Í”€‹Šr\ˆ¤¤(€€€½ÕĞ€ôÑÉ…¹Í±…Ñ•‘}Á…Ñ ¡Á…Ñ ¤(€€€ÁÉ¥¹Ğ¡˜‰íÑ…ôí™¹…µ•ôƒŠHí½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡½ÕĞ¥ô€£¦7¢¾UíÉ•ÑÉ¥•Í÷š²„¤ƒŠPí¥ÍÍÕ•Íôˆ¤(€€€É•ÑÕÉ¸€Ä¥˜ÍÑ…ÑÕÌ€ôô€‰•ÉÉ½Èˆ•±Í”€À(()‘•˜}Í¡½İ}ÍÑ…ÑÕÌ¡‰½½­}‘¥ÈèÍÑÈ¤è(€€€€ˆˆ‰AÉ¥¹ĞÑÉ…¹Í±…Ñ¥½¸ÁÉ½É•ÍÌİ¥Ñ¡½ÕĞÑÉ…¹Í±…Ñ¥¹œ¸ˆˆˆ(€€€ÑÉ…­•È€ôAÉ½É•ÍÍQÉ…­•È¡‰½½­}‘¥È¤(€€€¥˜¹½ĞÑÉ…­•È¹}±½…‘•è(€€€€€€€ÁÉ¥¹Ğ ‹š^ƒşï¢¾G*ÛššZ’îÛ¾ò ¹ÑÉ…¹Í±…Ñ•}ÍÑ…Ñ”½ÁÉ½É•ÍÌ¹©Í½»¾ò'ˆ¤(€€€€€€€É•ÑÕÉ¸€À(€€€™¥±•Ì€ôÍ½ÉÑ•¡±½ˆ¹±½ˆ¡½Ì¹Á…Ñ ¹©½¥¸¡‰½½­}‘¥È°€‰ ¨¹µˆ¤¤¤(€€€¥˜¹½Ğ™¥±•Ìè(€€€€€€€™¥±•Ì€ôÍ½ÉÑ•¡˜™½È˜¥¸±½ˆ¹±½ˆ¡½Ì¹Á…Ñ ¹©½¥¸¡‰½½­}‘¥È°€ˆ¨¹µˆ¤¤¥˜¹½Ğ˜¹•¹‘Íİ¥Ñ  ‰}¥¹‘•à¹µˆ¤¤(€€€½Õ¹ÑÌ€ôì‰½¬ˆè€À°€‰Í­¥ÁÁ•ˆè€À°€‰µ…¹Õ…°ˆè€À°€‰•ÉÉ½Èˆè€À°€‰Á•¹‘¥¹œˆè€Áô(€€€ÁÉ¥¹Ğ¡˜‰ìŸ®ƒ¢*œèğÌÁôìŸ*ÛšœèğÄÁôìŸ¦7¢¾TœèğÙôƒ¢¾Óšb8ˆ¤(€€€ÁÉ¥¹Ğ ˆ´ˆ€¨€ÜÀ¤(€€€™½È˜¥¸™¥±•Ìè(€€€€€€€™¹…µ”€ô½Ì¹Á…Ñ ¹‰…Í•¹…µ”¡˜¤(€€€€€€€¥˜ÑÉ…­•È¹Í¡½Õ±‘}Í­¥À¡˜¤è(€€€€€€€€€€€ÍÑ…ÑÕÌ°É•ÑÉ¥•Ì°¥ÍÍÕ•Ì€ô€‰½¬ˆ°€À°€‹–ŞËòO–¶`£šêCšr«–>`¤ˆ(€€€€€€€•±Í”è(€€€€€€€€€€€É•Œ€ôÑÉ…­•È¹}‘…Ñ„¹•Ğ¡™¹…µ”°íô¤(€€€€€€€€€€€ÍÑ…ÑÕÌ€ôÉ•Œ¹•Ğ ‰ÍÑ…ÑÕÌˆ°€‰Á•¹‘¥¹œˆ¤(€€€€€€€€€€€É•ÑÉ¥•Ì€ôÉ•Œ¹•Ğ ‰…ÑÑ•µÁÑÌˆ°€À¤(€€€€€€€€€€€¥ÍÍÕ•Ì€ô€ˆˆ¥˜ÍÑ…ÑÕÌ€ôô€‰Á•¹‘¥¹œˆ•±Í”€‹¦r¦7¢ŞDˆ(€€€€€€€½Õ¹ÑÍmÍÑ…ÑÕÍt€ô½Õ¹ÑÌ¹•Ğ¡ÍÑ…ÑÕÌ°€À¤€¬€Ä(€€€€€€€ÁÉ¥¹Ğ¡˜‰í™¹…µ”èğÌÁôíÍÑ…ÑÕÌèğÄÁôíÉ•ÑÉ¥•ÌèğÙôí¥ÍÍÕ•Íôˆ¤(€€€ÁÉ¥¹Ğ ˆ´ˆ€¨€ÜÀ¤(€€€ÁÉ¥¹Ğ¡˜‹šï¢º‡¾òií½Õ¹ÑÌ¹•Ğ ½¬œ°À¥ôƒ¦k¢ş€¼í½Õ¹ÑÌ¹•Ğ Í­¥ÁÁ•œ°À¥ôƒ’â·šZ¢ŞÏ¢ş€¼€ˆ(€€€€€€€€€˜‰í½Õ¹ÑÌ¹•Ğ µ…¹Õ…°œ°À¥ôƒ¦r’êë–Ş”€¼í½Õ¹ÑÌ¹•Ğ •ÉÉ½Èœ°À¥ôƒ¦Rg¢¾¼€¼€ˆ(€€€€€€€€€˜‰í½Õ¹ÑÌ¹•Ğ Á•¹‘¥¹œœ°À¥ôƒ–úşï¢¾G¾ò#–Äí±•¸¡™¥±•Ì¥ôƒ®ƒ¾ò$ˆ¤(€€€É•ÑÕÉ¸€À(()‘•˜µ…¥¸ ¤è(€€€…À€ô…ÉÁ…ÉÍ”¹ÉÕµ•¹ÑA…ÉÍ•È¡‘•ÍÉ¥ÁÑ¥½¸ô‰QÉ…¹Í±…Ñ”µ…É­‘½İ¸¡…ÁÑ•ÉÌÑ¼¡¥¹•Í”¸ˆ¤(€€€…À¹…‘‘}…ÉÕµ•¹Ğ ‰Ñ…É•Ğˆ°¡•±Àô‰‰½½¬‘¥É•Ñ½Éä½ÈÍ¥¹±”€¹µ™¥±”ˆ¤(€€€…À¹…‘‘}…ÉÕµ•¹Ğ ˆ´µ½¹ÕÉÉ•¹äˆ°ÑåÁ”õ¥¹Ğ°‘•™…Õ±ĞôĞ°¡•±Àô‰Á…É…±±•°¡…ÁÑ•ÉÌ€¡‘•™…Õ±Ğ€Ğ¤ˆ¤(€€€…À¹…‘‘}…ÉÕµ•¹Ğ ˆ´µÍ••µ¡…ÁÑ•ÉÌˆ°ÑåÁ”õ¥¹Ğ°‘•™…Õ±ĞôÈ°¡•±Àô‰Í•É¥…°Í••¡…ÁÑ•ÉÌ€¡‘•™…Õ±Ğ€È¤ˆ¤(€€€…À¹…‘‘}…ÉÕµ•¹Ğ ˆ´µÉ•ÑÉäˆ°ÑåÁ”õ¥¹Ğ°‘•™…Õ±ĞôÈ°¡•±Àô‰µ…àÉ•ÑÉ¥•ÌÁ•È¡…ÁÑ•È€¡‘•™…Õ±Ğ€È¤ˆ¤(€€€…À¹…‘‘}…ÉÕµ•¹Ğ ˆ´µ™É•Í ˆ°…Ñ¥½¸ô‰ÍÑ½É•}ÑÉÕ”ˆ°¡•±Àô‰¥¹½É”ÍÑ…Ñ”°É”µÑÉ…¹Í±…Ñ”…±°¡…ÁÑ•ÉÌˆ¤(€€€…À¹…‘‘}…ÉÕµ•¹Ğ ˆ´µÍÑ…ÑÕÌˆ°…Ñ¥½¸ô‰ÍÑ½É•}ÑÉÕ”ˆ°¡•±Àô‰Í¡½ÜÁÉ½É•ÍÌİ¥Ñ¡½ÕĞÑÉ…¹Í±…Ñ¥¹œˆ¤(€€€…À¹…‘‘}…ÉÕµ•¹Ğ ˆ´µ¹¼µÅ„ˆ°…Ñ¥½¸ô‰ÍÑ½É•}ÑÉÕ”ˆ°¡•±Àô‰Í­¥ÀÉ½ÍÌµ¡…ÁÑ•È½¹Í¥ÍÑ•¹äEˆ¤(€€€…ÉÌ€ô…À¹Á…ÉÍ•}…ÉÌ ¤((€€€¥˜½Ì¹Á…Ñ ¹¥Í™¥±”¡…ÉÌ¹Ñ…É•Ğ¤è(€€€€€€€É•ÑÕÉ¸…Íå¹¥¼¹ÉÕ¸¡ÑÉ…¹Í±…Ñ•}Í¥¹±”¡…ÉÌ¹Ñ…É•Ğ°…ÉÌ¹É•ÑÉä¤¤(€€€•±¥˜½Ì¹Á…Ñ ¹¥Í‘¥È¡…ÉÌ¹Ñ…É•Ğ¤è(€€€€€€€¥˜…ÉÌ¹ÍÑ…ÑÕÌè(€€€€€€€€€€€É•ÑÕÉ¸}Í¡½İ}ÍÑ…ÑÕÌ¡…ÉÌ¹Ñ…É•Ğ¤(€€€€€€€É•ÑÕÉ¸…Íå¹¥¼¹ÉÕ¸¡ÑÉ…¹Í±…Ñ•}‰½½¬ (€€€€€€€€€€€…ÉÌ¹Ñ…É•Ğ°…ÉÌ¹½¹ÕÉÉ•¹ä°…ÉÌ¹Í••‘}¡…ÁÑ•ÉÌ°…ÉÌ¹É•ÑÉä°(€€€€€€€€€€€™É•Í õ…ÉÌ¹™É•Í °ÉÕ¹}Å„õ¹½Ğ…ÉÌ¹¹½}Å„°(€€€€€€€€¤¤(€€€•±Í”è(€€€€€€€ÁÉ¥¹Ğ¡˜‰ÉÉ½Èèí…ÉÌ¹Ñ…É•Ñô¹½Ğ™½Õ¹ˆ°™¥±”õÍåÌ¹ÍÑ‘•ÉÈ¤(€€€€€€€É•ÑÕÉ¸€Ä(()¥˜}}¹…µ•}|€ôô€‰}}µ…¥¹}|ˆè(€€€ÍåÌ¹•á¥Ğ¡µ…¥¸ ¤¤
+        # Check if current paragraph is English-only (no CJK) and has at least
+        # one English sentence (capital letter + period pattern)
+        is_english_only = (
+            para
+            and not _CJK_RE.search(para)
+            and bool(_EN_SENTENCE_RE.search(para))
+        )
+        # Check next paragraph for Chinese content
+        next_is_chinese = False
+        if i + 1 < len(paras):
+            next_para = paras[i + 1].strip()
+            next_is_chinese = bool(next_para and _CJK_RE.search(next_para))
+
+        if is_english_only and next_is_chinese:
+            # This is likely an echoed English original â€” skip it
+            stripped_count += 1
+            i += 1
+            continue
+
+        result.append(paras[i])
+        i += 1
+
+    return "\n\n".join(result), stripped_count
+
+
+# â”€â”€ Image restoration (deterministic safeguard against LLM dropping images) â”€
+IMG_RE = re.compile(r"!\[\]\(images/[a-f0-9]+\.webp\)")
+CAPTION_FIG_RE = re.compile(r"å›¾\s*(\d+)")
+
+def restore_images(source: str, translated: str) -> tuple[str, int]:
+    """Restore image references dropped by the LLM during translation.
+
+    Strategy: build figure number â†’ image refs map from source (images preceding
+    a caption belong to that figure), then for each translated caption missing
+    its images, reinsert them just before the caption line. Also catches images
+    with no associated caption (insert at matched anchor text).
+
+    Returns (corrected_text, num_restored).
+    """
+    src_lines = source.split("\n")
+    dst_lines = translated.split("\n")
+
+    # 1. Map fig number â†’ [image refs] from source (images accumulate until a caption)
+    fig_imgs = {}
+    current_imgs = []
+    for line in src_lines:
+        imgs = IMG_RE.findall(line)
+        if imgs:
+            current_imgs.extend(imgs)
+        if "{{< caption" in line:
+            m = CAPTION_FIG_RE.search(line)
+            if m:
+                num = m.group(1)
+                if num not in fig_imgs and current_imgs:
+                    fig_imgs[num] = current_imgs[:]
+            current_imgs = []
+
+    # 2. Walk translated lines; before each caption, ensure its images exist
+    result = []
+    restored = 0
+    for line in dst_lines:
+        if "{{< caption" in line:
+            m = CAPTION_FIG_RE.search(line)
+            if m:
+                num = m.group(1)
+                imgs = fig_imgs.get(num, [])
+                # check preceding lines for existing images
+                lookback = "\n".join(result[-len(imgs) - 2 :]) if imgs else ""
+                missing = [im for im in imgs if im not in lookback]
+                if missing:
+                    result.append("")
+                    for im in missing:
+                        result.append(im)
+                    restored += len(missing)
+        result.append(line)
+
+    return "\n".join(result), restored
+
+
+# â”€â”€ LLM call â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async def _translate_part(client, body: str, glossary: dict, is_seed: bool, feedback: str = "",
+                          on_chunk=None, skip_chunks=None, prev_results=None) -> str:
+    """Translate one contiguous block, handling chunking + per-chunk truncation retry.
+
+    For long texts (> CHUNK_THRESHOLD chars), splits into chunks at $$ boundaries
+    and translates sequentially, concatenating results. This prevents truncation
+    when max_tokens is exhausted mid-translation.
+
+    If on_chunk is provided, it's called as on_chunk(index, total, translated_so_far)
+    after each chunk completes â€” allowing the caller to checkpoint progress to disk
+    so a crash/interruption doesn't lose all work.
+
+    If skip_chunks is provided (a set of chunk indices), those chunks are skipped
+    (assumed already translated) and their text is taken from prev_results instead.
+    This enables resuming a partial translation without retranslating completed chunks.
+    """
+    skip_chunks = skip_chunks or set()
+    prev_results = prev_results or []
+
+    if len(body) <= CHUNK_THRESHOLD:
+        if 0 in skip_chunks and prev_results:
+            result = prev_results[0]
+        else:
+            result = await _translate_once(client, body, glossary, is_seed, feedback)
+        if on_chunk:
+            on_chunk(0, 1, result)
+        return result
+
+    chunks = split_into_chunks(body, CHUNK_THRESHOLD)
+    results = []
+    prev_context = ""
+    for i, chunk in enumerate(chunks):
+        # Resume: skip already-translated chunks (take from prev_results)
+        if i in skip_chunks and i < len(prev_results):
+            chunk_translated = prev_results[i]
+            # Restore rolling context from the skipped chunk
+            prev_context = chunk_translated[-200:] if len(chunk_translated) > 200 else chunk_translated
+            results.append(chunk_translated)
+            if on_chunk:
+                on_chunk(i + 1, len(chunks), "\n\n".join(results))
+            continue
+
+        chunk_feedback = feedback if i == 0 else ""
+        context_note = ""
+        if prev_context:
+            context_note = f"ä¸Šæ–‡å·²ç¿»è¯‘å†…å®¹ç»“å°¾ï¼š...{prev_context}ã€‚è¯·ä¿æŒæœ¯è¯­å’ŒæŒ‡ä»£ä¸€è‡´ã€‚"
+        chunk_translated = await _translate_once(client, chunk, glossary, is_seed, chunk_feedback, context_note)
+
+        # Per-chunk truncation detection: if output is suspiciously short,
+        # re-split into smaller pieces and translate individually.
+        ratio = len(chunk_translated) / max(len(chunk), 1)
+        if ratio < 0.3 and len(chunk) > 2000:
+            # Likely truncated â€” split into halves and retry
+            sub_chunks = split_into_chunks(chunk, max(len(chunk) // 2, 1500))
+            sub_results = []
+            for sc in sub_chunks:
+                sub_translated = await _translate_once(client, sc, glossary, is_seed, "")
+                sub_results.append(sub_translated)
+            chunk_translated = "\n\n".join(sub_results)
+
+        results.append(chunk_translated)
+        prev_context = chunk_translated[-200:] if len(chunk_translated) > 200 else chunk_translated
+
+        # Checkpoint: write partial progress after each chunk
+        if on_chunk:
+            on_chunk(i + 1, len(chunks), "\n\n".join(results))
+
+    return "\n\n".join(results)
+
+
+async def translate_text(client, body: str, glossary: dict, is_seed: bool, feedback: str = "",
+                         on_chunk=None, skip_chunks=None, prev_results=None) -> str:
+    """Call LLM to translate body text. Returns translated text (may include glossary markers).
+
+    References section (## References / ## å‚è€ƒæ–‡çŒ® / ## Bibliography) is isolated
+    and kept as-is â€” bibliographic entries stay in the original language. Any
+    section after References (typically ## Appendix, ## Acknowledgements) is
+    translated normally.
+
+    If on_chunk is provided, it's called after each chunk is translated, allowing
+    incremental writes to disk for crash recovery.
+
+    If skip_chunks/prev_results are provided, those chunks are taken from
+    prev_results instead of calling the LLM â€” enabling partial-translation resume.
+    """
+    # Isolate references â€” never translate bibliographic entries
+    before, ref_section, after = isolate_references(body)
+
+    translated = await _translate_part(client, before, glossary, is_seed, feedback, on_chunk,
+                                       skip_chunks, prev_results)
+    if after:
+        translated = translated.rstrip() + "\n\n" + await _translate_part(client, after, glossary, is_seed, "")
+
+    # Splice references back in (heading translated, entries kept original)
+    if ref_section:
+        translated = translated.rstrip() + "\n\n" + translate_ref_heading(ref_section)
+
+    # Deterministic safeguard 1: strip echoed English originals (LLM outputs
+    # English para + Chinese para instead of replacing the English with Chinese).
+    translated, echo_stripped = strip_echoed_english(translated)
+    if echo_stripped > 0:
+        print(f"    ğŸ§¹ åˆ é™¤ {echo_stripped} æ®µè¢«å›æ˜¾çš„è‹±æ–‡åŸæ–‡")
+
+    # Deterministic safeguard 2: restore any image refs the LLM dropped.
+    # Compare against before+after (references section typically has no figures).
+    combined_src = before + after
+    src_imgs = IMG_RE.findall(combined_src)
+    dst_imgs = IMG_RE.findall(translated)
+    if len(src_imgs) > len(dst_imgs):
+        translated, n = restore_images(combined_src, translated)
+        if n > 0:
+            print(f"    ğŸ”§ æ¢å¤ {n} å¼ ä¸¢å¤±çš„å›¾ç‰‡å¼•ç”¨ï¼ˆæºæ–‡ {len(src_imgs)} å¼ ï¼Œè¯‘æ–‡åŸä»… {len(dst_imgs)} å¼ ï¼‰")
+
+    return translated
+
+
+def translate_ref_heading(ref_section: str) -> str:
+    """Translate only the heading of references section, keep entries as-is."""
+    ref_section = re.sub(
+        r"^#+\s+(References|Bibliography)\b",
+        "## å‚è€ƒæ–‡çŒ®",
+        ref_section,
+        flags=re.IGNORECASE,
+    )
+    return ref_section
+
+
+CHUNK_THRESHOLD = _SEGMENT["max_chars_per_batch"]  # chars â€” split above this. 4500 chars input â†’ ~3500 chars output (Chinese
+                         # is 30% shorter, but LaTeX stays verbatim) â†’ ~6000 total tokens including
+                         # system prompt (~500) + glossary (~200). Well within MAX_TOKENS=8192 margin.
+
+
+def split_into_chunks(text: str, max_size: int) -> list:
+    """Split text into chunks at safe boundaries.
+
+    Priority of split points (safest first):
+      1. After $$...$$ blocks (display math)
+      2. After ## headings (section boundaries)
+      3. After paragraph breaks (\\n\\n)
+      4. After sentence-ending punctuation (ã€‚.ï¼ï¼ï¼Ÿï¼Ÿ)
+
+    Never splits inside a $$...$$ block.
+    """
+    if len(text) <= max_size:
+        return [text]
+
+    chunks = []
+    remaining = text
+
+    while len(remaining) > max_size:
+        # Find the best split point within the first max_size chars
+        search_region = remaining[:max_size]
+
+        # Try splitting after the last $$ block boundary (must be even $$ count)
+        split_pos = -1
+        # Find all $$ positions and pick the last one that gives even count
+        dd_positions = [m.start() for m in re.finditer(r"\$\$", search_region)]
+        for dd_pos in reversed(dd_positions):
+            if dd_pos < max_size // 4:
+                break
+            # $$ count up to and including this one must be even (closed block)
+            if (search_region[:dd_pos].count("$$") + 1) % 2 == 0:
+                split_pos = dd_pos + 2
+                break
+
+        # Try splitting after the last ## heading
+        if split_pos < 0:
+            headings = list(re.finditer(r"^##\s+.+$", search_region, re.MULTILINE))
+            if len(headings) > 1:
+                split_pos = headings[-1].start()
+
+        # Try splitting at the last paragraph break
+        if split_pos < 0:
+            split_pos = search_region.rfind("\n\n")
+            if split_pos < max_size // 4:
+                split_pos = -1
+
+        # Try splitting at the last sentence end
+        if split_pos < 0:
+            for punct in ["ã€‚", "ï¼", "ï¼", "ï¼Ÿ", ". ", "! ", "? "]:
+                pos = search_region.rfind(punct)
+                if pos > max_size // 4:
+                    split_pos = pos + len(punct)
+                    break
+
+        # Hard fallback: cut at max_size.
+        # NOTE: if a single $$...$$ block exceeds max_size, this will cut mid-block,
+        # producing unbalanced delimiters in the chunk sent to the LLM. This is a
+        # known limitation â€” oversized math blocks are rare (most are <500 chars).
+        # The system prompt tells the LLM to preserve math verbatim, so content
+        # survives on rejoin, but the chunk itself may render incorrectly.
+        if split_pos < 0:
+            # If we're inside an unclosed $$ block, extend to its close if possible
+            unclosed = remaining[:max_size].count("$$") % 2
+            if unclosed:
+                close_pos = remaining.find("$$", max_size)
+                if close_pos != -1 and close_pos < max_size * 2:
+                    split_pos = close_pos + 2
+            if split_pos < 0:
+                split_pos = max_size
+
+        chunks.append(remaining[:split_pos])
+        remaining = remaining[split_pos:].lstrip()
+
+    if remaining:
+        chunks.append(remaining)
+
+    return chunks
+
+
+async def _translate_once(client, body: str, glossary: dict, is_seed: bool, feedback: str = "", context_note: str = "") -> str:
+    """Single LLM call to translate body text.
+
+    client å‚æ•°ä¿ç•™ä»¥å…¼å®¹è°ƒç”¨ç­¾å,å®é™…å¿½ç•¥â€”â€”æ”¹ç”¨ app.llm.nonstream.call_llm_once
+    (å¤ç”¨ build_request çš„åŒåè®®é€‚é…,æ”¯æŒ Anthropic ç«¯ç‚¹)ã€‚
+    """
+    system = SYSTEM_PROMPT
+    if context_note:
+        system += f"\n\n## ä¸Šä¸‹æ–‡\n{context_note}"
+    user_msg = build_user_prompt(body, glossary, is_seed)
+    if feedback:
+        user_msg += f"\n\n---\nâš  ä¸Šæ¬¡ç¿»è¯‘æœ‰ä»¥ä¸‹é—®é¢˜ï¼Œè¯·ä¿®æ­£ï¼š\n{feedback}\nè¯·é‡æ–°ç¿»è¯‘å®Œæ•´å†…å®¹ã€‚"
+
+    return await call_llm_once(
+        provider=PROVIDER,
+        model=MODEL,
+        base_url=BASE_URL,
+        api_key=API_KEY,
+        system=system,
+        messages=[{"role": "user", "content": user_msg}],
+        max_tokens=MAX_TOKENS,
+        thinking=False,
+        protocol=PROTOCOL,
+        path_mode=PATH_MODE,
+    )
+
+
+def translated_path(path, in_place=False):
+    """ç¿»è¯‘è¾“å‡ºè·¯å¾„ã€‚in_place=True æ—¶åŸåœ°å†™ï¼ˆbookï¼šæ–‡ä»¶æœ¬èº«å°±æ˜¯å†…å®¹ï¼‰ï¼›
+    in_place=False æ—¶å†™ .zh.mdï¼ˆpaperï¼šæºæ–‡ä»¶æ˜¯ MinerU æå–ï¼Œä¸ç¢°ï¼‰"""
+    if in_place:
+        return path
+    base, ext = os.path.splitext(path)
+    return base + ".zh" + ext
+
+
+PARTIAL_RE = re.compile(r"<!--\s*translate-partial:\s*(\d+)/(\d+)\s*chunks\s*-->")
+
+
+def detect_partial(content: str):
+    """Check if a file contains a partial-translation marker.
+
+    Returns (chunks_done, chunks_total) if marker found and incomplete, else None.
+    A complete marker (done == total) means translation finished but the marker
+    wasn't cleaned up â€” caller should strip it.
+    """
+    m = PARTIAL_RE.search(content)
+    if not m:
+        return None
+    done, total = int(m.group(1)), int(m.group(2))
+    return (done, total)
+
+
+# â”€â”€ Per-chapter translation with retry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async def translate_chapter(client, path: str, glossary: dict, is_seed: bool, max_retry: int, sem: asyncio.Semaphore, in_place: bool = True, on_progress=None):
+    """Translate one chapter with validation + retry. Returns (status, retries, issues, glossary).
+
+    Supports partial-translation resume: if the output file has a
+    <!-- translate-partial: N/M --> marker with N < M, the already-translated
+    N chunks are reused and only the remaining M-N chunks are translated.
+
+    on_progress(done, total) is called after each chunk completes, so the
+    caller can surface chunk-level progress (e.g. to a job log).
+    """
+    async with sem:
+        fname = os.path.basename(path)
+        out_path = translated_path(path, in_place)
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+        fm, body = split_front_matter(content)
+
+        # Check for partial translation in the OUTPUT file (from a prior interrupted run)
+        skip_chunks = set()
+        prev_results = []
+        partial_info = None
+        if os.path.exists(out_path):
+            with open(out_path, encoding="utf-8") as f:
+                out_content = f.read()
+            partial_info = detect_partial(out_content)
+            if partial_info:
+                done, total = partial_info
+                if done >= total:
+                    # Marker stale (done == total) â€” translation actually completed,
+                    # just strip the marker and re-validate
+                    cleaned = PARTIAL_RE.sub("", out_content).rstrip() + "\n"
+                    with open(out_path, "w", encoding="utf-8") as f:
+                        f.write(cleaned)
+                    # Fall through to is_chinese_text check below
+                else:
+                    # Partial translation â€” extract prev_results and compute skip_chunks
+                    # Remove the partial marker and front matter to get translated body
+                    out_fm, out_body = split_front_matter(out_content)
+                    out_body = PARTIAL_RE.sub("", out_body).rstrip()
+                    prev_results = out_body.split("\n\n")
+                    skip_chunks = set(range(done))
+                    print(f"    [{fname}] ç»­è·‘ï¼šè·³è¿‡ {done}/{total} chunks")
+
+        # ä¸­æ–‡æ–‡ä»¶è·³è¿‡ç¿»è¯‘ï¼Œåªè·‘æ ¼å¼åŒ–ï¼ˆäº¤å‰å¼•ç”¨ regex è½¬æ¢ï¼‰
+        # BUT: if we have skip_chunks (partial resume), don't skip even if text is Chinese
+        if not skip_chunks and is_chinese_text(body):
+            if out_path != path:
+                import shutil
+                shutil.copy2(path, out_path)
+            stats = convert_xrefs_file(out_path)
+            n = stats.get("total", 0)
+            return ("skipped", 0, f"å·²æ˜¯ä¸­æ–‡ï¼Œè·³è¿‡ç¿»è¯‘ï¼Œè½¬æ¢ {n} å¤„äº¤å‰å¼•ç”¨", {})
+
+        retries = 0
+        feedback = ""
+        for attempt in range(max_retry + 1):
+            try:
+                # on_chunk: write partial translation to disk after each chunk,
+                # so a crash/interruption doesn't lose all work on long chapters.
+                def on_chunk(done, total, text):
+                    with open(out_path, "w", encoding="utf-8") as f:
+                        f.write(fm + text + f"\n<!-- translate-partial: {done}/{total} chunks -->\n")
+                    print(f"\r    [{fname}] {done}/{total} chunks", end="", flush=True)
+                    if on_progress:
+                        try:
+                            on_progress(done, total)
+                        except Exception:
+                            pass  # progress callback must never break translation
+
+                # On retry (attempt > 0), don't skip chunks â€” retranslate everything
+                # to give the LLM a chance to fix issues flagged by check_quality.
+                attempt_skip = skip_chunks if attempt == 0 else set()
+                attempt_prev = prev_results if attempt == 0 else []
+
+                translated = await translate_text(client, body, glossary, is_seed, feedback,
+                                                  on_chunk=on_chunk,
+                                                  skip_chunks=attempt_skip,
+                                                  prev_results=attempt_prev)
+            except Exception as e:
+                return ("error", attempt, f"API error: {e}")
+
+            # Strip glossary markers, collect terms
+            translated, new_terms = extract_glossary(translated)
+
+            # Post-translation cleanup: fix $$ delimiter corruption from LLM output
+            # (e.g. $_{1}$$(...) adjacent $ creates false $$ wrapping Chinese prose)
+            try:
+                from clean_markdown import fix_math_delimiters
+                translated, _ = fix_math_delimiters(translated)
+            except ImportError:
+                pass  # clean_markdown not available â€” skip
+
+            # Write to output file (never touch source)
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(fm + translated)
+
+            # Validate the output file (pass source body for truncation check)
+            passed, issues = check_quality(out_path, body, is_seed=is_seed)
+            if passed:
+                return ("ok", attempt, issues, new_terms)
+
+            feedback = issues
+            retries = attempt + 1
+            # After first attempt fails, don't reuse partial results â€” retranslate all
+            skip_chunks = set()
+            prev_results = []
+
+        return ("manual", retries, feedback, {})
+
+
+# â”€â”€ Glossary merge with conflict detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+def merge_glossary(existing: dict, new_terms: dict, source: str, conflicts: list):
+    """Merge new terms into glossary. Record conflicts on translation mismatch."""
+    for en, zh in new_terms.items():
+        if en in existing and existing[en] != zh:
+            conflicts.append({"term": en, "existing": existing[en], "new": zh, "source": source})
+        else:
+            existing[en] = zh
+
+
+# â”€â”€ Progress tracking (checkpoint/resume) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+def _sha256_file(path: str) -> str:
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+class ProgressTracker:
+    """Per-book translation progress for checkpoint/resume.
+
+    State lives at <book_dir>/.translate_state/progress.json. Each chapter
+    records its status, source hash, attempt count, and harvested glossary
+    terms. On re-run, chapters with status='ok' and unchanged source are
+    skipped; failed chapters are retried.
+
+    A corrupted state file degrades gracefully to a full re-translate.
+    """
+
+    def __init__(self, book_dir: str, fresh: bool = False):
+        self.state_dir = os.path.join(book_dir, ".translate_state")
+        self.progress_path = os.path.join(self.state_dir, "progress.json")
+        self.glossary_path = os.path.join(book_dir, "glossary.json")
+        self._lock = asyncio.Lock()
+        self._data = {}  # {fname: {status, source_hash, attempts, glossary_terms}}
+        self._glossary = {}
+        self._loaded = False
+
+        if fresh:
+            return  # caller will treat as empty
+
+        self._load()
+
+    def _load(self):
+        """Load progress.json and glossary.json. Degrade to empty on corruption."""
+        try:
+            if os.path.exists(self.progress_path):
+                with open(self.progress_path, encoding="utf-8") as f:
+                    self._data = json.load(f)
+                self._loaded = True
+        except (json.JSONDecodeError, OSError):
+            self._data = {}  # corrupt â€” start fresh
+            self._loaded = False
+
+        # Load existing glossary so resume can re-inject terms into the live dict
+        try:
+            if os.path.exists(self.glossary_path):
+                with open(self.glossary_path, encoding="utf-8") as f:
+                    self._glossary = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            self._glossary = {}
+
+        # Rebuild glossary from per-chapter records if glossary.json was missing
+        if not self._glossary and self._data:
+            for rec in self._data.values():
+                self._glossary.update(rec.get("glossary_terms", {}))
+
+    @property
+    def glossary(self) -> dict:
+        return dict(self._glossary)
+
+    def should_skip(self, path: str) -> bool:
+        """True if chapter was translated ok and source is unchanged."""
+        fname = os.path.basename(path)
+        rec = self._data.get(fname)
+        if not rec or rec.get("status") != "ok":
+            return False
+        try:
+            return rec.get("source_hash") == _sha256_file(path)
+        except OSError:
+            return False
+
+    def status_of(self, path: str) -> str:
+        return self._data.get(os.path.basename(path), {}).get("status", "pending")
+
+    async def record(self, path: str, status: str, attempts: int, glossary_terms: dict):
+        """Record a chapter's result and persist immediately."""
+        fname = os.path.basename(path)
+        async with self._lock:
+            try:
+                source_hash = _sha256_file(path)
+            except OSError:
+                source_hash = ""
+            self._data[fname] = {
+                "status": status,
+                "source_hash": source_hash,
+                "attempts": attempts,
+                "glossary_terms": glossary_terms,
+            }
+            # Merge terms into the live glossary
+            self._glossary.update(glossary_terms)
+            self._persist()
+
+    def _persist(self):
+        """Write progress.json + glossary.json atomically (caller holds lock)."""
+        os.makedirs(self.state_dir, exist_ok=True)
+        tmp = self.progress_path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(self._data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, self.progress_path)
+
+        with open(self.glossary_path, "w", encoding="utf-8") as f:
+            json.dump(self._glossary, f, ensure_ascii=False, indent=2)
+
+    def summary(self) -> dict:
+        """Return {ok, skipped_seed, manual, error, pending} counts."""
+        counts = {"ok": 0, "manual": 0, "error": 0, "pending": 0, "skipped_chinese": 0}
+        for rec in self._data.values():
+            s = rec.get("status", "pending")
+            if s in counts:
+                counts[s] += 1
+            elif s == "skipped":
+                counts["skipped_chinese"] += 1
+        return counts
+
+
+# â”€â”€ Main workflow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async def translate_book(book_dir: str, concurrency: int, seed_count: int, max_retry: int,
+                         fresh: bool = False, run_qa: bool = True):
+    if not API_KEY:
+        print("Error: DEEPSEEK_API_KEY not set. Check .env", file=sys.stderr)
+        return 1
+
+    # client ä¸å†éœ€è¦â€”â€”_translate_once æ”¹ç”¨ call_llm_once(åŒåè®®é€‚é…)ã€‚
+    # translate_chapter çš„ client å‚æ•°ä¿ç•™ None(å‘åå…¼å®¹ç­¾å)ã€‚
+
+    # Collect chapter files: ch*.md + preface.md (if exists), excluding _index.md
+    files = sorted(glob.glob(os.path.join(book_dir, "ch*.md")))
+    # Also include preface.md if it exists and isn't already in the list
+    preface = os.path.join(book_dir, "preface.md")
+    if os.path.exists(preface) and preface not in files:
+        files.insert(0, preface)
+    if not files:
+        # fallback: any .md except _index.md
+        files = sorted(f for f in glob.glob(os.path.join(book_dir, "*.md")) if not f.endswith("_index.md"))
+    if not files:
+        print(f"No .md files found in {book_dir}", file=sys.stderr)
+        return 1
+
+    total = len(files)
+    seeds = files[:seed_count]
+    rest = files[seed_count:]
+    tracker = ProgressTracker(book_dir, fresh=fresh)
+    glossary = tracker.glossary  # resume: pick up terms from prior run
+    conflicts = []
+    results = []
+
+    # Partition: skip already-ok chapters, translate the rest
+    skipped_files = [f for f in files if tracker.should_skip(f)]
+    todo_files = [f for f in files if not tracker.should_skip(f)]
+    if skipped_files:
+        print(f"æ–­ç‚¹ç»­è·‘ï¼šè·³è¿‡ {len(skipped_files)} ç« å·²å®Œæˆï¼ˆå…± {total} ç« ï¼‰")
+        for f in skipped_files:
+            fname = os.path.basename(f)
+            results.append((fname, tracker.status_of(f) or "ok", 0, "å·²ç¼“å­˜"))
+    if not todo_files:
+        print("æ‰€æœ‰ç« èŠ‚å·²ç¿»è¯‘å®Œæˆï¼Œæ— éœ€é‡è·‘ã€‚")
+        glossary = tracker.glossary
+    else:
+        # Re-partition todo into seeds/rest for the active run
+        active_seeds = [f for f in todo_files if f in seeds][:seed_count]
+        active_rest = [f for f in todo_files if f not in active_seeds]
+        # If all seeds were skipped, promote earliest todo chapters as seeds.
+        # Promoted chapters are NOT true seeds â€” the glossary already exists from
+        # the prior run, so is_seed must be False (seed=True skips glossary context).
+        promoted = False
+        if not active_seeds and active_rest:
+            active_seeds = active_rest[:min(seed_count, len(active_rest))]
+            active_rest = active_rest[len(active_seeds):]
+            promoted = True
+
+        print(f"ç¿»è¯‘ {len(todo_files)} ç«  | ç§å­ {len(active_seeds)} ä¸²è¡Œ + {len(active_rest)} å¹¶è¡Œ(å¹¶å‘={concurrency})")
+        if promoted:
+            print(f"  (ç§å­å·²åœ¨ä¸Šæ¬¡å®Œæˆï¼Œæå‡ {len(active_seeds)} ç« ä¸²è¡Œè¡¥è¯‘ï¼Œå¤ç”¨å·²æœ‰æœ¯è¯­è¡¨)")
+        print(f"Provider: {BASE_URL} | Model: {MODEL}\n")
+
+        # â”€â”€ Phase 1: seed chapters (serial) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # is_seed only when there's no glossary yet (true first run).
+        # Promoted chapters on resume use the existing glossary â†’ is_seed=False.
+        seed_is_seed = not bool(glossary)
+        for i, f in enumerate(active_seeds):
+            fname = os.path.basename(f)
+            print(f"[{i+1}/{len(todo_files)}] {fname} ç¿»è¯‘ä¸­...", end="", flush=True)
+            status, retries, issues, new_terms = await translate_chapter(
+                None, f, glossary, is_seed=seed_is_seed, max_retry=max_retry,
+                sem=asyncio.Semaphore(1)
+            )
+            merge_glossary(glossary, new_terms, fname, conflicts)
+            await tracker.record(f, status, retries, new_terms)
+            tag = "âœ“" if status == "ok" else ("â­" if status == "skipped" else ("âš " if status == "manual" else "âœ—"))
+            retry_info = f" (é‡è¯•{retries}æ¬¡)" if retries else ""
+            print(f"\r{tag} [{i+1}/{len(todo_files)}] {fname}{retry_info} â€” {issues}")
+            results.append((fname, status, retries, issues))
+
+        # â”€â”€ Phase 2: remaining chapters (parallel) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        if active_rest:
+            sem = asyncio.Semaphore(concurrency)
+            offset = len(active_seeds) + len(skipped_files)
+
+            async def run_one(idx, fpath):
+                fname = os.path.basename(fpath)
+                # snapshot glossary at task creation time (seed terms)
+                gl = dict(glossary)
+                status, retries, issues, new_terms = await translate_chapter(
+                    None, fpath, gl, is_seed=False, max_retry=max_retry, sem=sem
+                )
+                merge_glossary(glossary, new_terms, fname, conflicts)
+                await tracker.record(fpath, status, retries, new_terms)
+                tag = "âœ“" if status == "ok" else ("â­" if status == "skipped" else ("âš " if status == "manual" else "âœ—"))
+                retry_info = f" (é‡è¯•{retries}æ¬¡)" if retries else ""
+                print(f"{tag} [{offset+idx+1}/{total}] {fname}{retry_info} â€” {issues}")
+                return (fname, status, retries, issues)
+
+            tasks = [run_one(i, f) for i, f in enumerate(active_rest)]
+            parallel_results = await asyncio.gather(*tasks, return_exceptions=True)
+            for r in parallel_results:
+                if isinstance(r, Exception):
+                    results.append(("unknown", "error", 0, str(r)))
+                else:
+                    results.append(r)
+
+    # â”€â”€ Report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    cached = len(skipped_files)
+    ok = sum(1 for _, s, _, _ in results if s == "ok")
+    skipped = sum(1 for _, s, _, _ in results if s == "skipped")
+    manual = sum(1 for _, s, _, _ in results if s == "manual")
+    errors = sum(1 for _, s, _, _ in results if s == "error")
+
+    print(f"\n{'='*60}")
+    print(f"ç¿»è¯‘å®Œæˆï¼š{ok} é€šè¿‡(å« {cached} ç¼“å­˜) / {skipped} è·³è¿‡(ä¸­æ–‡) / {manual} éœ€äººå·¥ / {errors} é”™è¯¯ï¼ˆå…± {total} ç« ï¼‰")
+    print(f"æœ¯è¯­è¡¨ï¼š{len(glossary)} æ¡ â†’ {tracker.glossary_path}")
+    if conflicts:
+        print(f"\nâš  æœ¯è¯­å†²çª {len(conflicts)} å¤„ï¼š")
+        for c in conflicts:
+            print(f"  {c['term']}: {c['existing']} vs {c['new']} (in {c['source']})")
+
+    if manual:
+        print("\néœ€äººå·¥æ£€æŸ¥çš„ç« èŠ‚ï¼š")
+        for fname, status, _, issues in results:
+            if status == "manual":
+                print(f"  {fname}: {issues}")
+
+    # â”€â”€ Consistency QA (optional, after translation) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    if run_qa and _PIPELINE.get("consistency_qa") and not errors:
+        try:
+            from consistency_qa import run_consistency_qa
+            print("\nè·¨ç« ä¸€è‡´æ€§æ‰«æ...")
+            qa_issues = await run_consistency_qa(book_dir, glossary)
+            if qa_issues:
+                report_path = os.path.join(book_dir, ".translate_state", "consistency_report.md")
+                os.makedirs(os.path.dirname(report_path), exist_ok=True)
+                with open(report_path, "w", encoding="utf-8") as f:
+                    f.write(qa_issues)
+                print(f"  å‘ç° {qa_issues.count('###')} ç±»é—®é¢˜ â†’ {report_path}")
+            else:
+                print("  âœ“ æ— ä¸€è‡´æ€§é—®é¢˜")
+        except ImportError:
+            pass  # consistency_qa.py not available â€” skip silently
+        except Exception as e:
+            print(f"  âš  ä¸€è‡´æ€§æ‰«æå¤±è´¥: {e}", file=sys.stderr)
+
+    return 1 if errors else 0
+
+
+async def translate_single(path: str, max_retry: int, on_progress=None):
+    """Single-file mode (for papers). No glossary.
+
+    on_progress(done, total) is forwarded to translate_chapter for chunk-level
+    progress reporting (e.g. to a job log).
+    """
+    if not API_KEY:
+        print("Error: DEEPSEEK_API_KEY not set.", file=sys.stderr)
+        return 1
+
+    fname = os.path.basename(path)
+    print(f"ç¿»è¯‘ {fname}...")
+
+    status, retries, issues, _ = await translate_chapter(
+        None, path, {}, is_seed=False, max_retry=max_retry, sem=asyncio.Semaphore(1), in_place=False, on_progress=on_progress
+    )
+    tag = "âœ“" if status == "ok" else ("â­" if status == "skipped" else ("âš " if status == "manual" else "âœ—"))
+    out = translated_path(path)
+    print(f"{tag} {fname} â†’ {os.path.basename(out)} (é‡è¯•{retries}æ¬¡) â€” {issues}")
+    return 1 if status == "error" else 0
+
+
+def _show_status(book_dir: str):
+    """Print translation progress without translating."""
+    tracker = ProgressTracker(book_dir)
+    if not tracker._loaded:
+        print("æ— ç¿»è¯‘çŠ¶æ€æ–‡ä»¶ï¼ˆ.translate_state/progress.jsonï¼‰ã€‚")
+        return 0
+    files = sorted(glob.glob(os.path.join(book_dir, "ch*.md")))
+    if not files:
+        files = sorted(f for f in glob.glob(os.path.join(book_dir, "*.md")) if not f.endswith("_index.md"))
+    counts = {"ok": 0, "skipped": 0, "manual": 0, "error": 0, "pending": 0}
+    print(f"{'ç« èŠ‚':<30} {'çŠ¶æ€':<10} {'é‡è¯•':<6} è¯´æ˜")
+    print("-" * 70)
+    for f in files:
+        fname = os.path.basename(f)
+        if tracker.should_skip(f):
+            status, retries, issues = "ok", 0, "å·²ç¼“å­˜(æºæœªå˜)"
+        else:
+            rec = tracker._data.get(fname, {})
+            status = rec.get("status", "pending")
+            retries = rec.get("attempts", 0)
+            issues = "" if status == "pending" else "éœ€é‡è·‘"
+        counts[status] = counts.get(status, 0) + 1
+        print(f"{fname:<30} {status:<10} {retries:<6} {issues}")
+    print("-" * 70)
+    print(f"æ€»è®¡ï¼š{counts.get('ok',0)} é€šè¿‡ / {counts.get('skipped',0)} ä¸­æ–‡è·³è¿‡ / "
+          f"{counts.get('manual',0)} éœ€äººå·¥ / {counts.get('error',0)} é”™è¯¯ / "
+          f"{counts.get('pending',0)} å¾…ç¿»è¯‘ï¼ˆå…± {len(files)} ç« ï¼‰")
+    return 0
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Translate markdown chapters to Chinese.")
+    ap.add_argument("target", help="book directory or single .md file")
+    ap.add_argument("--concurrency", type=int, default=4, help="parallel chapters (default 4)")
+    ap.add_argument("--seed-chapters", type=int, default=2, help="serial seed chapters (default 2)")
+    ap.add_argument("--retry", type=int, default=2, help="max retries per chapter (default 2)")
+    ap.add_argument("--fresh", action="store_true", help="ignore state, re-translate all chapters")
+    ap.add_argument("--status", action="store_true", help="show progress without translating")
+    ap.add_argument("--no-qa", action="store_true", help="skip cross-chapter consistency QA")
+    args = ap.parse_args()
+
+    if os.path.isfile(args.target):
+        return asyncio.run(translate_single(args.target, args.retry))
+    elif os.path.isdir(args.target):
+        if args.status:
+            return _show_status(args.target)
+        return asyncio.run(translate_book(
+            args.target, args.concurrency, args.seed_chapters, args.retry,
+            fresh=args.fresh, run_qa=not args.no_qa,
+        ))
+    else:
+        print(f"Error: {args.target} not found", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

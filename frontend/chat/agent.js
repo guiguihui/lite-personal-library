@@ -390,5 +390,522 @@
       if (c.childTitles.length) nearby.push('å­èŠ‚: ' + c.childTitles.join(' / '));
       if (nearby.length) block += '*' + nearby.join('  |  ') + '*\n';
       block += '\n' + text;
- ß~ö¶‰Ëkºwµç} ¤ì(€€€É•ÑÕÉ¸€Ÿ’öƒšb¼€¨©1Dµ¨¨ƒj~—¢¾–*§š&/¾ò3–~ë’ê;’â«’êëšVÃ–¶_–nû’æ›¦šjIƒ¦^»¶SÎïî	q¹q¸œ€¬(€€€€€€œŒŒƒ–nû’æ›¦šn»–öW¾ò œ€¬Ñ½Œ¹‘½½Õ¹Ğ€¬€œƒ¾šZš†¾ò3šÒ‹–&7–#šÖ?¢#nã–Ï¦Š–~¾ò%q¸œ€¬Ñ½Œ¹Ñ•áĞ€¬€q¹q¸œ€¬(€€€€€€œŒŒƒ–Ş—’ösšZç–ò=q¸œ€¬(€€€€€€œ´ƒ’öƒšr'’â'’â«–Ş—–ß¾òiÍ•…É¡}±¥‰É…Éç¾ò#šÒ‹¾ò'•Ñ}Í•Ñ¥½»¾ò#–>[–º3šVÓ®ƒ¢*¾ò'É•İÉ¥Ñ•}ÅÕ•Éç¾ò#šRç–gš~—¢¾‹¾ò%q¸œ€¬(€€€€€€œ´ƒ–n{¶SR£š"ß¦^»¦Šc–&7¾ò0¨«–ş¦†ï–#¢ÂR Í•…É¡}±¥‰É…ÉäƒšÒˆ¨«¾ò3’â7¢š–·¢ºÃ–ş–n{¶Qq¸œ€¬(€€€€€€œ´ƒ–>«¢÷–~ë’ê;šÒ‹–"Ãj––ºç–n{¶S¾ò3’â7¢š’öÿR£–’[¦£~—¢¾ò[¦q¹q¸œ€¬(€€€€€€œŒŒƒšÒ‹¶[V—¾ò#¦7¢š¾ò%q¸œ€¬(€€€€€€Ÿ²³’âš²‡R£R£š"ß–:¢¾wšÒ‹–ššzsîOšzs’â7¢ÚÏ¾ò3š6‹¶[V—¦7¢¾W¾òiq¸œ€¬(€€€€€€œ´€¨«š~—¢¾‹¦7–d¨«¾òkš6‹š"CšZš†¦3–>¿¢÷–ë:Ãj’âO’âkšr¿¢¾·¦7šBs¾ò#–š‹¦
-’â«nã–>`‹ŠH‹¦?–¶Cnã–>`I…‰¤ƒš¢‡–z,‹¾ò%q¸œ€¬(€€€€€€œ´€¨«–¶Cš~—¢¾‹–"¢Œ¨«¾òk–’7–B#¦^»¦Šcš.š"C–¶C¦^»¦Šc–"–"¯šÒ‹¾ò#–š‰	•ÉÉäÁ¡…Í”ƒ–J3êÿšŸ–N7–êSj–ÏÎì‹ŠK–"’â“šBs¾ò%q¸œ€¬(€€€€€€œ´€¨«š¶—¦š~—¢¾ˆ¨«¾òk–’«–ß’öOšBs’â7–"Ãš^Û¾ò3–#R£šnÓ–º÷šÎojšš–ş×šBs¢3šf¿~—¢¾q¸œ€¬(€€€€€€œ´ƒ–>¿¢ÂÉ•İÉ¥Ñ•}ÅÕ•Éäƒ–Ş—–ßRš"CšRç–g–îë¢º»¾ò3’æ–>¿nÓš:—š6‹–Ï¦R»¢¾7¢ÂÍ•…É¡}±¥‰É…Éåq¸œ€¬(€€€€€€œ´ƒš&û–"Ãnã–Ï®ƒ¢*’ö––ºç¢Š¯š"«šZ·š^Û¾ò3R •Ñ}Í•Ñ¥½¸ƒ–>[–º3šVÓ––ºç¾ò#¦r ‘½}¥ƒ–J0¹½‘•}¥“¾ò%q¹q¸œ€¬(€€€€€€œŒŒƒ–n{¶S¢–"eq¸œ€¬(€€€€€€œ´ƒš¾?’â«–Ï¦R»¢ºëšZ·š‚šÎ£šv—šêCò[–>Üm9w¾ò3–¾ç–êSšÒ‹îOšzs’â·jm9uq¸œ€¬(€€€€€€œ´ƒ–n{¶Sšr¯–Âû–"_–ë–>¢šv—šêC¾ò3š‚ó–ò?¾òiq¹lÅtƒšZš†–B4€øƒ®ƒ¢*€øƒ¢*–B5q¸œ€¬(€€€€€€œ´ƒšÒ‹îOšzs’â7¢ÚÏš^Ûšb;†»¢¾Óšb8‹–öO–&7–nû’æ›¦š’â·šÊ‡šr'¢ÚÏ–’’úwš6¸‹¾ò3’â7¢š†³¶Qq¸œ€¬(€€€€€€œ´ƒ–n{¶S’öÿR£’â·šZ¾ò3’âO’âkšr¿¢¾·’şwVg–:šZ–³–ò?R 1…Q•c¾òk¢†3–qp ¸¸¹qp§¾ò3¢†3¦^Ğqql¸¸¹qqtœì(€ô((€€¼¼ƒŠRŠR M•¹€¼I•Ğ±½½ÀƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR (€™Õ¹Ñ¥½¸‘•‰Õ¹…‰±• ¤ì(€€€É•ÑÕÉ¸±½…±MÑ½É…”¹•Ñ%Ñ•´ ±Å‘}¡…Ñ}‘•‰Õœœ¤€ôôô€œÄœì(€ô((€™Õ¹Ñ¥½¸Ñ¡¥¹­¥¹¹…‰±• ¤ì(€€€É•ÑÕÉ¸±½…±MÑ½É…”¹•Ñ%Ñ•´ ±Å‘}¡…Ñ}Ñ¡¥¹­¥¹œœ¤€„ôô€œÀœì(€ô((€…Íå¹Œ™Õ¹Ñ¥½¸Í•¹‘5•ÍÍ…”¡ÅÕ•Éä°É•™Ì¤ì(€€€Ù…Èµ•ÍÍ…•Í°€ôÉ•™Ì¹µ•ÍÍ…•Í°ì(€€€Ù…È½µÁ½Í•É%¹ÁÕĞ€ôÉ•™Ì¹½µÁ½Í•É%¹ÁÕĞì(€€€Ù…ÈÍ•¹‘	Ñ¸€ôÉ•™Ì¹Í•¹‘	Ñ¸ì((€€€…İ…¥Ğİ¥¹‘½Ü¹1Å‘M•ÑÑ¥¹Ì¹±½… ¤ì(€€€Ù…È…Á¥-•ä€ô…İ…¥Ğİ¥¹‘½Ü¹1Å‘M•ÑÑ¥¹Ì¹™•Ñ¡Á¥-•ä ¤ì(€€€¥˜€¡İ¥¹‘½Ü¹1Å‘M•ÑÑ¥¹Ì¹}…¡”¤İ¥¹‘½Ü¹1Å‘M•ÑÑ¥¹Ì¹}…¡”¹…Á¥}­•ä€ô…Á¥-•äì(€€€Ù…È™œ€ôİ¥¹‘½Ü¹1Å‘M•ÑÑ¥¹Ì¹É•Í½±Ù” ¤ì((€€€¥˜€ …™œ¹…Á¥-•ä¤ì(€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹…ÁÁ•¹‘5•ÍÍ…•	Õ‰‰±” …ÍÍ¥ÍÑ…¹Ğœ°€Ÿ¢¾ß–#–&7–ú3¦7ö»7¦†×¢ºûö¸114A$-•çœ°µ•ÍÍ…•Í°¤ì(€€€€€É•ÑÕÉ¸ì(€€€ô((€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹¡¥‘•µÁÑä¡É•™Ì¹•µÁÑå°°µ•ÍÍ…•Í°¤ì(€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹…ÁÁ•¹‘5•ÍÍ…•	Õ‰‰±” ÕÍ•Èœ°ÅÕ•Éä°µ•ÍÍ…•Í°¤ì(€€€İ¥¹‘½Ü¹1Å‘¡…ÑM•ÍÍ¥½¸¹…ÁÁ•¹‘Q½ÕÉÉ•¹Ğ ÕÍ•Èœ°ÅÕ•Éä¤ì((€€€ÑÉäì(€€€€€…İ…¥Ğ±½…‘%¹‘•á•Ì ¤ì(€€€ô…Ñ €¡”¤ì(€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹…ÁÁ•¹‘5•ÍÍ…•	Õ‰‰±” …ÍÍ¥ÍÑ…¹Ğœ°€ŸÒ‹–òW–*ƒ¢ö÷–’Ç¢Ò—¾òhœ€¬”¹µ•ÍÍ…”°µ•ÍÍ…•Í°¤ì(€€€€€É•ÑÕÉ¸ì(€€€ô((€€€Ù…È½¹Ñ•¹Ñ°€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹…ÁÁ•¹‘5•ÍÍ…•	Õ‰‰±” …ÍÍ¥ÍÑ…¹Ğœ°€œñ•´û––’’â·Š›Š˜ğ½•´øœ°µ•ÍÍ…•Í°¤ì(€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹Í•Ñ	ÕÍä¡ÑÉÕ”°Í•¹‘	Ñ¸°½µÁ½Í•É%¹ÁÕĞ¤ì((€€€Ù…ÈÑ¡¥¹­¥¹=¸€ôÑ¡¥¹­¥¹¹…‰±• ¤ì(€€€Ù…È‘•‰Õ=¸€ô‘•‰Õ¹…‰±• ¤ì(€€€Ù…ÈÍåÍÑ•µAÉ½µÁĞ€ô‰Õ¥±‘•¹ÑMåÍÑ•µAÉ½µÁĞ ¤ì(€€€Ù…Èµ•ÍÍ…•Ì€ôİ¥¹‘½Ü¹1Å‘¡…ÑM•ÍÍ¥½¸¹±½…‘ÕÉÉ•¹Ğ ¤¹Í±¥” ´Ø¤ì(€€€Ù…È5a}1==AL€ô€Ğì((€€€Ù…È‰Õ‘•ÑÑà€ôì(€€€€€¡¥ÍÑ½ÉåQ½­•¹Ìèµ•ÍÍ…•Ì¹É•‘Õ”¡™Õ¹Ñ¥½¸€¡Ì°´¤ìÉ•ÑÕÉ¸Ì€¬•ÍÑ¥µ…Ñ•Q½­•¹Ì¡´¹½¹Ñ•¹Ğñğ€œœ¤ìô°€À¤°(€€€€€ÍåÍÑ•µQ½­•¹Ìè•ÍÑ¥µ…Ñ•Q½­•¹Ì¡ÍåÍÑ•µAÉ½µÁĞ¤(€€€ôì((€€€Ù…È™¥¹…±Q•áĞ€ô€œœì(€€€Ù…È™¥¹…±Q¡¥¹­¥¹œ€ô€œœì(€€€Ù…È‘¥‘M•…É €ô™…±Í”ì(€€€Ù…È…±±½¹Ñ•áÑÌ€ômtì(€€€Ù…ÈÍ••¹M½ÕÉ•%‘Ì€ô¹•ÜM•Ğ ¤ì(€€€Ù…ÈÑ½½±QÉ…¥°€ômtì(€€€Ù…ÈÍ½ÕÉ•I•¥ÍÑÉä€ô¹•Ü5…À ¤ì(€€€Ù…È¹•áÑM½ÕÉ•9Õ´€ôlÁtì((€€€Ù…È•µ¥Ñ½¹Ñ•áĞ€ô™Õ¹Ñ¥½¸€¡½¹Ñ•áÑÌ¤ì(€€€€€¥˜€¡İ¥¹‘½Ü¹1Å‘Ù•¹ÑÌ¤ì(€€€€€€€İ¥¹‘½Ü¹1Å‘Ù•¹ÑÌ¹•µ¥Ğ ¡…Ğé½¹Ñ•áĞœ°ìÅÕ•ÉäèÅÕ•Éä°½¹Ñ•áÑÌè½¹Ñ•áÑÌô¤ì(€€€€€ô(€€€ôì((€€€ÑÉäì(€€€€€Ù…È…•¹ÑMÑ…ÉĞ€ô…Ñ”¹¹½Ü ¤ì(€€€€€™½È€¡Ù…È±½½À€ô€Àì±½½À€ğ5a}1==ALì±½½À¬¬¤ì(€€€€€€€¥˜€¡…Ñ”¹¹½Ü ¤€´…•¹ÑMÑ…ÉĞ€ø€ÄÈÀÀÀÀ¤ì(€€€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ (€€€€€€€€€€€™¥¹…±Q¡¥¹­¥¹œ°€œñ•´ûšÒ‹¢Úš^Û¾ò3š¶–r£R£–ŞË¢:ß–>[j––ºçRš"C–n{¶SŠ›Š˜ğ½•´øœ°Ñ½½±QÉ…¥°(€€€€€€€€€€¤ì(€€€€€€€€€‰É•…¬ì(€€€€€€€ô(€€€€€€€Ù…ÈÉ½Õ¹‘Q•áĞ€ô€œœì(€€€€€€€Ù…ÈÉ½Õ¹‘Q¡¥¹­¥¹œ€ô€œœì(€€€€€€€Ù…ÈÑ½½±…±±Ì€ô¹Õ±°ì(€€€€€€€Ù…ÈÍÑ½ÁI•…Í½¸€ô¹Õ±°ì((€€€€€€€Ù…ÈÍÑÉ•…´€ôİ¥¹‘½Ü¹1Å‘¡…Ñ114¹ÍÑÉ•…µQ•áĞ¡ì(€€€€€€€€€ÁÉ½Ù¥‘•Èè™œ¹ÁÉ½Ù¥‘•È°(€€€€€€€€€µ½‘•°è™œ¹µ½‘•°°(€€€€€€€€€‰…Í•UÉ°è™œ¹‰…Í•UÉ°°(€€€€€€€€€…Á¥-•äè™œ¹…Á¥-•ä°(€€€€€€€€€ÁÉ½Ñ½½°è™œ¹ÁÉ½Ñ½½°°(€€€€€€€€€Á…Ñ¡5½‘”è™œ¹Á…Ñ¡5½‘”°(€€€€€€€€€ÍåÍÑ•´èÍåÍÑ•µAÉ½µÁĞ°(€€€€€€€€€µ•ÍÍ…•Ìèµ•ÍÍ…•Ì°(€€€€€€€€€Ñ½½±Ìè1%	IIe}Q==1L°(€€€€€€€€€Ñ¡¥¹­¥¹œèÑ¡¥¹­¥¹=¸°(€€€€€€€€€µ…áQ½­•¹ÌèÑ¡¥¹­¥¹=¸€ü€àÄäÈ€è€ĞÀäØ(€€€€€€€ô¤ì((€€€€€€€Ù…È}‘‰œ€ôİ¥¹‘½Ü¹1E}	U}MMì(€€€€€€€Ù…È}É•Ø€ô}‘‰œ€üìÑ¡¥¹­¥¹œè€À°Ñ•áĞè€À°Ñ½½±}…±±Ìè€À°ÍÑ½Àè€Àô€è¹Õ±°ì(€€€€€€€™½È…İ…¥Ğ€¡Ù…È¡Õ¹¬½˜ÍÑÉ•…´¤ì(€€€€€€€€€¥˜€¡}‘‰œ¤ì(€€€€€€€€€€€¥˜€¡¡Õ¹¬¹ÑåÁ”€ôôô€Ñ¡¥¹­¥¹œœ¤}É•Ø¹Ñ¡¥¹­¥¹œ¬¬ì(€€€€€€€€€€€•±Í”¥˜€¡¡Õ¹¬¹ÑåÁ”€ôôô€Ñ•áĞœ¤}É•Ø¹Ñ•áĞ¬¬ì(€€€€€€€€€€€•±Í”¥˜€¡¡Õ¹¬¹ÑåÁ”€ôôô€Ñ½½±}…±±Ìœ¤}É•Ø¹Ñ½½±}…±±Ì¬¬ì(€€€€€€€€€€€•±Í”¥˜€¡¡Õ¹¬¹ÑåÁ”€ôôô€ÍÑ½Àœ¤}É•Ø¹ÍÑ½À¬¬ì(€€€€€€€€€ô(€€€€€€€€€¥˜€¡¡Õ¹¬¹ÑåÁ”€ôôô€Ñ¡¥¹­¥¹œœ¤ì(€€€€€€€€€€€É½Õ¹‘Q¡¥¹­¥¹œ€¬ô¡Õ¹¬¹Ñ•áĞì(€€€€€€€€€€€™¥¹…±Q¡¥¹­¥¹œ€¬ô¡Õ¹¬¹Ñ•áĞì(€€€€€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ¡™¥¹…±Q¡¥¹­¥¹œ°É½Õ¹‘Q•áĞ°Ñ½½±QÉ…¥°¤ì(€€€€€€€€€ô•±Í”¥˜€¡¡Õ¹¬¹ÑåÁ”€ôôô€Ñ•áĞœ¤ì(€€€€€€€€€€€É½Õ¹‘Q•áĞ€¬ô¡Õ¹¬¹Ñ•áĞì(€€€€€€€€€€€™¥¹…±Q•áĞ€ôÉ½Õ¹‘Q•áĞì(€€€€€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ¡™¥¹…±Q¡¥¹­¥¹œ°™¥¹…±Q•áĞ°Ñ½½±QÉ…¥°¤ì(€€€€€€€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•I•¹‘•É-…Ñ•à¡½¹Ñ•¹Ñ°¤ì(€€€€€€€€€ô•±Í”¥˜€¡¡Õ¹¬¹ÑåÁ”€ôôô€Ñ½½±}…±±Ìœ¤ì(€€€€€€€€€€€Ñ½½±…±±Ì€ô¡Õ¹¬¹…±±Ìì(€€€€€€€€€ô•±Í”¥˜€¡¡Õ¹¬¹ÑåÁ”€ôôô€ÍÑ½Àœ¤ì(€€€€€€€€€€€ÍÑ½ÁI•…Í½¸€ô¡Õ¹¬¹É•…Í½¸ì(€€€€€€€€€ô(€€€€€€€€€µ•ÍÍ…•Í°¹ÍÉ½±±Q½À€ôµ•ÍÍ…•Í°¹ÍÉ½±±!•¥¡Ğì(€€€€€€€ô(€€€€€€€¥˜€¡}‘‰œ¤½¹Í½±”¹±½œ m9Qt±½½Àœ°±½½À°€É•Øœ°}É•Ø°€É½Õ¹‘Q¡¥¹­¥¹œ¹±•¸œ°É½Õ¹‘Q¡¥¹­¥¹œ¹±•¹Ñ °€™¥¹…±Q¡¥¹­¥¹œ¹±•¸œ°™¥¹…±Q¡¥¹­¥¹œ¹±•¹Ñ °€Ñ½½±…±±Ìœ°Ñ½½±…±±Ì¤ì((€€€€€€€€¼¼ƒšÊ‡šr'–Ş—–ß¢ÂR ƒŠHƒšr³¢ö»šb¿šrî#–n{¶S¾ò3¦–ë–ú«:¼(€€€€€€€€¼¼ƒšÎ£š<ë’â7¢÷’úw¢ÖXÍÑ½ÁI•…Í½¸ƒ–óŠSŠQ¹Ñ¡É½Á¥Œƒ–6?¢º¸ÍÑ½Á}É•…Í½¸ƒšb¼€‰Ñ½½±}ÕÍ”ˆ(€€€€€€€€¼¼€£’âPÑ½½±}ÕÍ”ƒš^ØÉ•…‘MMƒ–>¨å¥•±Ñ½½±}…±±Ìƒ’â4å¥•±ÍÑ½À±ÍÑ½ÁI•…Í½¸ƒ’şwš2¹Õ±°¤°(€€€€€€€€¼¼=Á•¹$ƒ–6?¢º¸™¥¹¥Í¡}É•…Í½¸ƒšb¼€‰Ñ½½±}…±±Ì‹’â“¢–ó’â7–B0³î’âR Ñ½½±…±±Ìƒšb¿–B›–¶c–r£–"“šZ·(€€€€€€€¥˜€ …Ñ½½±…±±Ìñğ€…Ñ½½±…±±Ì¹±•¹Ñ ¤‰É•…¬ì((€€€€€€€µ•ÍÍ…•Ì¹ÁÕÍ ¡ì(€€€€€€€€€É½±”è€…ÍÍ¥ÍÑ…¹Ğœ°(€€€€€€€€€½¹Ñ•¹ĞèÉ½Õ¹‘Q•áĞñğ¹Õ±°°(€€€€€€€€€Ñ½½±}…±±ÌèÑ½½±…±±Ì¹µ…À¡™Õ¹Ñ¥½¸€¡ÑŒ¤ì(€€€€€€€€€€€É•ÑÕÉ¸ì¥èÑŒ¹¥°ÑåÁ”è€™Õ¹Ñ¥½¸œ°™Õ¹Ñ¥½¸èì¹…µ”èÑŒ¹¹…µ”°…ÉÕµ•¹ÑÌèÑŒ¹…ÉÕµ•¹ÑÌôôì(€€€€€€€€€ô¤(€€€€€€€ô¤ì((€€€€€€€™½È€¡Ù…È¤€ô€Àì¤€ğÑ½½±…±±Ì¹±•¹Ñ ì¤¬¬¤ì(€€€€€€€€€Ù…ÈÑŒ€ôÑ½½±…±±Ím¥tì(€€€€€€€€€Ù…È…ÉÌ€ôíôì(€€€€€€€€€ÑÉäì…ÉÌ€ô)M=8¹Á…ÉÍ”¡ÑŒ¹…ÉÕµ•¹ÑÌñğ€íôœ¤ìô…Ñ €¡|¤ì€¼¨¥¹½É”€¨¼ô(€€€€€€€€€Ñ½½±QÉ…¥°¹ÁÕÍ  (€€€€€€€€€€€€œñ‘¥Ø±…ÍÌô‰±ÅµÑ½½°µÍÑ•ÀˆûÂ~R4ƒšÒˆè€ñ½‘”øœ€¬İ¥¹‘½Ü¹1Å‘¡…Ñ¥Ñ…Ñ¥½¹Ì¹•Í!Ñµ°¡…ÉÌ¹ÅÕ•ÉäñğÑŒ¹…ÉÕµ•¹ÑÌ¤€¬€œğ½½‘”øğ½‘¥Øøœ(€€€€€€€€€€¤ì(€€€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ¡™¥¹…±Q¡¥¹­¥¹œ°™¥¹…±Q•áĞ°Ñ½½±QÉ…¥°¤ì(€€€€€€€€€¥˜€¡ÑŒ¹¹…µ”€ôôô€Í•…É¡}±¥‰É…Éäœ¤‘¥‘M•…É €ôÑÉÕ”ì((€€€€€€€€€Ù…ÈÑ½½±I•ÍÕ±Ğ€ô…İ…¥Ğ•á•ÕÑ•Q½½°¡ÑŒ¹¹…µ”°…ÉÌ°‰Õ‘•ÑÑà°ìÉ•¥ÍÑÉäèÍ½ÕÉ•I•¥ÍÑÉä°½Õ¹Ñ•Èè¹•áÑM½ÕÉ•9Õ´ô¤ì(€€€€€€€€€¥˜€¡Ñ½½±I•ÍÕ±Ğ¹}}½¹Ñ•áÑÌ¤ì(€€€€€€€€€€€™½È€¡Ù…È¨€ô€Àì¨€ğÑ½½±I•ÍÕ±Ğ¹}}½¹Ñ•áÑÌ¹±•¹Ñ ì¨¬¬¤ì(€€€€€€€€€€€€€Ù…ÈŒ€ôÑ½½±I•ÍÕ±Ğ¹}}½¹Ñ•áÑÍm©tì(€€€€€€€€€€€€€¥˜€ …Í••¹M½ÕÉ•%‘Ì¹¡…Ì¡Œ¹Í½ÕÉ•%¤¤ì(€€€€€€€€€€€€€€€…±±½¹Ñ•áÑÌ¹ÁÕÍ ¡Œ¤ì(€€€€€€€€€€€€€€€Í••¹M½ÕÉ•%‘Ì¹…‘¡Œ¹Í½ÕÉ•%¤ì(€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€€€ô(€€€€€€€€€µ•ÍÍ…•Ì¹ÁÕÍ ¡ì(€€€€€€€€€€€É½±”è€Ñ½½°œ°(€€€€€€€€€€€Ñ½½±}…±±}¥èÑŒ¹¥°(€€€€€€€€€€€½¹Ñ•¹ĞèÑ½½±I•ÍÕ±Ğ¹Ñ•áĞñğ)M=8¹ÍÑÉ¥¹¥™ä¡Ñ½½±I•ÍÕ±Ğ¤(€€€€€€€€€ô¤ì(€€€€€€€ô(€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ (€€€€€€€€€™¥¹…±Q¡¥¹­¥¹œ°€œñ•´û–ŞËšÒ‹¾ò3š¶–r£îó–B#–n{¶SŠ›Š˜ğ½•´øœ°Ñ½½±QÉ…¥°(€€€€€€€€¤ì(€€€€€€€™¥¹…±Q•áĞ€ô€œœì(€€€€€ô((€€€€€¥˜€ …‘¥‘M•…É ¤ì(€€€€€€€Ù…È™½É•€ô…İ…¥ĞÉ•ÑÉ¥•Ù•½¹Ñ•áÑÍQ•áĞ¡ÅÕ•Éä°‰Õ‘•ÑÑà°ìÉ•¥ÍÑÉäèÍ½ÕÉ•I•¥ÍÑÉä°½Õ¹Ñ•Èè¹•áÑM½ÕÉ•9Õ´ô¤ì(€€€€€€€¥˜€¡™½É•¹}}½¹Ñ•áÑÌ¤ì(€€€€€€€€€™½É•¹}}½¹Ñ•áÑÌ€ô™½É•¹½¹Ñ•áÑÌì(€€€€€€€€€™½È€¡Ù…È¨€ô€Àì¨€ğ™½É•¹}}½¹Ñ•áÑÌ¹±•¹Ñ ì¨¬¬¤ì(€€€€€€€€€€€Ù…ÈŒÈ€ô™½É•¹}}½¹Ñ•áÑÍm©tì(€€€€€€€€€€€¥˜€ …Í••¹M½ÕÉ•%‘Ì¹¡…Ì¡ŒÈ¹Í½ÕÉ•%¤¤ì(€€€€€€€€€€€€€…±±½¹Ñ•áÑÌ¹ÁÕÍ ¡ŒÈ¤ì(€€€€€€€€€€€€€Í••¹M½ÕÉ•%‘Ì¹…‘¡ŒÈ¹Í½ÕÉ•%¤ì(€€€€€€€€€€€ô(€€€€€€€€€ô(€€€€€€€ô(€€€€€€€Ñ½½±QÉ…¥°¹ÁÕÍ  œñ‘¥Ø±…ÍÌô‰±ÅµÑ½½°µÍÑ•ÀˆûÂ~R4ƒšÒˆ£–òë–"Ø¤è€ñ½‘”øœ€¬İ¥¹‘½Ü¹1Å‘¡…Ñ¥Ñ…Ñ¥½¹Ì¹•Í!Ñµ°¡ÅÕ•Éä¤€¬€œğ½½‘”øğ½‘¥Øøœ¤ì(€€€€€ô((€€€€€¥˜€ …™¥¹…±Q•áĞ¹ÑÉ¥´ ¤€˜˜…±±½¹Ñ•áÑÌ¹±•¹Ñ ¤ì(€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ (€€€€€€€€€™¥¹…±Q¡¥¹­¥¹œ°€œñ•´ûšÒ‹–º3š"C¾ò3š¶–r£îó–B#–n{¶SŠ›Š˜ğ½•´øœ°Ñ½½±QÉ…¥°(€€€€€€€€¤ì(€€€€€€€Ù…ÈÑá	±½­Ì€ô…±±½¹Ñ•áÑÌ¹µ…À¡™Õ¹Ñ¥½¸€¡Œ¤ì(€€€€€€€€€Ù…È¹Õ´€ôŒ¹‘¥ÍÁ±…å9Õ´ñğ…±±½¹Ñ•áÑÌ¹¥¹‘•á=˜¡Œ¤€¬€Äì(€€€€€€€€€É•ÑÕÉ¸€œŒŒŒlœ€¬¹Õ´€¬€t€œ€¬Œ¹‰É•…‘ÉÕµˆ¹©½¥¸ œ€ø€œ¤€¬€q¸«šv—šê@è€œ€¬Œ¹‘½Q¥Ñ±”€¬€œ©q¹q¸œ€¬ÑÉÕ¹…Ñ•Ñ	½Õ¹‘…Éä¡Œ¹Ñ•áĞ°5a}MQ%=9}!IL¤ì(€€€€€€€ô¤¹©½¥¸ q¹q¸´´µq¹q¸œ¤ì(€€€€€€€Ù…ÈÍÕµµ…Éå5•ÍÍ…•Ì€ôl(€€€€€€€€€ìÉ½±”è€ÕÍ•Èœ°½¹Ñ•¹ĞèÅÕ•Éäô°(€€€€€€€€€ìÉ½±”è€ÕÍ•Èœ°½¹Ñ•¹Ğè€Ÿ–~ë’ê;’î—’â/šÒ‹–"Ãj–nû’æ›¦š––ºç¾ò3–n{¶S’â+¦v‹j¦^»¦Šc	q¹q¸ŒŒƒ–n{¶S¢–"eq¸´ƒš¾?’â«–Ï¦R»¢ºëšZ·R m9tƒš‚šÎ£šv—šêCò[–>ß¾ò#–¾ç–êS’â/šZçjm9w¾ò0¨«–>«–gò[–>ß¾ò3’â7¢š¢«–ŞÇ–dÕÉ°ƒš"[¦Nûš:”¨«¾ò%q¸´ƒ–n{¶Sšr¯–Âû–"_–ë–>¢šv—šêC¾ò3š‚ó–ò?¾òim9tƒšZš†–B4€øƒ®ƒ¢*	q¸´ƒ–>«–~ë’ê8½¹Ñ•áĞƒ–n{¶S¾ò3’â7¢šò[¦q¸´ƒ–n{¶S’öÿR£’â·šZ¾ò3–³–ò?R -…Q•c¾òk¢†3–€¸¸¸“¾ò#’î~·²›–>ß¾ò'¾ò3–’7šv¿–’k¢†3–³–ò?R£¢†3¦^Ğ€¸¸¸“šš¶‹¦Vÿ–³–ò?–†{¢şo¢†3–q¹q¸ŒŒ½¹Ñ•áÓ¾ò#š2'nã–Ï–ê›š:K–ê?¾ò%q¹q¸œ€¬Ñá	±½­Ìô(€€€€€€€tì(€€€€€€€Ù…ÈÍÕµµ…ÉåQ•áĞ€ô€œœì(€€€€€€€Ù…ÈÍÕµµ…ÉåQ¥µ•½ÕĞ€ôÍ•ÑQ¥µ•½ÕĞ¡™Õ¹Ñ¥½¸€ ¤ì(€€€€€€€€€¥˜€ …™¥¹…±Q•áĞ¹ÑÉ¥´ ¤¤ì(€€€€€€€€€€€™¥¹…±Q•áĞ€ô€Ÿ–ŞËšÒ‹–"Ãnã–Ï––ºç¾ò3’öRš"C–n{¶S¢Úš^Û¢¾ß–Âw¢¾Wš6‹’â«¦^»šÎW¾ò3š"[nÓš:—–r£’æ›šzÛ’â·šÖ?¢#nã–Ï®ƒ¢*œì(€€€€€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ¡™¥¹…±Q¡¥¹­¥¹œ°™¥¹…±Q•áĞ°Ñ½½±QÉ…¥°¤ì(€€€€€€€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•I•¹‘•É-…Ñ•à¡½¹Ñ•¹Ñ°¤ì(€€€€€€€€€ô(€€€€€€€ô°€ÌÀÀÀÀ¤ì(€€€€€€€ÑÉäì(€€€€€€€€€Ù…ÈÍÕµµ…ÉåMÑÉ•…´€ôİ¥¹‘½Ü¹1Å‘¡…Ñ114¹ÍÑÉ•…µQ•áĞ¡ì(€€€€€€€€€€€ÁÉ½Ù¥‘•Èè™œ¹ÁÉ½Ù¥‘•È°(€€€€€€€€€€€µ½‘•°è™œ¹µ½‘•°°(€€€€€€€€€€€‰…Í•UÉ°è™œ¹‰…Í•UÉ°°(€€€€€€€€€€€…Á¥-•äè™œ¹…Á¥-•ä°(€€€€€€€€€€€ÁÉ½Ñ½½°è™œ¹ÁÉ½Ñ½½°°(€€€€€€€€€€€Á…Ñ¡5½‘”è™œ¹Á…Ñ¡5½‘”°(€€€€€€€€€€€ÍåÍÑ•´èÍåÍÑ•µAÉ½µÁĞ°(€€€€€€€€€€€µ•ÍÍ…•ÌèÍÕµµ…Éå5•ÍÍ…•Ì°(€€€€€€€€€€€Ñ½½±ÌèÕ¹‘•™¥¹•°(€€€€€€€€€€€Ñ¡¥¹­¥¹œè™…±Í”°(€€€€€€€€€€€µ…áQ½­•¹Ìè€ĞÀäØ(€€€€€€€€€ô¤ì(€€€€€€€€€™½È…İ…¥Ğ€¡Ù…È¡Õ¹¬È½˜ÍÕµµ…ÉåMÑÉ•…´¤ì(€€€€€€€€€€€¥˜€¡¡Õ¹¬È¹ÑåÁ”€ôôô€Ñ•áĞœ¤ì(€€€€€€€€€€€€€ÍÕµµ…ÉåQ•áĞ€¬ô¡Õ¹¬È¹Ñ•áĞì(€€€€€€€€€€€€€™¥¹…±Q•áĞ€ôÍÕµµ…ÉåQ•áĞì(€€€€€€€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ¡™¥¹…±Q¡¥¹­¥¹œ°™¥¹…±Q•áĞ°Ñ½½±QÉ…¥°¤ì(€€€€€€€€€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•I•¹‘•É-…Ñ•à¡½¹Ñ•¹Ñ°¤ì(€€€€€€€€€€€ô(€€€€€€€€€ô(€€€€€€€ô…Ñ €¡|¤ì€¼¨¥¹½É”€¨¼ô(€€€€€€€±•…ÉQ¥µ•½ÕĞ¡ÍÕµµ…ÉåQ¥µ•½ÕĞ¤ì(€€€€€ô((€€€€€¥˜€ …™¥¹…±Q•áĞ¹ÑÉ¥´ ¤¤ì(€€€€€€€¥˜€¡…±±½¹Ñ•áÑÌ¹±•¹Ñ ¤ì(€€€€€€€€€™¥¹…±Q•áĞ€ô€Ÿ–ŞËšÒ‹–"Ãnã–Ï––ºç¾ò3’öšr«¢÷Rš"C–n{¶S¢¾ß–Âw¢¾Wš6‹’â«¦^»šÎW¦7¢¾Wœì(€€€€€€€ô•±Í”ì(€€€€€€€€€™¥¹…±Q•áĞ€ô€Ÿšr«š&û–"Ãnã–Ï––ºç–>¿’î—–r£’æ›šzÛ’â·šÖ?¢#¾ò3š"[š6‹–Ï¦R»¢¾7¦7¢¾Wœì(€€€€€€€ô(€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ¡™¥¹…±Q¡¥¹­¥¹œ°™¥¹…±Q•áĞ°Ñ½½±QÉ…¥°¤ì(€€€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•I•¹‘•É-…Ñ•à¡½¹Ñ•¹Ñ°¤ì(€€€€€ô((€€€€€Ù…È¥Ñ…Ñ¥½¹Í!Ñµ°€ô€œœì(€€€€€¥˜€¡…±±½¹Ñ•áÑÌ¹±•¹Ñ ¤ì(€€€€€€€Ù…ÈÉ•™5…À€ôíôì(€€€€€€€™½È€¡Ù…È¤€ô€Àì¤€ğ…±±½¹Ñ•áÑÌ¹±•¹Ñ ì¤¬¬¤ì(€€€€€€€€€Ù…ÈŒÌ€ô…±±½¹Ñ•áÑÍm¥tì(€€€€€€€€€Ù…È¹Õ´€ôŒÌ¹‘¥ÍÁ±…å9Õ´ñğ¤€¬€Äì(€€€€€€€€€¥˜€¡ŒÌ¹ÕÉ°¤É•™5…Ám¹Õµt€ôìÑ¥Ñ±”èŒÌ¹‘½Q¥Ñ±”°‰É•…‘ÉÕµˆèŒÌ¹‰É•…‘ÉÕµˆ°ÕÉ°èŒÌ¹ÕÉ°ôì(€€€€€€€ô(€€€€€€€¥˜€¡=‰©•Ğ¹­•åÌ¡É•™5…À¤¹±•¹Ñ €ø€À¤ì(€€€€€€€€€™¥¹…±Q•áĞ€ôİ¥¹‘½Ü¹1Å‘¡…Ñ¥Ñ…Ñ¥½¹Ì¹¥¹©•ÑI•™•É•¹•1¥¹­Ì¡™¥¹…±Q•áĞ°É•™5…À¤ì(€€€€€€€ô(€€€€€€€¥Ñ…Ñ¥½¹Í!Ñµ°€ôİ¥¹‘½Ü¹1Å‘¡…Ñ¥Ñ…Ñ¥½¹Ì¹É•¹‘•É¥Ñ…Ñ¥½¹Ì¡…±±½¹Ñ•áÑÌ¤ì(€€€€€ô((€€€€€¥˜€¡‘•‰Õ=¸€˜˜…±±½¹Ñ•áÑÌ¹±•¹Ñ ¤ì(€€€€€€€Ù…È‘•‰Õ!¥ÑÌ€ô…±±½¹Ñ•áÑÌ¹Í±¥” À°€ÄÈ¤¹µ…À¡™Õ¹Ñ¥½¸€¡Œ°¤¤ì(€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€¹½‘”èì‘½}¥èŒ¹‘½Q¥Ñ±”°¹½‘•}¥èŒ¹¹½‘•%°‰É•…‘ÉÕµˆèŒ¹‰É•…‘ÉÕµˆô°(€€€€€€€€€€€Í½É”è€œüœ(€€€€€€€€€ôì(€€€€€€€ô¤ì(€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ô(€€€€€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ¡™¥¹…±Q¡¥¹­¥¹œ°™¥¹…±Q•áĞ°Ñ½½±QÉ…¥°¤€¬(€€€€€€€€€¥Ñ…Ñ¥½¹Í!Ñµ°€¬(€€€€€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ¥Ñ…Ñ¥½¹Ì¹É•¹‘•É•‰Õ…É¡‘•‰Õ!¥ÑÌ°…±±½¹Ñ•áÑÌ¹Í±¥” À°€à¤°ÍåÍÑ•µAÉ½µÁĞ°€…•¹Ğœ¤ì(€€€€€ô•±Í”ì(€€€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€ôİ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•¹‘•ÉQ¡¥¹­¥¹¹‘Q•áĞ¡™¥¹…±Q¡¥¹­¥¹œ°™¥¹…±Q•áĞ°Ñ½½±QÉ…¥°¤€¬¥Ñ…Ñ¥½¹Í!Ñµ°ì(€€€€€ô(€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹É•I•¹‘•É-…Ñ•à¡½¹Ñ•¹Ñ°¤ì((€€€€€İ¥¹‘½Ü¹1Å‘¡…ÑM•ÍÍ¥½¸¹…ÁÁ•¹‘Q½ÕÉÉ•¹Ğ …ÍÍ¥ÍÑ…¹Ğœ°™¥¹…±Q•áĞ¤ì(€€€€€•µ¥Ñ½¹Ñ•áĞ¡…±±½¹Ñ•áÑÌ¤ì(€€€€€¥˜€¡İ¥¹‘½Ü¹1Å‘Ù•¹ÑÌ¤ì(€€€€€€€İ¥¹‘½Ü¹1Å‘Ù•¹ÑÌ¹•µ¥Ğ ¡…Ğéµ•ÍÍ…”œ°ìÉ½±”è€…ÍÍ¥ÍÑ…¹Ğœ°½¹Ñ•¹Ğè™¥¹…±Q•áĞô¤ì(€€€€€ô(€€€ô…Ñ €¡”¤ì(€€€€€€¼¼ƒš&O–6Ã–º3šVÓ–‚š‚#–"À½¹Í½±”¡ÄÈƒ–>¿¢§ŠSŠSš¶“–&7–>«šbû’è”¹µ•ÍÍ…”°(€€€€€€¼¼€‰…¹¹½ĞÉ•…ÁÉ½Á•ÉÑ¥•Ì½˜Õ¹‘•™¥¹•ˆƒÆï¦Rg¢¾¿š^ƒšÎW–ºk’ö7šêC–’Ğ³š¾?š²‡’ş»¦÷¦vƒ2s(€€€€€¥˜€¡İ¥¹‘½Ü¹1Å‘ÉÉ½ÉÌ¤İ¥¹‘½Ü¹1Å‘ÉÉ½ÉÌ¹É•Á½ÉĞ¡”°€Í•¹‘5•ÍÍ…”œ¤ì(€€€€€Ù…ÈÍÑ…­!Ñµ°€ô€œœì(€€€€€¥˜€¡”€˜˜”¹ÍÑ…¬¤ì(€€€€€€€ÍÑ…­!Ñµ°€ô€œñ‘•Ñ…¥±Ì±…ÍÌô‰±Åµ•ÉÉ½ÈµÍÑ…¬ˆøñÍÕµµ…Éäû¦Rg¢¾¿–‚š‚ £š:Kš~—R ¤ğ½ÍÕµµ…ÉäøñÁÉ”øœ€¬(€€€€€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ¥Ñ…Ñ¥½¹Ì¹•Í!Ñµ°¡”¹ÍÑ…¬¤€¬€œğ½ÁÉ”øğ½‘•Ñ…¥±Ìøœì(€€€€€ô(€€€€€½¹Ñ•¹Ñ°¹¥¹¹•É!Q50€¬ô€œñ‰ÈøñÍÁ…¸ÍÑå±”ô‰½±½Èè‘ŒÈØÈØˆû¦Rg¢¾¼è€œ€¬(€€€€€€€İ¥¹‘½Ü¹1Å‘¡…Ñ¥Ñ…Ñ¥½¹Ì¹•Í!Ñµ°¡”€˜˜”¹µ•ÍÍ…”€ü”¹µ•ÍÍ…”€èMÑÉ¥¹œ¡”¤¤€¬€œğ½ÍÁ…¸øœ€¬ÍÑ…­!Ñµ°ì(€€€ô(€€€€¼¼ƒšÖ–ò?îOšv|³ï¦f‰ÕÍäƒš‚¢ºÀ£–Ş—’ösšÖ¤(€€€Ù…È‰Õ‰‰±”€ô½¹Ñ•¹Ñ°¹Á…É•¹Ñ9½‘”ì(€€€¥˜€¡‰Õ‰‰±”¤‰Õ‰‰±”¹É•µ½Ù•ÑÑÉ¥‰ÕÑ” …É¥„µ‰ÕÍäœ¤ì(€€€İ¥¹‘½Ü¹1Å‘¡…Ñ5•ÍÍ…•Ì¹Í•Ñ	ÕÍä¡™…±Í”°Í•¹‘	Ñ¸°½µÁ½Í•É%¹ÁÕĞ¤ì(€ô((€İ¥¹‘½Ü¹1Å‘¡…Ñ•¹Ğ€ôì(€€€±½…‘%¹‘•á•Ìè±½…‘%¹‘•á•Ì°(€€€É•ÑÉ¥•Ù•½¹Ñ•áĞèÉ•ÑÉ¥•Ù•½¹Ñ•áĞ°(€€€É•ÑÉ¥•Ù•½¹Ñ•áÑÍQ•áĞèÉ•ÑÉ¥•Ù•½¹Ñ•áÑÍQ•áĞ°(€€€•á•ÕÑ•Q½½°è•á•ÕÑ•Q½½°°(€€€1%	IIe}Q==1Lè1%	IIe}Q==1L°(€€€‰Õ¥±‘MåÍÑ•µAÉ½µÁĞè‰Õ¥±‘MåÍÑ•µAÉ½µÁĞ°(€€€‰Õ¥±‘•¹ÑMåÍÑ•µAÉ½µÁĞè‰Õ¥±‘•¹ÑMåÍÑ•µAÉ½µÁĞ°(€€€Í•¹‘5•ÍÍ…”èÍ•¹‘5•ÍÍ…”°(€€€‘•‰Õ¹…‰±•è‘•‰Õ¹…‰±•°(€€€Ñ¡¥¹­¥¹¹…‰±•èÑ¡¥¹­¥¹¹…‰±•(€ôì)ô¤ ¤ì(
+      blocks.push(block);
+    }
+    var thinNotice = '';
+    if (confidence === 'low' || thin) {
+      thinNotice = '\n> **æ£€ç´¢ç½®ä¿¡åº¦è¾ƒä½**ï¼šå½“å‰æ£€ç´¢ç›¸å…³æ€§ä¸è¶³ã€‚è¯·ä¼˜å…ˆè¯´æ˜ä¾æ®ä¸è¶³ï¼ŒåªåŸºäºæœ€ç›¸å…³æ¥æºç®€çŸ­å›ç­”ï¼Œ**ä¸è¦æ‰©å±•ã€ä¸è¦çŒœæµ‹ã€ä¸è¦ç¼–é€ **ã€‚\n';
+    } else if (confidence === 'medium') {
+      thinNotice = '\n> **æ£€ç´¢ç½®ä¿¡åº¦ä¸­ç­‰**ï¼šä¾æ®åŸºæœ¬å……è¶³ï¼Œä½†è¯·åªåŸºäº Context å›ç­”ï¼Œå¯¹è¯æ®ä¸è¶³çš„éƒ¨åˆ†æ˜ç¡®æ ‡æ³¨ã€‚\n';
+    } else {
+      thinNotice = '\n> **æ£€ç´¢ç½®ä¿¡åº¦é«˜**ï¼šå¯åŸºäº Context å……åˆ†å›ç­”ã€‚\n';
+    }
+    return 'ä½ æ˜¯ **LQ-D** çš„çŸ¥è¯†åŠ©æ‰‹ï¼ŒåŸºäºä¸ªäººæ•°å­—å›¾ä¹¦é¦†å†…å®¹çš„ RAG é—®ç­”ç³»ç»Ÿã€‚\n\n' +
+      '## æ£€ç´¢æ¦‚è§ˆ\n' + docToc.join('\n') + '\n' + thinNotice + '\n' +
+      '## æ¨ç†æ­¥éª¤\n' +
+      '1. **æ‰«æç»“æ„**ï¼šå…ˆæµè§ˆä¸‹æ–¹å„æ®µè½æ ‡é¢˜å’Œå±‚çº§å…³ç³»ï¼Œåˆ¤æ–­å“ªäº› [N] ä¸é—®é¢˜æœ€ç›¸å…³\n' +
+      '2. **ç²¾è¯»å†…å®¹**ï¼šé‡ç‚¹é˜…è¯»åŒ¹é…åº¦é«˜çš„æ®µè½ã€‚è¢«æˆªæ–­çš„æ®µè½å¯è¿½é—®\n' +
+      '3. **äº¤å‰éªŒè¯**ï¼šå¦‚æœå¤šä¸ªæ¥æºæœ‰ä¸åŒè§‚ç‚¹ï¼ŒæŒ‡å‡ºå·®å¼‚\n' +
+      '4. **ç»„ç»‡å›ç­”**ï¼šå…ˆç»™ç›´æ¥ç­”æ¡ˆï¼Œå†å±•å¼€è§£é‡Šã€‚ç”¨ [N] æ ‡æ³¨æ¯ä¸ªè®ºæ–­çš„æ¥æº\n' +
+      '5. **è¯šå®è¯„ä¼°**ï¼šContext ä¸è¶³æ—¶æ˜ç¡®è¯´"å½“å‰å›¾ä¹¦é¦†ä¸­æ²¡æœ‰è¶³å¤Ÿä¾æ®"\n\n' +
+      '## Contextï¼ˆæŒ‰ç›¸å…³åº¦æ’åºï¼‰\n\n' + blocks.join('\n\n---\n\n') + '\n\n' +
+      '## å›ç­”è§„åˆ™\n' +
+      '- åªèƒ½æ ¹æ® Context å›ç­”ï¼Œä¸è¦ä½¿ç”¨å¤–éƒ¨çŸ¥è¯†\n' +
+      '- æ¯ä¸ªå…³é”®è®ºæ–­æ ‡æ³¨æ¥æºç¼–å·\n' +
+      '- å›ç­”æœ«å°¾åˆ—å‡ºå‚è€ƒæ¥æºï¼šå‚è€ƒæ¥æºï¼š\n[1] ã€Šæ–‡æ¡£åã€‹ > ç« èŠ‚ > èŠ‚å\n' +
+      '- å›ç­”ä½¿ç”¨ä¸­æ–‡ï¼Œä¸“ä¸šæœ¯è¯­ä¿ç•™åŸæ–‡ã€‚å…¬å¼ç”¨ KaTeXï¼šè¡Œå†… $...$ï¼ˆä»…çŸ­ç¬¦å·å¦‚ $\\alpha$ã€$\\hbar$ï¼‰ï¼Œå¤æ‚/å¤šè¡Œå…¬å¼ç”¨è¡Œé—´ $$...$$ã€‚**ç¦æ­¢æŠŠé•¿å…¬å¼å¡è¿›è¡Œå†… $...$**';
+  }
+
+  // â”€â”€ Agent tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  var LIBRARY_TOOLS = [
+    {
+      type: 'function',
+      function: {
+        name: 'search_library',
+        description: 'åœ¨ä¸ªäººæ•°å­—å›¾ä¹¦é¦†ä¸­æ£€ç´¢ä¹¦ç±ã€è®ºæ–‡ã€ç¬”è®°å†…å®¹ã€‚å½“éœ€è¦æŸ¥æ‰¾äº‹å®ã€æ¦‚å¿µã€ç« èŠ‚å†…å®¹ã€æ–‡çŒ®æ—¶ä½¿ç”¨ã€‚å¯ç”¨ä¸åŒçš„å…³é”®è¯å¤šæ¬¡æ£€ç´¢ä»¥è¦†ç›–ä¸åŒè§’åº¦ã€‚è¿”å›ç»“æœå« source_idï¼ˆæ ¼å¼ doc_type:doc_id:node_idï¼‰ï¼Œä¾› get_section æ·±æŒ–ã€‚',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'æ£€ç´¢å…³é”®è¯æˆ–é—®é¢˜ï¼Œç”¨æ–‡æ¡£ä¸­å¯èƒ½å‡ºç°çš„åŸè¯æ•ˆæœæœ€å¥½' }
+          },
+          required: ['query']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_section',
+        description: 'å–æŒ‡å®šæ–‡æ¡£æŸç« èŠ‚çš„å®Œæ•´å†…å®¹ï¼ˆä¸æˆªæ–­ï¼‰ã€‚å…ˆç”¨ search_library æ‰¾åˆ° source_idï¼Œè§£æå‡º doc_id å’Œ node_idï¼Œå†ç”¨æœ¬å·¥å…·å–å…¨æ–‡ã€‚ç”¨äºæ£€ç´¢ç»“æœè¢«æˆªæ–­ã€éœ€è¦å®Œæ•´æ¨å¯¼/è¯æ˜/ä¸Šä¸‹æ–‡æ—¶ã€‚',
+        parameters: {
+          type: 'object',
+          properties: {
+            doc_id: { type: 'string', description: 'æ–‡æ¡£ IDï¼ˆsource_id ç¬¬äºŒæ®µï¼Œå¦‚ linear-response-theory-foundationsï¼‰' },
+            node_id: { type: 'string', description: 'èŠ‚ç‚¹ IDï¼ˆsource_id ç¬¬ä¸‰æ®µï¼Œå¦‚ 0003ï¼‰' }
+          },
+          required: ['doc_id', 'node_id']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'rewrite_query',
+        description: 'åˆ†æç”¨æˆ·é—®é¢˜å¹¶ç”Ÿæˆæ›´å¥½çš„æ£€ç´¢æŸ¥è¯¢å»ºè®®ã€‚å½“ç›´æ¥æœç´¢ç»“æœä¸ä½³ã€æŸ¥è¯¢æ¨¡ç³Š/å£è¯­åŒ–/å«ä»£è¯æ—¶ä½¿ç”¨ã€‚è¿”å›æ”¹å†™åçš„æŸ¥è¯¢è¯ï¼Œä½ é€‰æ‹©åˆé€‚çš„å»è°ƒ search_libraryã€‚',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'ç”¨æˆ·åŸå§‹é—®é¢˜' },
+            strategy: {
+              type: 'string',
+              enum: ['rewrite', 'decompose', 'step_back'],
+              description: 'rewrite=æ”¹å†™æ›´å…·ä½“ï¼›decompose=æ‹†æˆå­é—®é¢˜ï¼›step_back=ç”Ÿæˆæ›´å®½æ³›çš„èƒŒæ™¯æŸ¥è¯¢'
+            }
+          },
+          required: ['query']
+        }
+      }
+    }
+  ];
+
+  async function retrieveContextAsText(query, budgetCtx, sourceCtx) {
+    var result = await retrieveContext(query);
+    var confidence = result.confidence;
+    var contexts = result.contexts;
+    if (!contexts.length) return { text: 'æœªæ‰¾åˆ°ç›¸å…³å†…å®¹ã€‚', contexts: [], confidence: confidence };
+    if (budgetCtx) {
+      contexts = packWithContextBudget(contexts, budgetCtx.historyTokens || 0, budgetCtx.systemTokens || 0);
+    }
+    var blocks = contexts.map(function (c) {
+      var num;
+      if (sourceCtx && sourceCtx.registry) {
+        if (sourceCtx.registry.has(c.sourceId)) {
+          num = sourceCtx.registry.get(c.sourceId);
+        } else {
+          sourceCtx.counter[0] += 1;
+          num = sourceCtx.counter[0];
+          sourceCtx.registry.set(c.sourceId, num);
+        }
+        c.displayNum = num;
+      } else {
+        num = contexts.indexOf(c) + 1;
+      }
+      return '### [' + num + '] ' + c.breadcrumb.join(' > ') + '\n*æ¥æº: ' + c.docTitle + ' | source_id: ' + c.sourceId + '*\n\n' + truncateAtBoundary(c.text, MAX_SECTION_CHARS);
+    });
+    var text = blocks.join('\n\n---\n\n') + '\n\næ£€ç´¢ç½®ä¿¡åº¦: ' + confidence;
+    return { text: text, contexts: contexts, confidence: confidence };
+  }
+
+  async function executeTool(name, args, budgetCtx, sourceCtx) {
+    if (name === 'search_library') {
+      // é˜²å¾¡:æ¨¡å‹è¿”å›çš„ tool arguments å¯èƒ½ç¼º query å­—æ®µ(ç©º {} æˆ–æ ¼å¼å¼‚å¸¸),
+      // æ­¤æ—¶ args.query ä¸º undefinedã€‚è‹¥æ”¾ä»»ä¼ ç»™ retrieveContext â†’ lexicalRerank,
+      // ä¼šæŠ› "Cannot read properties of undefined (reading 'match')" å¯¼è‡´æ•´æ¡ ReAct å´©æºƒã€‚
+      // ä¸Šæ¸¸å…œåº•:å‚æ•°ç¼ºå¤±æ—¶è¿”å›æç¤º,è®©æ¨¡å‹åœ¨ä¸‹ä¸€è½®æ¢å…³é”®è¯é‡è¯•ã€‚
+      var searchQuery = args && args.query;
+      if (!searchQuery || typeof searchQuery !== 'string') {
+        return { text: 'æ£€ç´¢å‚æ•° query ç¼ºå¤±æˆ–éå­—ç¬¦ä¸²,è¯·æ¢å…³é”®è¯é‡æ–°è°ƒç”¨ search_libraryã€‚', __contexts: [] };
+      }
+      var r = await retrieveContextAsText(searchQuery, budgetCtx, sourceCtx);
+      r.__contexts = r.contexts;
+      return r;
+    }
+    if (name === 'get_section') {
+      var docId = args.doc_id || '';
+      var nodeId = args.node_id || '';
+      await loadDocTree(docId);
+      var doc = docCache[docId];
+      if (!doc) return { text: 'æ–‡æ¡£ ' + docId + ' æœªæ‰¾åˆ°æˆ–åŠ è½½å¤±è´¥' };
+      var node = null;
+      for (var i = 0; i < doc.flat.length; i++) {
+        if (doc.flat[i].node_id === nodeId) { node = doc.flat[i]; break; }
+      }
+      if (!node) {
+        var available = doc.flat.slice(0, 5).map(function (n) {
+          return n.node_id + ' ' + n.title.slice(0, 20);
+        }).join('; ');
+        return { text: 'èŠ‚ç‚¹ ' + nodeId + ' æœªæ‰¾åˆ°ã€‚å¯ç”¨èŠ‚ç‚¹ï¼š' + available + '...' };
+      }
+      var text = await fetchMdSection(node.source_md, node.line_num, node.line_end);
+      if (!text) text = node.summary || '(æ­£æ–‡è·å–å¤±è´¥ï¼Œä»…æ˜¾ç¤ºæ‘˜è¦ï¼š' + (node.summary || 'æ— ') + ')';
+      var breadcrumb = (node._crumb || [node.title]).join(' > ');
+      var docTitle = doc.tree.title || docId;
+      return {
+        text: '### ' + breadcrumb + '\n*æ¥æº: ' + docTitle + '*\n\n' + text,
+        __contexts: [{
+          sourceId: docId + ':' + nodeId,
+          text: text,
+          docTitle: docTitle,
+          breadcrumb: node._crumb || [node.title],
+          url: ''
+        }]
+      };
+    }
+    if (name === 'rewrite_query') {
+      var strategy = args.strategy || 'rewrite';
+      var promptTemplates = {
+        rewrite: 'æŠŠä»¥ä¸‹æŸ¥è¯¢æ”¹å†™å¾—æ›´å…·ä½“ã€æ›´é€‚åˆæ–‡æ¡£æ£€ç´¢ã€‚åŒ…å«æ–‡æ¡£ä¸­å¯èƒ½å‡ºç°çš„ä¸“ä¸šæœ¯è¯­å’ŒåŒä¹‰è¯ã€‚åªè¿”å›æ”¹å†™åçš„æŸ¥è¯¢ï¼Œä¸è¦è§£é‡Šã€‚\n\nåŸå§‹æŸ¥è¯¢ï¼š',
+        decompose: 'æŠŠä»¥ä¸‹å¤åˆé—®é¢˜åˆ†è§£æˆ 2-3 ä¸ªå¯ç‹¬ç«‹æ£€ç´¢çš„å­é—®é¢˜ï¼Œæ¯è¡Œä¸€ä¸ªï¼Œä¸è¦ç¼–å·ã€‚åªè¿”å›å­é—®é¢˜ï¼Œä¸è¦è§£é‡Šã€‚\n\nåŸå§‹æŸ¥è¯¢ï¼š',
+        step_back: 'ä¸ºä»¥ä¸‹å…·ä½“æŸ¥è¯¢ç”Ÿæˆä¸€ä¸ªæ›´å®½æ³›çš„èƒŒæ™¯æŸ¥è¯¢ï¼Œç”¨äºæ£€ç´¢åŸºç¡€æ¦‚å¿µå’Œä¸Šä¸‹æ–‡ã€‚åªè¿”å›èƒŒæ™¯æŸ¥è¯¢ï¼Œä¸è¦è§£é‡Šã€‚\n\nåŸå§‹æŸ¥è¯¢ï¼š'
+      };
+      var userPrompt = (promptTemplates[strategy] || promptTemplates.rewrite) + args.query;
+      var rewritten = await window.LqdChatLLM.callLLMSync(
+        'ä½ æ˜¯æ£€ç´¢æŸ¥è¯¢ä¼˜åŒ–ä¸“å®¶ã€‚æ ¹æ®ç­–ç•¥æ”¹å†™ç”¨æˆ·æŸ¥è¯¢ï¼Œä½¿å…¶æ›´é€‚åˆåœ¨ä¸“ä¸šæ–‡æ¡£åº“ä¸­æ£€ç´¢ã€‚',
+        userPrompt
+      );
+      if (!rewritten) {
+        return { text: 'æ”¹å†™å¤±è´¥ï¼ˆå¯èƒ½æœªé…ç½® API Keyï¼‰ï¼Œè¯·ç›´æ¥æ¢å…³é”®è¯è°ƒ search_libraryã€‚' };
+      }
+      return { text: 'æ”¹å†™å»ºè®®ï¼ˆ' + strategy + 'ï¼‰ï¼š\n' + rewritten + '\n\nè¯·ç”¨ä»¥ä¸ŠæŸ¥è¯¢è¯è°ƒ search_library æ£€ç´¢ã€‚' };
+    }
+    return { text: 'æœªçŸ¥å·¥å…·: ' + name };
+  }
+
+  function buildLibraryTOC() {
+    if (!globalIndex || !globalIndex.docs || !globalIndex.docs.length) {
+      return { text: '(ç´¢å¼•æœªåŠ è½½)', docCount: 0 };
+    }
+    var groups = { book: 'ä¹¦ç±', paper: 'è®ºæ–‡', note: 'ç¬”è®°' };
+    var counts = { book: 0, paper: 0, note: 0 };
+    var lines = { book: [], paper: [], note: [] };
+    for (var i = 0; i < globalIndex.docs.length; i++) {
+      var doc = globalIndex.docs[i];
+      var t = doc.type || 'note';
+      if (!(t in counts)) continue;
+      counts[t]++;
+      var author = doc.author ? ' ' + doc.author.split(/[,ï¼Œ]/)[0] : '';
+      var tags = doc.tags && doc.tags.length ? ' [' + doc.tags.slice(0, 3).join(', ') + ']' : '';
+      var desc = (doc.description || '').slice(0, 50);
+      lines[t].push('- ã€Š' + doc.title + 'ã€‹' + author + ' â€” ' + desc + tags);
+    }
+    var text = '';
+    for (var key in groups) {
+      if (counts[key]) text += '### ' + groups[key] + 'ï¼ˆ' + counts[key] + ' ç¯‡ï¼‰\n' + lines[key].join('\n') + '\n\n';
+    }
+    return { text: text.trim(), docCount: globalIndex.docs.length };
+  }
+
+  function buildAgentSystemPrompt() {
+    var toc = buildLibraryTOC();
+    return 'ä½ æ˜¯ **LQ-D** çš„çŸ¥è¯†åŠ©æ‰‹ï¼ŒåŸºäºä¸ªäººæ•°å­—å›¾ä¹¦é¦†çš„ RAG é—®ç­”ç³»ç»Ÿã€‚\n\n' +
+      '## å›¾ä¹¦é¦†ç›®å½•ï¼ˆ' + toc.docCount + ' ç¯‡æ–‡æ¡£ï¼Œæ£€ç´¢å‰å…ˆæµè§ˆç›¸å…³é¢†åŸŸï¼‰\n' + toc.text + '\n\n' +
+      '## å·¥ä½œæ–¹å¼\n' +
+      '- ä½ æœ‰ä¸‰ä¸ªå·¥å…·ï¼šsearch_libraryï¼ˆæ£€ç´¢ï¼‰ã€get_sectionï¼ˆå–å®Œæ•´ç« èŠ‚ï¼‰ã€rewrite_queryï¼ˆæ”¹å†™æŸ¥è¯¢ï¼‰\n' +
+      '- å›ç­”ç”¨æˆ·é—®é¢˜å‰ï¼Œ**å¿…é¡»å…ˆè°ƒç”¨ search_library æ£€ç´¢**ï¼Œä¸è¦å‡­è®°å¿†å›ç­”\n' +
+      '- åªèƒ½åŸºäºæ£€ç´¢åˆ°çš„å†…å®¹å›ç­”ï¼Œä¸è¦ä½¿ç”¨å¤–éƒ¨çŸ¥è¯†ç¼–é€ \n\n' +
+      '## æ£€ç´¢ç­–ç•¥ï¼ˆé‡è¦ï¼‰\n' +
+      'ç¬¬ä¸€æ¬¡ç”¨ç”¨æˆ·åŸè¯æ£€ç´¢ã€‚å¦‚æœç»“æœä¸è¶³ï¼Œæ¢ç­–ç•¥é‡è¯•ï¼š\n' +
+      '- **æŸ¥è¯¢é‡å†™**ï¼šæ¢æˆæ–‡æ¡£é‡Œå¯èƒ½å‡ºç°çš„ä¸“ä¸šæœ¯è¯­é‡æœï¼ˆå¦‚"é‚£ä¸ªç›¸å˜"â†’"é‡å­ç›¸å˜ Rabi æ¨¡å‹"ï¼‰\n' +
+      '- **å­æŸ¥è¯¢åˆ†è§£**ï¼šå¤åˆé—®é¢˜æ‹†æˆå­é—®é¢˜åˆ†åˆ«æ£€ç´¢ï¼ˆå¦‚"Berry phase å’Œçº¿æ€§å“åº”çš„å…³ç³»"â†’åˆ†ä¸¤æœï¼‰\n' +
+      '- **æ­¥é€€æŸ¥è¯¢**ï¼šå¤ªå…·ä½“æœä¸åˆ°æ—¶ï¼Œå…ˆç”¨æ›´å®½æ³›çš„æ¦‚å¿µæœèƒŒæ™¯çŸ¥è¯†\n' +
+      '- å¯è°ƒ rewrite_query å·¥å…·ç”Ÿæˆæ”¹å†™å»ºè®®ï¼Œä¹Ÿå¯ç›´æ¥æ¢å…³é”®è¯è°ƒ search_library\n' +
+      '- æ‰¾åˆ°ç›¸å…³ç« èŠ‚ä½†å†…å®¹è¢«æˆªæ–­æ—¶ï¼Œç”¨ get_section å–å®Œæ•´å†…å®¹ï¼ˆéœ€ doc_id å’Œ node_idï¼‰\n\n' +
+      '## å›ç­”è§„åˆ™\n' +
+      '- æ¯ä¸ªå…³é”®è®ºæ–­æ ‡æ³¨æ¥æºç¼–å· [N]ï¼Œå¯¹åº”æ£€ç´¢ç»“æœä¸­çš„ [N]\n' +
+      '- å›ç­”æœ«å°¾åˆ—å‡ºå‚è€ƒæ¥æºï¼Œæ ¼å¼ï¼š\n[1] æ–‡æ¡£å > ç« èŠ‚ > èŠ‚å\n' +
+      '- æ£€ç´¢ç»“æœä¸è¶³æ—¶æ˜ç¡®è¯´æ˜"å½“å‰å›¾ä¹¦é¦†ä¸­æ²¡æœ‰è¶³å¤Ÿä¾æ®"ï¼Œä¸è¦ç¡¬ç­”\n' +
+      '- å›ç­”ä½¿ç”¨ä¸­æ–‡ï¼Œä¸“ä¸šæœ¯è¯­ä¿ç•™åŸæ–‡ã€‚å…¬å¼ç”¨ LaTeXï¼šè¡Œå†… \\(...\\)ï¼Œè¡Œé—´ \\[...\\]';
+  }
+
+  // â”€â”€ Send / ReAct loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function debugEnabled() {
+    return localStorage.getItem('lqd_chat_debug') === '1';
+  }
+
+  function thinkingEnabled() {
+    return localStorage.getItem('lqd_chat_thinking') !== '0';
+  }
+
+  async function sendMessage(query, refs) {
+    var messagesEl = refs.messagesEl;
+    var composerInput = refs.composerInput;
+    var sendBtn = refs.sendBtn;
+
+    await window.LqdSettings.load();
+    var apiKey = await window.LqdSettings.fetchApiKey();
+    if (window.LqdSettings._cache) window.LqdSettings._cache.api_key = apiKey;
+    var cfg = window.LqdSettings.resolve();
+
+    if (!cfg.apiKey) {
+      window.LqdChatMessages.appendMessageBubble('assistant', 'è¯·å…ˆå‰å¾€ã€Œé…ç½®ã€é¡µè®¾ç½® LLM API Keyã€‚', messagesEl);
+      return;
+    }
+
+    window.LqdChatMessages.hideEmpty(refs.emptyEl, messagesEl);
+    window.LqdChatMessages.appendMessageBubble('user', query, messagesEl);
+    window.LqdChatSession.appendToCurrent('user', query);
+
+    try {
+      await loadIndexes();
+    } catch (e) {
+      window.LqdChatMessages.appendMessageBubble('assistant', 'ç´¢å¼•åŠ è½½å¤±è´¥ï¼š' + e.message, messagesEl);
+      return;
+    }
+
+    var contentEl = window.LqdChatMessages.appendMessageBubble('assistant', '<em>å‡†å¤‡ä¸­â€¦â€¦</em>', messagesEl);
+    window.LqdChatMessages.setBusy(true, sendBtn, composerInput);
+
+    var thinkingOn = thinkingEnabled();
+    var debugOn = debugEnabled();
+    var systemPrompt = buildAgentSystemPrompt();
+    var messages = window.LqdChatSession.loadCurrent().slice(-6);
+    var MAX_LOOPS = 4;
+
+    var budgetCtx = {
+      historyTokens: messages.reduce(function (s, m) { return s + estimateTokens(m.content || ''); }, 0),
+      systemTokens: estimateTokens(systemPrompt)
+    };
+
+    var finalText = '';
+    var finalThinking = '';
+    var didSearch = false;
+    var allContexts = [];
+    var seenSourceIds = new Set();
+    var toolTrail = [];
+    var sourceRegistry = new Map();
+    var nextSourceNum = [0];
+
+    var emitContext = function (contexts) {
+      if (window.LqdEvents) {
+        window.LqdEvents.emit('chat:context', { query: query, contexts: contexts });
+      }
+    };
+
+    try {
+      var agentStart = Date.now();
+      for (var loop = 0; loop < MAX_LOOPS; loop++) {
+        if (Date.now() - agentStart > 120000) {
+          contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(
+            finalThinking, '<em>æ£€ç´¢è¶…æ—¶ï¼Œæ­£åœ¨ç”¨å·²è·å–çš„å†…å®¹ç”Ÿæˆå›ç­”â€¦â€¦</em>', toolTrail
+          );
+          break;
+        }
+        var roundText = '';
+        var roundThinking = '';
+        var toolCalls = null;
+        var stopReason = null;
+
+        var stream = window.LqdChatLLM.streamText({
+          provider: cfg.provider,
+          model: cfg.model,
+          baseUrl: cfg.baseUrl,
+          apiKey: cfg.apiKey,
+          protocol: cfg.protocol,
+          pathMode: cfg.pathMode,
+          system: systemPrompt,
+          messages: messages,
+          tools: LIBRARY_TOOLS,
+          thinking: thinkingOn,
+          maxTokens: thinkingOn ? 8192 : 4096
+        });
+
+        var _dbg = window.LQD_DEBUG_SSE;
+        var _recv = _dbg ? { thinking: 0, text: 0, tool_calls: 0, stop: 0 } : null;
+        for await (var chunk of stream) {
+          if (_dbg) {
+            if (chunk.type === 'thinking') _recv.thinking++;
+            else if (chunk.type === 'text') _recv.text++;
+            else if (chunk.type === 'tool_calls') _recv.tool_calls++;
+            else if (chunk.type === 'stop') _recv.stop++;
+          }
+          if (chunk.type === 'thinking') {
+            roundThinking += chunk.text;
+            finalThinking += chunk.text;
+            contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, roundText, toolTrail);
+          } else if (chunk.type === 'text') {
+            roundText += chunk.text;
+            finalText = roundText;
+            contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail);
+            window.LqdChatMessages.reRenderKatex(contentEl);
+          } else if (chunk.type === 'tool_calls') {
+            toolCalls = chunk.calls;
+          } else if (chunk.type === 'stop') {
+            stopReason = chunk.reason;
+          }
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+        if (_dbg) console.log('[AGENT] loop', loop, 'recv', _recv, 'roundThinking.len', roundThinking.length, 'finalThinking.len', finalThinking.length, 'toolCalls', toolCalls);
+
+        // æ²¡æœ‰å·¥å…·è°ƒç”¨ â†’ æœ¬è½®æ˜¯æœ€ç»ˆå›ç­”ï¼Œé€€å‡ºå¾ªç¯
+        // æ³¨æ„:ä¸èƒ½ä¾èµ– stopReason å€¼â€”â€”Anthropic åè®® stop_reason æ˜¯ "tool_use"
+        // (ä¸” tool_use æ—¶ readSSE åª yield tool_calls ä¸ yield stop,stopReason ä¿æŒ null),
+        // OpenAI åè®® finish_reason æ˜¯ "tool_calls"ã€‚ä¸¤è€…å€¼ä¸åŒ,ç»Ÿä¸€ç”¨ toolCalls æ˜¯å¦å­˜åœ¨åˆ¤æ–­ã€‚
+        if (!toolCalls || !toolCalls.length) break;
+
+        messages.push({
+          role: 'assistant',
+          content: roundText || null,
+          tool_calls: toolCalls.map(function (tc) {
+            return { id: tc.id, type: 'function', function: { name: tc.name, arguments: tc.arguments } };
+          })
+        });
+
+        for (var i = 0; i < toolCalls.length; i++) {
+          var tc = toolCalls[i];
+          var args = {};
+          try { args = JSON.parse(tc.arguments || '{}'); } catch (_) { /* ignore */ }
+          toolTrail.push(
+            '<div class="lqd-tool-step">ğŸ” æ£€ç´¢: <code>' + window.LqdChatCitations.escHtml(args.query || tc.arguments) + '</code></div>'
+          );
+          contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail);
+          if (tc.name === 'search_library') didSearch = true;
+
+          var toolResult = await executeTool(tc.name, args, budgetCtx, { registry: sourceRegistry, counter: nextSourceNum });
+          if (toolResult.__contexts) {
+            for (var j = 0; j < toolResult.__contexts.length; j++) {
+              var c = toolResult.__contexts[j];
+              if (!seenSourceIds.has(c.sourceId)) {
+                allContexts.push(c);
+                seenSourceIds.add(c.sourceId);
+              }
+            }
+          }
+          messages.push({
+            role: 'tool',
+            tool_call_id: tc.id,
+            content: toolResult.text || JSON.stringify(toolResult)
+          });
+        }
+        contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(
+          finalThinking, '<em>å·²æ£€ç´¢ï¼Œæ­£åœ¨ç»¼åˆå›ç­”â€¦â€¦</em>', toolTrail
+        );
+        finalText = '';
+      }
+
+      if (!didSearch) {
+        var forced = await retrieveContextAsText(query, budgetCtx, { registry: sourceRegistry, counter: nextSourceNum });
+        if (forced.__contexts) {
+          forced.__contexts = forced.contexts;
+          for (var j = 0; j < forced.__contexts.length; j++) {
+            var c2 = forced.__contexts[j];
+            if (!seenSourceIds.has(c2.sourceId)) {
+              allContexts.push(c2);
+              seenSourceIds.add(c2.sourceId);
+            }
+          }
+        }
+        toolTrail.push('<div class="lqd-tool-step">ğŸ” æ£€ç´¢(å¼ºåˆ¶): <code>' + window.LqdChatCitations.escHtml(query) + '</code></div>');
+      }
+
+      if (!finalText.trim() && allContexts.length) {
+        contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(
+          finalThinking, '<em>æ£€ç´¢å®Œæˆï¼Œæ­£åœ¨ç»¼åˆå›ç­”â€¦â€¦</em>', toolTrail
+        );
+        var ctxBlocks = allContexts.map(function (c) {
+          var num = c.displayNum || allContexts.indexOf(c) + 1;
+          return '### [' + num + '] ' + c.breadcrumb.join(' > ') + '\n*æ¥æº: ' + c.docTitle + '*\n\n' + truncateAtBoundary(c.text, MAX_SECTION_CHARS);
+        }).join('\n\n---\n\n');
+        var summaryMessages = [
+          { role: 'user', content: query },
+          { role: 'user', content: 'åŸºäºä»¥ä¸‹æ£€ç´¢åˆ°çš„å›¾ä¹¦é¦†å†…å®¹ï¼Œå›ç­”ä¸Šé¢çš„é—®é¢˜ã€‚\n\n## å›ç­”è§„åˆ™\n- æ¯ä¸ªå…³é”®è®ºæ–­ç”¨ [N] æ ‡æ³¨æ¥æºç¼–å·ï¼ˆå¯¹åº”ä¸‹æ–¹çš„ [N]ï¼Œ**åªå†™ç¼–å·ï¼Œä¸è¦è‡ªå·±å†™ url æˆ–é“¾æ¥**ï¼‰\n- å›ç­”æœ«å°¾åˆ—å‡ºå‚è€ƒæ¥æºï¼Œæ ¼å¼ï¼š[N] æ–‡æ¡£å > ç« èŠ‚\n- åªåŸºäº Context å›ç­”ï¼Œä¸è¦ç¼–é€ \n- å›ç­”ä½¿ç”¨ä¸­æ–‡ï¼Œå…¬å¼ç”¨ KaTeXï¼šè¡Œå†… $...$ï¼ˆä»…çŸ­ç¬¦å·ï¼‰ï¼Œå¤æ‚/å¤šè¡Œå…¬å¼ç”¨è¡Œé—´ $$...$$ã€‚ç¦æ­¢é•¿å…¬å¼å¡è¿›è¡Œå†…\n\n## Contextï¼ˆæŒ‰ç›¸å…³åº¦æ’åºï¼‰\n\n' + ctxBlocks }
+        ];
+        var summaryText = '';
+        var summaryTimeout = setTimeout(function () {
+          if (!finalText.trim()) {
+            finalText = 'å·²æ£€ç´¢åˆ°ç›¸å…³å†…å®¹ï¼Œä½†ç”Ÿæˆå›ç­”è¶…æ—¶ã€‚è¯·å°è¯•æ¢ä¸ªé—®æ³•ï¼Œæˆ–ç›´æ¥åœ¨ä¹¦æ¶ä¸­æµè§ˆç›¸å…³ç« èŠ‚ã€‚';
+            contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail);
+            window.LqdChatMessages.reRenderKatex(contentEl);
+          }
+        }, 30000);
+        try {
+          var summaryStream = window.LqdChatLLM.streamText({
+            provider: cfg.provider,
+            model: cfg.model,
+            baseUrl: cfg.baseUrl,
+            apiKey: cfg.apiKey,
+            protocol: cfg.protocol,
+            pathMode: cfg.pathMode,
+            system: systemPrompt,
+            messages: summaryMessages,
+            tools: undefined,
+            thinking: false,
+            maxTokens: 4096
+          });
+          for await (var chunk2 of summaryStream) {
+            if (chunk2.type === 'text') {
+              summaryText += chunk2.text;
+              finalText = summaryText;
+              contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail);
+              window.LqdChatMessages.reRenderKatex(contentEl);
+            }
+          }
+        } catch (_) { /* ignore */ }
+        clearTimeout(summaryTimeout);
+      }
+
+      if (!finalText.trim()) {
+        if (allContexts.length) {
+          finalText = 'å·²æ£€ç´¢åˆ°ç›¸å…³å†…å®¹ï¼Œä½†æœªèƒ½ç”Ÿæˆå›ç­”ã€‚è¯·å°è¯•æ¢ä¸ªé—®æ³•é‡è¯•ã€‚';
+        } else {
+          finalText = 'æœªæ‰¾åˆ°ç›¸å…³å†…å®¹ã€‚å¯ä»¥åœ¨ä¹¦æ¶ä¸­æµè§ˆï¼Œæˆ–æ¢å…³é”®è¯é‡è¯•ã€‚';
+        }
+        contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail);
+        window.LqdChatMessages.reRenderKatex(contentEl);
+      }
+
+      var citationsHtml = '';
+      if (allContexts.length) {
+        var refMap = {};
+        for (var i = 0; i < allContexts.length; i++) {
+          var c3 = allContexts[i];
+          var num = c3.displayNum || i + 1;
+          if (c3.url) refMap[num] = { title: c3.docTitle, breadcrumb: c3.breadcrumb, url: c3.url };
+        }
+        if (Object.keys(refMap).length > 0) {
+          finalText = window.LqdChatCitations.injectReferenceLinks(finalText, refMap);
+        }
+        citationsHtml = window.LqdChatCitations.renderCitations(allContexts);
+      }
+
+      if (debugOn && allContexts.length) {
+        var debugHits = allContexts.slice(0, 12).map(function (c, i) {
+          return {
+            node: { doc_id: c.docTitle, node_id: c.nodeId, breadcrumb: c.breadcrumb },
+            score: '?'
+          };
+        });
+        contentEl.innerHTML =
+          window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail) +
+          citationsHtml +
+          window.LqdChatCitations.renderDebugCard(debugHits, allContexts.slice(0, 8), systemPrompt, 'agent');
+      } else {
+        contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail) + citationsHtml;
+      }
+      window.LqdChatMessages.reRenderKatex(contentEl);
+
+      window.LqdChatSession.appendToCurrent('assistant', finalText);
+      emitContext(allContexts);
+      if (window.LqdEvents) {
+        window.LqdEvents.emit('chat:message', { role: 'assistant', content: finalText });
+      }
+    } catch (e) {
+      // æ‰“å°å®Œæ•´å †æ ˆåˆ° console(F12 å¯è§)â€”â€”æ­¤å‰åªæ˜¾ç¤º e.message,
+      // "Cannot read properties of undefined" ç±»é”™è¯¯æ— æ³•å®šä½æºå¤´,æ¯æ¬¡ä¿®éƒ½é çŒœã€‚
+      if (window.LqdErrors) window.LqdErrors.report(e, 'sendMessage');
+      var stackHtml = '';
+      if (e && e.stack) {
+        stackHtml = '<details class="lqd-error-stack"><summary>é”™è¯¯å †æ ˆ(æ’æŸ¥ç”¨)</summary><pre>' +
+          window.LqdChatCitations.escHtml(e.stack) + '</pre></details>';
+      }
+      contentEl.innerHTML += '<br><span style="color:#dc2626">é”™è¯¯: ' +
+        window.LqdChatCitations.escHtml(e && e.message ? e.message : String(e)) + '</span>' + stackHtml;
+    }
+    // æµå¼ç»“æŸ,ç§»é™¤ busy æ ‡è®°(å·¥ä½œæµ G)
+    var bubble = contentEl.parentNode;
+    if (bubble) bubble.removeAttribute('aria-busy');
+    window.LqdChatMessages.setBusy(false, sendBtn, composerInput);
+  }
+
+  window.LqdChatAgent = {
+    loadIndexes: loadIndexes,
+    retrieveContext: retrieveContext,
+    retrieveContextAsText: retrieveContextAsText,
+    executeTool: executeTool,
+    LIBRARY_TOOLS: LIBRARY_TOOLS,
+    buildSystemPrompt: buildSystemPrompt,
+    buildAgentSystemPrompt: buildAgentSystemPrompt,
+    sendMessage: sendMessage,
+    debugEnabled: debugEnabled,
+    thinkingEnabled: thinkingEnabled
+  };
+})();

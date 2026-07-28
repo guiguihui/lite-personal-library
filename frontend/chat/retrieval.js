@@ -316,5 +316,534 @@
       fieldAvgLen: {
         title: fieldLen.title / N,
         breadcrumb: fieldLen.breadcrumb / N,
-       ÛŸ5¶‰ËkºwµçUÉ¸mtì(€€€½¹ÍĞÉ…Ü€ô€¡ÅÕ•Éäñğ€ˆˆ¤¹Ñ½1½İ•É…Í” ¤ì(€€€½¹ÍĞÅQ½­Ì€ôÑ½­•¹¥é•U¹¥ÅÕ”¡ÅÕ•Éä¤ì(€€€½¹ÍĞ‘½M½É•Ì€ômtì(€€€™½È€¡½¹ÍĞ‘½Œ½˜±½‰…±%¹‘•à¹‘½Ì¤ì(€€€€€½¹ÍĞÑ¥Ñ±•Q•áĞ€ô€¡‘½Œ¹Ñ¥Ñ±”ñğ€ˆˆ¤¹Ñ½1½İ•É…Í” ¤ì(€€€€€½¹ÍĞ‘•ÍQ•áĞ€ô€¡‘½Œ¹‘•ÍÉ¥ÁÑ¥½¸ñğ€ˆˆ¤¹Ñ½1½İ•É…Í” ¤ì(€€€€€½¹ÍĞÑ¥Ñ±•Q½­Ì€ôÑ½­•¹¥é•U¹¥ÅÕ”¡‘½Œ¹Ñ¥Ñ±”ñğ€ˆˆ¤ì(€€€€€€¼¼ƒšVÓš‚¦Šc–¶C’âË–F÷’â´ƒš"XÑ½­•¸ƒ¦7–>€(€€€€€±•Ğ½Ù•É±…À€ô€Àì(€€€€€™½È€¡½¹ÍĞĞ½˜ÅQ½­Ì¤¥˜€¡Ñ¥Ñ±•Q½­Ì¹¥¹±Õ‘•Ì¡Ğ¤¤½Ù•É±…À¬¬ì(€€€€€½¹ÍĞ©­!¥Ğ€ô€¡É…Ü¹µ…Ñ  ½o’â ·¦şıt¬½œ¤ñğmt¤¹Í½µ” ¡Í•œ¤€ôøÑ¥Ñ±•Q•áĞ¹¥¹±Õ‘•Ì¡Í•œ¤¤ì(€€€€€½¹ÍĞ•¹!¥Ğ€ô€¡É…Ü¹µ…Ñ  ½m„µéum„µèÀ´åuìÄ±ô½œ¤ñğmt¤¹Í½µ” ¡Ğ¤€ôøÑ¥Ñ±•Q•áĞ¹¥¹±Õ‘•Ì¡Ğ¤¤ì(€€€€€½¹ÍĞÍ½É”€ô½Ù•É±…À€¬€¡©­!¥Ğ€ü€È€è€À¤€¬€¡•¹!¥Ğ€ü€È€è€À¤€¬€¡‘•ÍQ•áĞ¹¥¹±Õ‘•Ì¡É…Ü¤€ü€Ä€è€À¤ì(€€€€€¥˜€¡Í½É”€ø€À¤‘½M½É•Ì¹ÁÕÍ ¡ì‘½Œ°Í½É”ô¤ì(€€€ô(€€€‘½M½É•Ì¹Í½ÉĞ ¡„°ˆ¤€ôøˆ¹Í½É”€´„¹Í½É”¤ì(€€€€¼¼ƒ–>XÑ½ÀƒšZš†j¡Õ¹¯¾ò#’î8¡Õ¹­MÑ…ÑÌƒ¦3¶o¾ò$(€€€½¹ÍĞÑ½Á½Ì€ô¹•ÜM•Ğ¡‘½M½É•Ì¹Í±¥” À°€Ô¤¹µ…À ¡¤€ôø¹‘½Œ¹¥¤¤ì(€€€¥˜€ …Ñ½Á½Ì¹Í¥é”¤É•ÑÕÉ¸mtì(€€€½¹ÍĞ½ÕĞ€ômtì(€€€™½È€¡½¹ÍĞ ½˜¡Õ¹­MÑ…ÑÌ¹¡Õ¹­Ì¤ì(€€€€€¥˜€¡Ñ½Á½Ì¹¡…Ì¡ ¹‘½}¥¤¤ì(€€€€€€€½ÕĞ¹ÁÕÍ ¡ì(€€€€€€€€€¹½‘”èì(€€€€€€€€€€€‘½}¥è ¹‘½}¥°(€€€€€€€€€€€¹½‘•}¥è ¹¹½‘•}¥°(€€€€€€€€€€€Ñ¥Ñ±”è ¹Ñ¥Ñ±”°(€€€€€€€€€€€‰É•…‘ÉÕµˆè ¹‰É•…‘ÉÕµˆ°(€€€€€€€€€€€ÕÉ°è€ˆˆ°(€€€€€€€€€€€Ñ•ÉµÌèmt°(€€€€€€€€€€€ÍÕµµ…Éäè€¡ ¹‰½‘äñğ€ˆˆ¤¹Í±¥” À°€ÈÀÀ¤°(€€€€€€€€€€€±¥¹•}¹Õ´è ¹±¥¹•}¹Õ´°(€€€€€€€€€ô°(€€€€€€€€€Í½É”è€À¸Ä°(€€€€€€€€€Ñ½­•¹ÌèÅQ½­Ì°(€€€€€€€€€Á½Í¥Ñ¥½¹Ìèíô°(€€€€€€€€€¡Õ¹¬è °(€€€€€€€ô¤ì(€€€€€ô(€€€€€¥˜€¡½ÕĞ¹±•¹Ñ €øôÑ½Á,€¨€Ì¤‰É•…¬ì(€€€ô(€€€É•ÑÕÉ¸½ÕĞ¹Í±¥” À°Ñ½Á,¤ì(€ô((€€¼¼IIƒ¢z7–B#¾òk–’k¢Ş¿îOšzsš2$I•¥ÁÉ½…°I…¹¬ÕÍ¥½¸ƒ–B#–æÛ(€€¼¼Í½É”¡¤€ôƒ:Œ€Ä¼¡¬€¬É…¹­}¤¡¤§¾ò1¬ôØÃ¾ò#š‚–IIƒ–âãšVÃ¾ò'(€€¼¼¡¥ÑÌƒ¢¾–"¯¦R»¾òi‘½}¥€¬¹½‘•}¥“¾ò#–B3¢*
-ç’â7–B0¡Õ¹¬ƒ¢’âë–B3’â¢¾š6»¾ò'(€™Õ¹Ñ¥½¸ÉÉ™ÕÍ”¡Á…Ñ¡Ì°¬€ô€ØÀ¤ì(€€€½¹ÍĞÍ½É•Ì€ô¹•Ü5…À ¤ì€¼¼­•äƒŠHí¥Ñ•´°ÉÉ™ô(€€€™½È€¡½¹ÍĞ¡¥ÑÌ½˜Á…Ñ¡Ì¤ì(€€€€€¥˜€ …¡¥ÑÌ¤½¹Ñ¥¹Õ”ì(€€€€€¡¥ÑÌ¹™½É…  ¡ °¤¤€ôøì(€€€€€€€½¹ÍĞ­•ä€ô€‘í ¹¹½‘”¹‘½}¥‘ôè‘í ¹¹½‘”¹¹½‘•}¥‘õ€ì(€€€€€€€½¹ÍĞÉÉ˜€ô€Ä€¼€¡¬€¬¤€¬€Ä¤ì(€€€€€€€½¹ÍĞ•¹ÑÉä€ôÍ½É•Ì¹•Ğ¡­•ä¤ì(€€€€€€€¥˜€¡•¹ÑÉä¤ì(€€€€€€€€€•¹ÑÉä¹ÉÉ˜€¬ôÉÉ˜ì(€€€€€€€€€€¼¼ƒ’şwVgšr¦®`	4ÈÔƒ–"€¬¡Õ¹¬ƒ’ş‡š¿¾ò#šv—¢«’îïš?’â¢Ş¿¾ò$(€€€€€€€€€¥˜€ ¡ ¹Í½É”ñğ€À¤€ø€¡•¹ÑÉä¹¥Ñ•´¹Í½É”ñğ€À¤¤•¹ÑÉä¹¥Ñ•´€ô ì(€€€€€€€ô•±Í”ì(€€€€€€€€€Í½É•Ì¹Í•Ğ¡­•ä°ì¥Ñ•´è °ÉÉ˜ô¤ì(€€€€€€€ô(€€€€€ô¤ì(€€€ô(€€€É•ÑÕÉ¸l¸¸¹Í½É•Ì¹Ù…±Õ•Ì ¥t(€€€€€€¹µ…À ¡”¤€ôø€¡ì€¸¸¹”¹¥Ñ•´°Í½É”è5…Ñ ¹É½Õ¹¡”¹ÉÉ˜€¨€ÄÀÀÀ¤€¼€ÄÀÀÀ°ÉÉ™M½É”è”¹ÉÉ˜ô¤¤(€€€€€€¹Í½ÉĞ ¡„°ˆ¤€ôøˆ¹ÉÉ™M½É”€´„¹ÉÉ™M½É”¤ì(€ô((€€¼¼Í•…É¡5Õ±Ñ¥A…Ñ£¾òk–6?¢Â–’k¢Ş¿–>³–nx€¬II(€€¼¼ƒ¢şS–nxIIƒ¢z7–B#–B;j¡¥ÑÏ¾ò#–B¬ÉÉ™M½É—¾ò'¾ò3’â8Í•…É ½Í•…É¡%¹Ù•ÉÑ•ƒ–ó–ºçîOšz(€™Õ¹Ñ¥½¸Í•…É¡5Õ±Ñ¥A…Ñ ¡ÅÕ•Éä°Á½ÍÑ¥¹Ì°¡Õ¹­MÑ…ÑÌ°±½‰…±%¹‘•à°Ñ½Á,€ô€ÔÀ¤ì(€€€¥˜€ …Á½ÍÑ¥¹Ìñğ€…¡Õ¹­MÑ…ÑÌ¤É•ÑÕÉ¸mtì(€€€€¼¼ƒ¢Ş¼¾òi	4ÈÕ‰½‘ç¾ò#’âï¢Ş¿¾ò3–B¯–B3’æ'¢¾7š&§–ÆT€¬ƒ–*ƒšv¾ò$(€€€½¹ÍĞÁ…Ñ¡€ôÍ•…É¡%¹Ù•ÉÑ•¡ÅÕ•Éä°Á½ÍÑ¥¹Ì°¡Õ¹­MÑ…ÑÌ°5…Ñ ¹µ…à¡Ñ½Á,°€ÔÀ¤¤ì(€€€€¼¼ƒ¢Ş¼¾òiÑ¥Ñ±”Á¡É…Í”(€€€½¹ÍĞÁ…Ñ¡€ôÍ•…É¡Q¥Ñ±•A¡É…Í”¡ÅÕ•Éä°Á½ÍÑ¥¹Ì°¡Õ¹­MÑ…ÑÌ°€ÈÀ¤ì(€€€€¼¼ƒ¢Ş¼¾òi‘½ŒÑ¥Ñ±”€¼Q=ƒ¢Ş¿RÄ(€€€½¹ÍĞÁ…Ñ¡€ôÍ•…É¡½I½ÕÑ”¡ÅÕ•Éä°±½‰…±%¹‘•à°Á½ÍÑ¥¹Ì°¡Õ¹­MÑ…ÑÌ°€ÈÀ¤ì(€€€€¼¼IIƒ¢z7–B#¾ò!ƒšv¦7šr¦®c¾ò1½ƒ¢†—–¾ò$(€€€½¹ÍĞ™ÕÍ•€ôÉÉ™ÕÍ”¡mÁ…Ñ¡°Á…Ñ¡°Á…Ñ¡t¤ì(€€€€¼¼Á•Èµ‘½Œƒš"«šZ´(€€€½¹ÍĞ‘½½Õ¹Ğ€ô¹•Ü5…À ¤°(€€€€€É•ÍÕ±ÑÌ€ômtì(€€€™½È€¡½¹ÍĞ¥Ñ•´½˜™ÕÍ•¤ì(€€€€€½¹ÍĞŒ€ô‘½½Õ¹Ğ¹•Ğ¡¥Ñ•´¹¹½‘”¹‘½}¥¤ñğ€Àì(€€€€€¥˜€¡Œ€ğ€Ì¤ì(€€€€€€€É•ÍÕ±ÑÌ¹ÁÕÍ ¡¥Ñ•´¤ì(€€€€€€€‘½½Õ¹Ğ¹Í•Ğ¡¥Ñ•´¹¹½‘”¹‘½}¥°Œ€¬€Ä¤ì(€€€€€ô(€€€€€¥˜€¡É•ÍÕ±ÑÌ¹±•¹Ñ €øôÑ½Á,€¨€È¤‰É•…¬ì(€€€ô(€€€É•ÑÕÉ¸É•ÍÕ±ÑÌ¹Í±¥” À°Ñ½Á,¤ì(€ô((€€¼¼ƒŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠV@(€€¼¼I4Ìƒ’ò«nã–Ï–>7¦š €¬ƒ¢¾7šÎWÊûš:H€¬55Hƒ–:ï–_’öd€¬Ñ½­•¸‰Õ‘•Ğ(€€¼¼ƒŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠVCŠV@((€€¼¼ƒŠRŠR I4Ìƒ’ò«nã–Ï–>7¦š#¾òkR 	4ÈÔÑ½Àµ4ƒ–öO–>7¦š#¦nš&§–ÆTÅÕ•ÉäÑ•É´ƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR (€€¼¼ƒ–¾ç~´ÅÕ•Éä€¼ƒ¢¾7¦v‹’â7–2ç¦7j–rëšf¿š>C–6–>³–n{¢Ò£¦?¢şS–n{š&§–ÆW–B;jÑ½­•¸ƒšVÃî(€™Õ¹Ñ¥½¸É´ÍáÁ…¹¡ÅÕ•ÉåQ½­•¹Ì°¡¥ÑÌ¤ì(€€€½¹ÍĞ4€ô€ÄÀ°€¼¼ƒ–>7¦š#šZš†šVÀ(€€€€€Ñ½ÁáÁ…¹Í¥½¹Ì€ô€ÄÔì€¼¼ƒš&§–ÆTÑ•É´ƒ’â+¦f@(€€€½¹ÍĞÑ½Á4€ô¡¥ÑÌ¹Í±¥” À°4¤ì(€€€¥˜€ …Ñ½Á4¹±•¹Ñ ¤É•ÑÕÉ¸ÅÕ•ÉåQ½­•¹Ìì(€€€€¼¼ƒî¢º„Ñ½Á4ƒ¦3š¾?’â¨Ñ•É´ƒj–*ƒšv¦ŠGš²‡¾ò#R 	4ÈÔÍ½É”ƒ–*ƒšv¾ò$(€€€½¹ÍĞÑ•ÉµM½É•Ì€ôíôì(€€€™½È€¡½¹ÍĞ ½˜Ñ½Á4¤ì(€€€€€½¹ÍĞ¸€ô ¹¹½‘”ì(€€€€€½¹ÍĞÑ•áĞ€ô€‘í¸¹Ñ¥Ñ±”ñğ€ˆ‰ô€‘ì¡¸¹Ñ•ÉµÌñğmt¤¹©½¥¸ ˆ€ˆ¥ô€‘í¸¹ÍÕµµ…Éäñğ¸¹•á•ÉÁĞñğ€ˆ‰õ€ì(€€€€€½¹ÍĞÑ­Ì€ôÑ½­•¹¥é”¡Ñ•áĞ¤ì(€€€€€™½È€¡½¹ÍĞĞ½˜Ñ­Ì¤Ñ•ÉµM½É•ÍmÑt€ô€¡Ñ•ÉµM½É•ÍmÑtñğ€À¤€¬ ¹Í½É”ì(€€€ô(€€€½¹ÍĞ•áÁ…¹‘•€ô=‰©•Ğ¹•¹ÑÉ¥•Ì¡Ñ•ÉµM½É•Ì¤(€€€€€€¹Í½ÉĞ ¡„°ˆ¤€ôø‰lÅt€´…lÅt¤(€€€€€€¹Í±¥” À°Ñ½ÁáÁ…¹Í¥½¹Ì¤(€€€€€€¹µ…À ¡à¤€ôøálÁt¤ì(€€€€¼¼ƒ–:–,Ñ½­•¹Ìƒ’òc–#¾ò!I4Ìƒš>K–ó¾ò3–:–/šv¦4ƒ:ÄôÀ¸Ó¾ò3’ö–B#–æÛš^Û’şwš2–:–/–r£–&7¾ò$(€€€É•ÑÕÉ¸l¸¸¹¹•ÜM•Ğ¡l¸¸¹ÅÕ•ÉåQ½­•¹Ì°€¸¸¹•áÁ…¹‘•‘t¥tì(€ô((€€¼¼ƒŠRŠR ƒ¢¾7šÎWÊûš:K¾òiÁÉ½á¥µ¥Ñä€¬Á¡É…Í”€¬½Ù•É…”ƒ’â'’ş‡–>Ü€¬	4ÈÔƒ–öK’â–2[–*ƒšvƒŠRŠRŠRŠRŠRŠRŠRŠR (€€¼¼ƒ–B–¶C–"µ¥¸µµ…àƒ–öK’â–2[–"ÀlÀ°Åw¾ò3–*ƒšvšÆ–J3šv¦7¾òi‰´ÈÔ€À¸Ô°ÁÉ½à€À¸È°Á¡É…Í”€À¸È°½Ø€À¸Ä(€½¹ÍĞII9-}]%!QL€ôì‰´ÈÔè€À¸Ô°ÁÉ½àè€À¸È°Á¡É…Í”è€À¸È°½Øè€À¸Äôì((€™Õ¹Ñ¥½¸±•á¥…±I•É…¹¬¡ÅÕ•ÉåQ½­•¹Ì°É…İEÕ•Éä°¡¥ÑÌ¤ì(€€€¥˜€ …¡¥ÑÌ¹±•¹Ñ ¤É•ÑÕÉ¸¡¥ÑÌì(€€€€¼¼ƒ¦bË–ú„éÉ…İEÕ•Éäƒ–>¿¢÷šb¼Õ¹‘•™¥¹•£š¢‡–z/¢şS–n{jÑ½½°…ÉÕµ•¹ÑÌƒòèÅÕ•Éäƒ–¶_šºÔ°(€€€€¼¼ƒš"X)M=8¹Á…ÉÍ”ƒ–ò–âã–s–êW’âë¦èíô§	0ØÔÜ¼ØØÌƒjÉ…İEÕ•Éä¹µ…Ñ ƒ’òkš*l(€€€€¼¼€‰…¹¹½ĞÉ•…ÁÉ½Á•ÉÑ¥•Ì½˜Õ¹‘•™¥¹•€¡É•…‘¥¹œ€µ…Ñ œ¤ˆƒ–¾ó¢ÓšVÓšv‡šÒ‹¦Nû–Ò§šê(€€€€¼¼ƒ–s–êW’âë¦ë–¶_²›’âÈ±µ…Ñ ƒ¢şS–nx¹Õ±°³–B;î·¦ï¢úG–º'–£¢ŞÏ¢ş(€€€É…İEÕ•Éä€ôÉ…İEÕ•Éäñğ€ˆˆì(€€€€¼¼ƒ¢º‡º_–B–¶C–"(€€€½¹ÍĞÍÕˆ€ô¡¥ÑÌ¹µ…À ¡ ¤€ôøì(€€€€€½¹ÍĞÁ½ÍM•Ğ€ô ¹Á½Í¥Ñ¥½¹Ìñğíôì(€€€€€€¼¼€¡„¤ÁÉ½á¥µ¥Ñç¾òkš2'–¶_šº×–"–"¯º\ÅÕ•ÉäÑ½­•¹Ìƒjšr–Â?¢Ş£–ê›¾ò3–>[šr’òc–¶_šº×(€€€€€€¼¼€€€€ƒ¢Ş£–¶_šº×’ö7ö»’â7–>¿š¾S¾ò!Ñ¥Ñ±•lÁtÙÌ•á•ÉÁÑlÔÁtƒš^ƒš?’æ'¾ò'¾ò3–ş¦†ï–B3–¶_šº×–º_(€€€€€±•Ğ‰•ÍÑAÉ½à€ô€Àì(€€€€€™½È€¡½¹ÍĞ˜½˜l‰Ñ¥Ñ±”ˆ°€‰‰É•…‘ÉÕµˆˆ°€‰Ñ•ÉµÌˆ°€‰ÍÕµµ…Éä‰t¤ì(€€€€€€€½¹ÍĞÁ½Í¥Ñ¥½¹Í%¹¥•±€ômtì(€€€€€€€™½È€¡½¹ÍĞÅĞ½˜ÅÕ•ÉåQ½­•¹Ì¤ì(€€€€€€€€€½¹ÍĞÀ€ôÁ½ÍM•ÑmÅÑtü¹m™tì(€€€€€€€€€¥˜€¡À€„ôôÕ¹‘•™¥¹•¤Á½Í¥Ñ¥½¹Í%¹¥•±¹ÁÕÍ ¡À¤ì(€€€€€€€ô(€€€€€€€¥˜€¡Á½Í¥Ñ¥½¹Í%¹¥•±¹±•¹Ñ €øô€È¤ì(€€€€€€€€€½¹ÍĞÍÁ…¸€ô5…Ñ ¹µ…à ¸¸¹Á½Í¥Ñ¥½¹Í%¹¥•±¤€´5…Ñ ¹µ¥¸ ¸¸¹Á½Í¥Ñ¥½¹Í%¹¥•±¤ì(€€€€€€€€€½¹ÍĞÍ½É”€ô€Ä€¼€¡ÍÁ…¸€¬€Ä¤ì(€€€€€€€€€¥˜€¡Í½É”€ø‰•ÍÑAÉ½à¤‰•ÍÑAÉ½à€ôÍ½É”ì(€€€€€€€ô(€€€€€ô(€€€€€¥˜€¡‰•ÍÑAÉ½à€ôôô€À¤ì(€€€€€€€€¼¼ƒ–>«–F÷’â·–6W’â¨Ñ½­•»¾ò3îg–~ë†–"(€€€€€€€½¹ÍĞ…¹å!¥Ğ€ô=‰©•Ğ¹Ù…±Õ•Ì¡Á½ÍM•Ğ¤¹Í½µ” ¡™À¤€ôø=‰©•Ğ¹­•åÌ¡™À¤¹±•¹Ñ €ø€À¤ì(€€€€€€€‰•ÍÑAÉ½à€ô…¹å!¥Ğ€ü€À¸È€è€Àì(€€€€€ô(€€€€€€¼¼€¡ˆ¤Á¡É…Í—¾òkšš~”ÅÕ•Éäƒj¢ş{î·&šº×šb¿–B›–r Ñ¥Ñ±”½‰É•…‘ÉÕµˆƒÊû†»–ë:Ã(€€€€€€¼¼€€€€ƒ’â·šZ¾òkR €Èƒ–¶_šîGª_–¶C’âË¾ò ‹êÿšŸ–N7–êP‹ŠH‹êÿšœ¿šŸ–N4¿–N7–êP¿–êSB¿B¢ºè‹¾ò'¾ò0(€€€€€€¼¼€€€€ƒ–nƒ’âè€ÈµÉ…´Ñ½­•¸ƒš.óš:”€‹êÿšœƒšŸ–N4ˆƒš^ƒšÎW–2ç¦7–:šZ¾ò3–ş¦†ïR£–:šZ–¶C’âË(€€€€€€¼¼€€€€ƒ¢.ÇšZ¾òkR Ñ½­•¸‰¥É…·¾ò ‰‰•ÉÉäÁ¡…Í”‹¾ò'–2ç¦7(€€€€€½¹ÍĞÑ¥Ñ±•Q•áĞ€ô€ (€€€€€€€€¡ ¹¹½‘”¹Ñ¥Ñ±”ñğ€ˆˆ¤€¬(€€€€€€€€ˆ€ˆ€¬(€€€€€€€€¡ ¹¹½‘”¹‰É•…‘ÉÕµˆñğmt¤¹©½¥¸ ˆ€ˆ¤(€€€€€€¤¹Ñ½1½İ•É…Í” ¤ì(€€€€€±•ĞÁ¡É…Í•!¥ÑÌ€ô€À°(€€€€€€€Á¡É…Í•Q½Ñ…°€ô€Àì(€€€€€€¼¼ƒ’â·šZ€Èƒ–¶_šîGª\(€€€€€½¹ÍĞ©­A…ÉĞ€ô€¡É…İEÕ•Éä¹µ…Ñ  ½o’â ·¦şıt¬½œ¤ñğmt¤¹©½¥¸ ˆˆ¤ì(€€€€€™½È€¡±•Ğ¤€ô€Àì¤€ğô©­A…ÉĞ¹±•¹Ñ €´€Èì¤¬¬¤ì(€€€€€€€Á¡É…Í•Q½Ñ…°¬¬ì(€€€€€€€¥˜€¡Ñ¥Ñ±•Q•áĞ¹¥¹±Õ‘•Ì¡©­A…ÉĞ¹Í±¥”¡¤°¤€¬€È¤¹Ñ½1½İ•É…Í” ¤¤¤Á¡É…Í•!¥ÑÌ¬¬ì(€€€€€ô(€€€€€€¼¼ƒ¢.ÇšZÑ½­•¸‰¥É…´(€€€€€½¹ÍĞ•¹Q½­•¹Ì€ôÉ…İEÕ•Éä¹Ñ½1½İ•É…Í” ¤¹µ…Ñ  ½m„µéum„µèÀ´åuìÄ±ô½œ¤ñğmtì(€€€€€™½È€¡±•Ğ¤€ô€Àì¤€ğ•¹Q½­•¹Ì¹±•¹Ñ €´€Äì¤¬¬¤ì(€€€€€€€Á¡É…Í•Q½Ñ…°¬¬ì(€€€€€€€¥˜€¡Ñ¥Ñ±•Q•áĞ¹¥¹±Õ‘•Ì¡•¹Q½­•¹Ím¥t€¬€ˆ€ˆ€¬•¹Q½­•¹Ím¤€¬€Åt¤¤Á¡É…Í•!¥ÑÌ¬¬ì(€€€€€ô(€€€€€½¹ÍĞÁ¡É…Í•M½É”€ôÁ¡É…Í•Q½Ñ…°€ü5…Ñ ¹µ¥¸¡Á¡É…Í•!¥ÑÌ€¼Á¡É…Í•Q½Ñ…°°€Ä¤€è€Àì(€€€€€€¼¼€¡Œ¤½Ù•É…—¾òk–F÷’â´ÅÕ•ÉäÑ½­•¸ƒšVÀ€¼ƒšìÅÕ•ÉäÑ½­•¸ƒšVÀ(€€€€€½¹ÍĞ¡¥ÑQ¬€ô¹•ÜM•Ğ ¤ì(€€€€€™½È€¡½¹ÍĞÅĞ½˜ÅÕ•ÉåQ½­•¹Ì¤¥˜€¡Á½ÍM•ÑmÅÑt¤¡¥ÑQ¬¹…‘¡ÅĞ¤ì(€€€€€½¹ÍĞ½ÙM½É”€ôÅÕ•ÉåQ½­•¹Ì¹±•¹Ñ €ü¡¥ÑQ¬¹Í¥é”€¼ÅÕ•ÉåQ½­•¹Ì¹±•¹Ñ €è€Àì(€€€€€É•ÑÕÉ¸ì °‰´ÈÔè ¹Í½É”°ÁÉ½àè‰•ÍÑAÉ½à°Á¡É…Í”èÁ¡É…Í•M½É”°½Øè½ÙM½É”ôì(€€€ô¤ì(€€€€¼¼µ¥¸µµ…àƒ–öK’â–2[–B–¶C–"(€€€½¹ÍĞ¹½É´€ô€¡­•ä¤€ôøì(€€€€€½¹ÍĞÙ…±Ì€ôÍÕˆ¹µ…À ¡Ì¤€ôøÍm­•åt¤ì(€€€€€½¹ÍĞµ¸€ô5…Ñ ¹µ¥¸ ¸¸¹Ù…±Ì¤°(€€€€€€€µà€ô5…Ñ ¹µ…à ¸¸¹Ù…±Ì¤ì(€€€€€½¹ÍĞÉ…¹”€ôµà€´µ¸ñğ€Äì(€€€€€™½È€¡½¹ÍĞÌ½˜ÍÕˆ¤Íl‰|ˆ€¬­•åt€ô€¡Ím­•åt€´µ¸¤€¼É…¹”ì(€€€ôì(€€€¹½É´ ‰‰´ÈÔˆ¤ì(€€€¹½É´ ‰ÁÉ½àˆ¤ì(€€€¹½É´ ‰Á¡É…Í”ˆ¤ì(€€€€¼¼½Ù•É…”ƒ–ŞËî?šb¼lÀ°Åw¾ò3š^ƒ¦r–öK’â–2X(€€€€¼¼ƒ–*ƒšvšÆ–J0ƒŠHÉ•É…¹­M½É”(€€€™½È€¡½¹ÍĞÌ½˜ÍÕˆ¤ì(€€€€€Ì¹ ¹É•É…¹­M½É”€ô(€€€€€€€II9-}]%!QL¹‰´ÈÔ€¨Ì¹}‰´ÈÔ€¬(€€€€€€€II9-}]%!QL¹ÁÉ½à€¨Ì¹}ÁÉ½à€¬(€€€€€€€II9-}]%!QL¹Á¡É…Í”€¨Ì¹}Á¡É…Í”€¬(€€€€€€€II9-}]%!QL¹½Ø€¨Ì¹½Øì(€€€ô(€€€É•ÑÕÉ¸ÍÕˆ¹µ…À ¡Ì¤€ôøÌ¹ ¤¹Í½ÉĞ ¡„°ˆ¤€ôøˆ¹É•É…¹­M½É”€´„¹É•É…¹­M½É”¤ì(€ô((€€¼¼ƒŠRŠR 55Hƒ–:ï–_’ög¾òhĞµÉ…´Í¡¥¹±”)……É“¾ò3¢Ò«–ş¦$Ñ½Àµ8ƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR (€€¼¼ƒ:ìôÀ¸Øƒ–?nã–Ï’ö’şwVg–’kš‚ßšŸ	½¹Ñ•áÑÌƒ¦†ï–ŞËš2$É•É…¹­M½É”ƒ¦f7–ê?¾ò3’âS–B¬€¹Ñ•áĞ(€™Õ¹Ñ¥½¸Í¡¥¹±”¡Ñ•áĞ°¬€ô€Ğ¤ì(€€€½¹ÍĞÑ½­•¹Ì€ôÑ½­•¹¥é”¡Ñ•áĞ¤ì(€€€¥˜€¡Ñ½­•¹Ì¹±•¹Ñ €ğ¬¤É•ÑÕÉ¸¹•ÜM•Ğ¡Ñ½­•¹Ì¤ì(€€€½¹ÍĞÍ¡¥¹±•Ì€ô¹•ÜM•Ğ ¤ì(€€€™½È€¡±•Ğ¤€ô€Àì¤€ğôÑ½­•¹Ì¹±•¹Ñ €´¬ì¤¬¬¤Í¡¥¹±•Ì¹…‘¡Ñ½­•¹Ì¹Í±¥”¡¤°¤€¬¬¤¹©½¥¸ ˆ€ˆ¤¤ì(€€€É•ÑÕÉ¸Í¡¥¹±•Ìì(€ô((€™Õ¹Ñ¥½¸©……É¡Í•Ñ°Í•Ñ¤ì(€€€¥˜€ …Í•Ñ¹Í¥é”ñğ€…Í•Ñ¹Í¥é”¤É•ÑÕÉ¸€Àì(€€€±•Ğ¥¹Ñ•È€ô€Àì(€€€™½È€¡½¹ÍĞÌ½˜Í•Ñ¤¥˜€¡Í•Ñ¹¡…Ì¡Ì¤¤¥¹Ñ•È¬¬ì(€€€É•ÑÕÉ¸¥¹Ñ•È€¼€¡Í•Ñ¹Í¥é”€¬Í•Ñ¹Í¥é”€´¥¹Ñ•È¤ì(€ô((€™Õ¹Ñ¥½¸µµÉM•±•Ğ¡½¹Ñ•áÑÌ°±…µ‰‘„€ô€À¸Ø°µ…á¡Õ¹­Ì€ô€à¤ì(€€€¥˜€¡½¹Ñ•áÑÌ¹±•¹Ñ €ğô€Ä¤É•ÑÕÉ¸½¹Ñ•áÑÌì(€€€€¼¼ƒ¦Š¢º‡º\Í¡¥¹±”(€€€™½È€¡½¹ÍĞŒ½˜½¹Ñ•áÑÌ¤Œ¹}Í¡¥¹±”€ôÍ¡¥¹±”¡Œ¹Ñ•áĞñğ€ˆˆ¤ì(€€€½¹ÍĞÍ•±•Ñ•€ôm½¹Ñ•áÑÍlÁut°€¼¼ƒ²³’â’â«¾ò#šr¦®c–"¾ò'nÓš:—¦$(€€€€€É•µ…¥¹¥¹œ€ô½¹Ñ•áÑÌ¹Í±¥” Ä¤ì(€€€İ¡¥±”€¡Í•±•Ñ•¹±•¹Ñ €ğµ…á¡Õ¹­Ì€˜˜É•µ…¥¹¥¹œ¹±•¹Ñ ¤ì(€€€€€±•Ğ‰•ÍÑ%‘à€ô€À°(€€€€€€€‰•ÍÑM½É”€ô€µ%¹™¥¹¥Ñäì(€€€€€™½È€¡±•Ğ¤€ô€Àì¤€ğÉ•µ…¥¹¥¹œ¹±•¹Ñ ì¤¬¬¤ì(€€€€€€€½¹ÍĞ…¹€ôÉ•µ…¥¹¥¹m¥tì(€€€€€€€±•Ğµ…áM¥´€ô€Àì(€€€€€€€™½È€¡½¹ÍĞÌ½˜Í•±•Ñ•¤ì(€€€€€€€€€½¹ÍĞÍ¥´€ô©……É¡…¹¹}Í¡¥¹±”°Ì¹}Í¡¥¹±”¤ì(€€€€€€€€€¥˜€¡Í¥´€øµ…áM¥´¤µ…áM¥´€ôÍ¥´ì(€€€€€€€ô(€€€€€€€½¹ÍĞµµÈ€ô±…µ‰‘„€¨€¡…¹¹É•É…¹­M½É”ñğ€À¤€´€ Ä€´±…µ‰‘„¤€¨µ…áM¥´ì(€€€€€€€¥˜€¡µµÈ€ø‰•ÍÑM½É”¤ì(€€€€€€€€€‰•ÍÑM½É”€ôµµÈì(€€€€€€€€€‰•ÍÑ%‘à€ô¤ì(€€€€€€€ô(€€€€€ô(€€€€€Í•±•Ñ•¹ÁÕÍ ¡É•µ…¥¹¥¹œ¹ÍÁ±¥”¡‰•ÍÑ%‘à°€Ä¥lÁt¤ì(€€€ô(€€€É•ÑÕÉ¸Í•±•Ñ•ì(€ô((€€¼¼ƒŠRŠR Q½­•¸ƒ’òÃº\€¬ƒš~—–:–>Ëj‰Õ‘•ĞÁ…­¥¹œƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR (€€¼¼ƒ¢şG’òó¾òk’â·šZ¡…ÉÌ¼Ä¸×¾ò3¢.ÇšZ¡…ÉÌ¼Ğ(€™Õ¹Ñ¥½¸•ÍÑ¥µ…Ñ•Q½­•¹Ì¡Ñ•áĞ¤ì(€€€¥˜€ …Ñ•áĞ¤É•ÑÕÉ¸€Àì(€€€½¹ÍĞ©¬€ô€¡Ñ•áĞ¹µ…Ñ  ½o’â ·¦şıt½œ¤ñğmt¤¹±•¹Ñ ì(€€€½¹ÍĞ½Ñ¡•È€ôÑ•áĞ¹±•¹Ñ €´©¬ì(€€€É•ÑÕÉ¸5…Ñ ¹•¥°¡©¬€¼€Ä¸Ô€¬½Ñ¡•È€¼€Ğ¤ì(€ô((€€¼¼ƒŠRŠR ½¹™¥‘•¹”ƒ–"êŸ¾ò#¦bÛšºÔ€×¾òk–’k’ş‡–>ßîw–¾ç–"¾ò3’ş¸µ¥¸µµ…àƒ–öK’â–2[¢fk¦®c¾ò$ƒŠRŠRŠRŠRŠRŠRŠRŠRŠRŠR (€€¼¼ƒš^œ±…ÍÍ¥™å½¹™¥‘•¹”ƒ–~ë’ê8µ¥¸µµ…àƒ–öK’â–2XÉ•É…¹­M½É—¾ò#nã–¾ç–"¾ò'¾ò3–¾ó¢Ó–òÇ–2ç¦7’æšbø¡¥£(€€¼¼ƒšZÃ&#R£îw–¾ç’ş‡–>ß¾òiÅÕ•ÉäÑ½­•¸ƒ¢šn[:¾ò#šr–òë¦&Ó–"¯¾ò$¬ÉÉ™M½É”€¬Ñ¥Ñ±”ƒ–F÷’â·(€™Õ¹Ñ¥½¸±…ÍÍ¥™å½¹™¥‘•¹”¡Ñ½ÁI•É…¹¬°Í½ÕÉ•½Õ¹Ğ¤ì(€€€€¼¼ƒ–ó–ºçš^Ÿ¶û–B7¾ò#–ŞË–ê–ò¾ò3’şwVg’î—¦bË–’[¦£¢ÂR£¾ò'–îë¢º»R ±…ÍÍ¥™å½¹™¥‘•¹•5Õ±Ñ§(€€€¥˜€¡Ñ½ÁI•É…¹¬€øô€À¸Ø€˜˜Í½ÕÉ•½Õ¹Ğ€øô€È¤É•ÑÕÉ¸€‰¡¥ ˆì(€€€¥˜€¡Ñ½ÁI•É…¹¬€øô€À¸Ìñğ€¡Ñ½ÁI•É…¹¬€øô€À¸ÄÔ€˜˜Í½ÕÉ•½Õ¹Ğ€øô€È¤¤É•ÑÕÉ¸€‰µ•‘¥Õ´ˆì(€€€É•ÑÕÉ¸€‰±½Üˆì(€ô((€€¼¼ƒ–’k’ş‡–>Ü½¹™¥‘•¹—¾ò#¦bÛšºÔ€Ôƒš‚ã–ş¾ò'(€€¼¼ƒ’ş‡–>ß¾ò#–º{šÖ/¦&Ó–"¯–*oš:K–ê?¾ò'¾òh(€€¼¼€€½Ù•É…”€ƒšr–òë¾òi½½ƒš~—¢¾ˆøÄ¸Ã¾ò1¹½}…¹Íİ•È€À¸ÈÔ´À¸ÔÜ(€€¼¼€€ÉÉ™M½É”€ƒš²‡–òë¾òi½½ƒŠ&”À¸ÀÛ¾ò1¹½}…¹Íİ•ÈƒŠ&À¸ÀĞÜ(€€¼¼€€Ñ¥Ñ±•!¥Ğ€€ƒ¢†—–¾òiÑ½ÀÄƒš‚¦Šc–F÷’â´ÅÕ•Éäƒš‚ã–ş¢¾4(€€¼¼€€µ…É¥¸€€€€ƒ¢†—–¾òiÑ½ÀÄµÑ½ÀÈÉÉ™M½É”ƒ–Ş»¾ò#šb;šbû¦Š–#šnÓ–>¿’ş‡¾ò$(€™Õ¹Ñ¥½¸±…ÍÍ¥™å½¹™¥‘•¹•5Õ±Ñ¤¡Í¥¹…±Ì¤ì(€€€½¹ÍĞì½Ù•É…”€ô€À°ÉÉ™M½É”€ô€À°Ñ¥Ñ±•!¥Ğ€ô™…±Í”°µ…É¥¸€ô€À°Í½ÕÉ•½Õ¹Ğ€ô€Äô€ôÍ¥¹…±Ìì(€€€€¼¼ƒ’ö;¢šn[nÓš:”±½ß¾ò#–’Ÿ¦<ÅÕ•Éäƒ¢¾7šr«–F÷’â´ƒŠHƒ–ú#–>¿¢÷š^ƒ¶Sš†#¾ò$(€€€¥˜€¡½Ù•É…”€ğ€À¸Ô¤É•ÑÕÉ¸€‰±½Üˆì(€€€€¼¼ƒ¦®c¢šnX€¬ƒ–òèÉÉ˜€¬€£š‚¦Šc–F÷’â·š"[–’kšê@¤ƒŠH¡¥ (€€€¥˜€¡½Ù•É…”€øô€À¸Ü€˜˜ÉÉ™M½É”€øô€À¸ÀÔ€˜˜€¡Ñ¥Ñ±•!¥ĞñğÍ½ÕÉ•½Õ¹Ğ€øô€Èñğµ…É¥¸€øô€À¸ÀÄ¤¤ì(€€€€€É•ÑÕÉ¸€‰¡¥ ˆì(€€€ô(€€€€¼¼ƒ’â·¶'¢šnXƒš"Xƒ’â·¶$ÉÉ˜ƒŠHµ•‘¥Õ´(€€€¥˜€¡½Ù•É…”€øô€À¸ÔñğÉÉ™M½É”€øô€À¸ÀĞ¤É•ÑÕÉ¸€‰µ•‘¥Õ´ˆì(€€€É•ÑÕÉ¸€‰±½Üˆì(€ô((€€¼¼ƒ¢º‡º\½¹™¥‘•¹”ƒ’ş‡–>ß¾ò#’î8É•É…¹¬ƒ–B;j¡¥ÑÌ€¬ÅÕ•Éäƒš>C–>[¾ò'(€™Õ¹Ñ¥½¸½µÁÕÑ•½¹™¥‘•¹•M¥¹…±Ì¡ÅÕ•Éä°¡¥ÑÌ¤ì(€€€¥˜€ …¡¥ÑÌñğ€…¡¥ÑÌ¹±•¹Ñ ¤ì(€€€€€É•ÑÕÉ¸ì½Ù•É…”è€À°ÉÉ™M½É”è€À°Ñ¥Ñ±•!¥Ğè™…±Í”°µ…É¥¸è€À°Í½ÕÉ•½Õ¹Ğè€Àôì(€€€ô(€€€½¹ÍĞÅQ½­Ì€ôÑ½­•¹¥é•U¹¥ÅÕ”¡ÅÕ•Éä¤ì(€€€½¹ÍĞÑ½ÀÔ€ô¡¥ÑÌ¹Í±¥” À°€Ô¤ì(€€€€¼¼½Ù•É…—¾òiÑ½ÀÔƒ¦3–F÷’â·’ê–’k–ÂDÅÕ•ÉäÑ½­•¸(€€€½¹ÍĞ¡¥ÑQ¬€ô¹•ÜM•Ğ ¤ì(€€€™½È€¡½¹ÍĞ ½˜Ñ½ÀÔ¤ì(€€€€€™½È€¡½¹ÍĞÅĞ½˜ÅQ½­Ì¤ì(€€€€€€€¥˜€¡ ¹Á½Í¥Ñ¥½¹Ìü¹mÅÑt¤¡¥ÑQ¬¹…‘¡ÅĞ¤ì(€€€€€ô(€€€ô(€€€½¹ÍĞ½Ù•É…”€ôÅQ½­Ì¹±•¹Ñ €ü¡¥ÑQ¬¹Í¥é”€¼ÅQ½­Ì¹±•¹Ñ €è€Àì(€€€½¹ÍĞÉÉ™M½É”€ô¡¥ÑÍlÁt¹ÉÉ™M½É”ñğ€Àì(€€€½¹ÍĞµ…É¥¸€ô€¡¡¥ÑÍlÁt¹ÉÉ™M½É”ñğ€À¤€´€¡¡¥ÑÍlÅtü¹ÉÉ™M½É”ñğ€À¤ì(€€€€¼¼Ñ¥Ñ±•!¥Ó¾òiÑ½ÀÄƒš‚¦Š`½‰É•…‘ÉÕµˆƒ–B¬ÅÕ•Éäƒj’îï’âš‚ã–ş¢¾4(€€€½¹ÍĞÑ½ÀÄ€ô¡¥ÑÍlÁtì(€€€½¹ÍĞÑ¥Ñ±•Q•áĞ€ô€ (€€€€€€¡Ñ½ÀÄ¹¹½‘”¹Ñ¥Ñ±”ñğ€ˆˆ¤€¬(€€€€€€ˆ€ˆ€¬(€€€€€€¡Ñ½ÀÄ¹¹½‘”¹‰É•…‘ÉÕµˆñğmt¤¹©½¥¸ ˆ€ˆ¤(€€€€¤¹Ñ½1½İ•É…Í” ¤ì(€€€½¹ÍĞÑ¥Ñ±•!¥Ğ€ôÅQ½­Ì¹Í½µ” ¡Ğ¤€ôøÑ¥Ñ±•Q•áĞ¹¥¹±Õ‘•Ì¡Ğ¤¤ì(€€€½¹ÍĞÍ½ÕÉ•½Õ¹Ğ€ô¹•ÜM•Ğ¡¡¥ÑÌ¹Í±¥” À°€ÄÀ¤¹µ…À ¡ ¤€ôø ¹¹½‘”¹‘½}¥¤¤¹Í¥é”ì(€€€É•ÑÕÉ¸ì½Ù•É…”°ÉÉ™M½É”°Ñ¥Ñ±•!¥Ğ°µ…É¥¸°Í½ÕÉ•½Õ¹Ğôì(€ô((€½¹ÍĞI•ÑÉ¥•Ù…°€ôì(€€€Ñ½­•¹¥é”°(€€€Ñ½­•¹¥é•I…Ü°(€€€Ñ½­•¹¥é•U¹¥ÅÕ”°(€€€Me9=9e5L°(€€€•áÁ…¹‘EÕ•Éä°(€€€•áÁ…¹‘EÕ•Éå]•¥¡Ñ•°(€€€Me9=9e5}]%!P°(€€€‰Õ¥±‘	4ÈÕMÑ…ÑÌ°(€€€‰´ÈÕM½É”°(€€€Í•…É °(€€€‰Õ¥±‘¡Õ¹­MÑ…ÑÌ°(€€€‰´ÈÕM½É•¡Õ¹¬°(€€€Í•…É¡%¹Ù•ÉÑ•°(€€€Í•…É¡Q¥Ñ±•A¡É…Í”°(€€€Í•…É¡½I½ÕÑ”°(€€€ÉÉ™ÕÍ”°(€€€Í•…É¡5Õ±Ñ¥A…Ñ °(€€€!U9-}%1}	==MP°(€€€É´ÍáÁ…¹°(€€€±•á¥…±I•É…¹¬°(€€€II9-}]%!QL°(€€€%1}	==MP°(€€€%1L°(€€€Í¡¥¹±”°(€€€©……É°(€€€µµÉM•±•Ğ°(€€€•ÍÑ¥µ…Ñ•Q½­•¹Ì°(€€€±…ÍÍ¥™å½¹™¥‘•¹”°(€€€±…ÍÍ¥™å½¹™¥‘•¹•5Õ±Ñ¤°(€€€½µÁÕÑ•½¹™¥‘•¹•M¥¹…±Ì°(€ôì((€¥˜€¡ÑåÁ•½˜µ½‘Õ±”€„ôô€‰Õ¹‘•™¥¹•ˆ€˜˜µ½‘Õ±”¹•áÁ½ÉÑÌ¤µ½‘Õ±”¹•áÁ½ÉÑÌ€ôI•ÑÉ¥•Ù…°ì(€•±Í”É½½Ğ¹eÕÕI•ÑÉ¥•Ù…°€ôI•ÑÉ¥•Ù…°ì)ô¤¡ÑåÁ•½˜±½‰…±Q¡¥Ì€„ôô€‰Õ¹‘•™¥¹•ˆ€ü±½‰…±Q¡¥Ì€èÑ¡¥Ì¤ì
+        body: fieldLen.body / N,
+      },
+      chunks: list,
+    };
+  }
+
+  // chunk å¤šå­—æ®µ BM25Fï¼ˆé˜¶æ®µ 2ï¼‰ï¼štitle/breadcrumb/body åˆ†å­—æ®µæ‰“åˆ† + å­—æ®µæƒé‡ã€‚
+  // æ ‡é¢˜å‘½ä¸­æƒé‡æœ€é«˜ï¼ˆæ¢å¤é˜¶æ®µ 1 ä¸¢å¤±çš„å­—æ®µåŠ æƒï¼‰ã€‚
+  // CHUNK_FIELD_BOOSTï¼štitle 6 / breadcrumb 3 / body 1ï¼ˆä¸ node-index BM25F å¯¹é½ï¼‰ã€‚
+  // weightsï¼ˆé˜¶æ®µ 3ï¼‰ï¼šå¯é€‰ Map<token, weight>ï¼ŒåŒä¹‰è¯ token æƒé‡ä½ï¼Œé¿å…ç¨€é‡Šç²¾ç¡®åŒ¹é…ã€‚
+  const CHUNK_FIELD_BOOST = { title: 6, breadcrumb: 3, body: 1 };
+
+  function bm25ScoreChunk(queryTokens, chunk, stats, weights) {
+    // é˜¶æ®µ 7ï¼šç”¨ buildChunkStats é¢„è®¡ç®—çš„ _tf mapï¼ˆé¿å…æ¯æ¬¡æŸ¥è¯¢é‡å¤ tokenize 42k chunkï¼‰
+    const tf = chunk._tf;
+    let total = 0;
+    for (const f of ["title", "breadcrumb", "body"]) {
+      const tfMap = tf?.[f];
+      if (!tfMap) continue; // æ— é¢„è®¡ç®—æ—¶è·³è¿‡ï¼ˆä¸åº”å‘ç”Ÿï¼‰
+      const docLen = tf._len[f];
+      const avgLen = stats.fieldAvgLen?.[f] || stats.avgLen || 1;
+      for (const qt of queryTokens) {
+        const tfreq = tfMap.get(qt) || 0;
+        if (!tfreq) continue;
+        const df = stats.df.get(qt) || 0;
+        const idf = Math.log(1 + (stats.N - df + 0.5) / (df + 0.5));
+        const norm = 1 - BM25_B + BM25_B * (docLen / (avgLen || 1));
+        const w = weights ? weights.get(qt) || 0 : 1;
+        total +=
+          idf * ((tfreq * (BM25_K + 1)) / (tfreq + BM25_K * norm)) * CHUNK_FIELD_BOOST[f] * w;
+      }
+    }
+    return total;
+  }
+
+  // searchInvertedï¼šç”¨å€’æ’ postings æ£€ç´¢ï¼Œåªéå†å« query token çš„ chunkã€‚
+  // postings: {token: [[cid_num, tf], ...]}
+  // chunkStats: buildChunkStats() çš„è¿”å›ï¼ˆå« chunks æ•°ç»„ï¼ŒæŒ‰ cid_num ç´¢å¼•ï¼‰
+  // è¿”å›ä¸ search() å…¼å®¹çš„ [{node, score, tokens, positions, chunk}] ç»“æ„ï¼Œ
+  // node å­—æ®µä» chunk å…ƒæ•°æ®åˆæˆï¼ˆä¾› lexicalRerank / ä¸Šå±‚å¤ç”¨ï¼‰ã€‚
+  function searchInverted(query, postings, chunkStats, topK = 50) {
+    if (!postings || !chunkStats) return [];
+    // å€™é€‰æ”¶é›†ç”¨ uniqueï¼ˆæˆå‘˜å…³ç³»å³å¯ï¼‰ï¼›æ‰“åˆ†ç”¨å¸¦é¢‘æ¬¡ tokenizeï¼ˆçœŸå® TFï¼‰
+    const origTokens = tokenizeUnique(query);
+    if (!origTokens.length) return [];
+    const { tokens, weights } = expandQueryWeighted(origTokens, query);
+
+    // æ”¶é›†å€™é€‰ chunk_id â†’ å‘½ä¸­ token æ•°
+    const candIds = new Map(); // cid_num â†’ hitCount
+    for (const qt of tokens) {
+      const plist = postings[qt];
+      if (!plist) continue;
+      for (const [cidNum] of plist) {
+        candIds.set(cidNum, (candIds.get(cidNum) || 0) + 1);
+      }
+    }
+    if (!candIds.size) return [];
+
+    // cid_num â†’ chunk ç´¢å¼•è¡¨ï¼ˆchunk_id å½¢å¦‚ c000001ï¼Œcid_num = parseInt(slice)ï¼‰
+    // é¢„å»ºä¸€æ¬¡ï¼šcidMap[num] = chunk
+    if (!chunkStats._cidMap) {
+      const m = new Map();
+      for (const ch of chunkStats.chunks) {
+        const cid = ch.chunk_id || "";
+        if (cid.startsWith("c")) {
+          const num = parseInt(cid.slice(1), 10);
+          if (!isNaN(num)) m.set(num, ch);
+        }
+      }
+      chunkStats._cidMap = m;
+    }
+    const cidMap = chunkStats._cidMap;
+
+    const scored = [];
+    for (const cidNum of candIds.keys()) {
+      const chunk = cidMap.get(cidNum);
+      if (!chunk) continue;
+      const s = bm25ScoreChunk(tokens, chunk, chunkStats, weights);
+      if (s > 0) {
+        const score = Math.round(s * 100) / 100;
+        // åˆæˆ nodeï¼ˆä¾›ä¸Šå±‚ lexicalRerank / doc_id èšåˆå¤ç”¨ï¼‰
+        const node = {
+          doc_id: chunk.doc_id,
+          node_id: chunk.node_id,
+          title: chunk.title,
+          breadcrumb: chunk.breadcrumb,
+          url: "",
+          terms: [],
+          summary: chunk.body.slice(0, 200), // chunk body é¦–æ®µä½œ summary å…œåº•
+          line_num: chunk.line_num,
+        };
+        // positionsï¼štoken åœ¨ title/breadcrumb/body ä¸­çš„é¦–æ¬¡ä½ç½®
+        const positions = {};
+        const titleToks = tokenize(chunk.title || "");
+        const bcToks = tokenize((chunk.breadcrumb || []).join(" "));
+        const bodyToks = tokenize(chunk.body || "");
+        for (const qt of tokens) {
+          const ti = titleToks.indexOf(qt),
+            bi = bcToks.indexOf(qt),
+            si = bodyToks.indexOf(qt);
+          if (ti >= 0 || bi >= 0 || si >= 0) {
+            positions[qt] = {};
+            if (ti >= 0) positions[qt].title = ti;
+            if (bi >= 0) positions[qt].breadcrumb = bi;
+            if (si >= 0) positions[qt].summary = si; // å¤ç”¨ summary å­—æ®µä½
+          }
+        }
+        scored.push({ node, score, tokens, positions, chunk });
+      }
+    }
+    scored.sort((a, b) => b.score - a.score);
+    // per-doc æˆªæ–­ï¼ˆä¸ search() ä¸€è‡´ï¼šæ¯ doc æœ€å¤š 3 ä¸ªï¼‰
+    const docCount = new Map(),
+      results = [];
+    for (const item of scored) {
+      const c = docCount.get(item.node.doc_id) || 0;
+      if (c < 3) {
+        results.push(item);
+        docCount.set(item.node.doc_id, c + 1);
+      }
+      if (results.length >= topK * 2) break;
+    }
+    return results.slice(0, topK);
+  }
+
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // å¤šè·¯å¬å› + Reciprocal Rank Fusionï¼ˆé˜¶æ®µ 4ï¼‰
+  // æ— å‘é‡ä¹Ÿå¯åš hybrid sparseï¼šå¤šè·¯ç‹¬ç«‹å¬å› â†’ RRF èåˆ â†’ é‡æ’ã€‚
+  // æ¯”å•è·¯ BM25 + å‡ RM3 ç¨³å®šï¼Œè§£ä¸»é¢˜æ¶ˆæ­§ï¼ˆå¦‚"åŒç²¾åº¦æ¡ä»¶æ•°"åŒæ—¶å‘½ä¸­
+  // numerical-computation ä¸ qmc-lattice-modelsï¼Œtitle è·¯ç»™åè€…åŠ æƒï¼‰ã€‚
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+  // è·¯ Aï¼štitle exact / phrase åŒ¹é…ã€‚rawQuery çš„è¿ç»­ç‰‡æ®µåœ¨ title/breadcrumb å‡ºç° â†’ é«˜ boostã€‚
+  // å¤ç”¨ searchInverted çš„å€™é€‰ï¼Œä½†åªä¿ç•™ title/breadcrumb å‘½ä¸­çš„ï¼ŒæŒ‰ phrase è¦†ç›–ç‡æ’åºã€‚
+  function searchTitlePhrase(query, postings, chunkStats, topK = 20) {
+    if (!postings || !chunkStats) return [];
+    const all = searchInverted(query, postings, chunkStats, topK * 3);
+    const raw = (query || "").toLowerCase();
+    const cjkPart = (raw.match(/[ä¸€-é¿¿]+/g) || []).join("");
+    const enTokens = raw.match(/[a-z][a-z0-9]{1,}/g) || [];
+    const out = [];
+    for (const h of all) {
+      const titleText = (
+        (h.chunk.title || "") +
+        " " +
+        (h.chunk.breadcrumb || []).join(" ")
+      ).toLowerCase();
+      let phraseHits = 0,
+        phraseTotal = 0;
+      for (let i = 0; i <= cjkPart.length - 2; i++) {
+        phraseTotal++;
+        if (titleText.includes(cjkPart.slice(i, i + 2))) phraseHits++;
+      }
+      for (let i = 0; i < enTokens.length - 1; i++) {
+        phraseTotal++;
+        if (titleText.includes(enTokens[i] + " " + enTokens[i + 1])) phraseHits++;
+      }
+      // å• token ä¹Ÿç®—ï¼ˆè‹±æ–‡æœ¯è¯­ï¼‰
+      for (const t of enTokens) {
+        phraseTotal++;
+        if (titleText.includes(t)) phraseHits++;
+      }
+      const phraseScore = phraseTotal ? phraseHits / phraseTotal : 0;
+      if (phraseScore > 0.3) {
+        // æ ‡é¢˜å‘½ä¸­åˆ†é«˜çš„ä¼˜å…ˆï¼›ä¿ç•™åŸ BM25 åˆ†ä½œæ¬¡åºå‚è€ƒ
+        out.push({ ...h, score: Math.round(phraseScore * 100) / 100 });
+      }
+    }
+    return out.sort((a, b) => b.score - a.score).slice(0, topK);
+  }
+
+  // è·¯ Eï¼šdoc title / TOC è·¯ç”±ã€‚åŒ¹é… globalIndex çš„æ–‡æ¡£æ ‡é¢˜ï¼ˆæ•´ä¹¦/æ•´ç¯‡å±‚é¢å®šä½ï¼‰ã€‚
+  // è¿”å›è¯¥æ–‡æ¡£çš„æ‰€æœ‰ chunkï¼ˆæŒ‰ BM25 æ’ï¼‰ï¼Œä¾›åç»­èåˆæ—¶æ•´æ–‡æ¡£åŠ æƒã€‚
+  function searchDocRoute(query, globalIndex, postings, chunkStats, topK = 20) {
+    if (!globalIndex?.docs || !chunkStats) return [];
+    const raw = (query || "").toLowerCase();
+    const qToks = tokenizeUnique(query);
+    const docScores = [];
+    for (const doc of globalIndex.docs) {
+      const titleText = (doc.title || "").toLowerCase();
+      const descText = (doc.description || "").toLowerCase();
+      const titleToks = tokenizeUnique(doc.title || "");
+      // æ•´æ ‡é¢˜å­ä¸²å‘½ä¸­ æˆ– token é‡å 
+      let overlap = 0;
+      for (const t of qToks) if (titleToks.includes(t)) overlap++;
+      const cjkHit = (raw.match(/[ä¸€-é¿¿]+/g) || []).some((seg) => titleText.includes(seg));
+      const enHit = (raw.match(/[a-z][a-z0-9]{1,}/g) || []).some((t) => titleText.includes(t));
+      const score = overlap + (cjkHit ? 2 : 0) + (enHit ? 2 : 0) + (descText.includes(raw) ? 1 : 0);
+      if (score > 0) docScores.push({ doc, score });
+    }
+    docScores.sort((a, b) => b.score - a.score);
+    // å– top æ–‡æ¡£çš„ chunkï¼ˆä» chunkStats é‡Œç­›ï¼‰
+    const topDocs = new Set(docScores.slice(0, 5).map((d) => d.doc.id));
+    if (!topDocs.size) return [];
+    const out = [];
+    for (const ch of chunkStats.chunks) {
+      if (topDocs.has(ch.doc_id)) {
+        out.push({
+          node: {
+            doc_id: ch.doc_id,
+            node_id: ch.node_id,
+            title: ch.title,
+            breadcrumb: ch.breadcrumb,
+            url: "",
+            terms: [],
+            summary: (ch.body || "").slice(0, 200),
+            line_num: ch.line_num,
+          },
+          score: 0.1,
+          tokens: qToks,
+          positions: {},
+          chunk: ch,
+        });
+      }
+      if (out.length >= topK * 3) break;
+    }
+    return out.slice(0, topK);
+  }
+
+  // RRF èåˆï¼šå¤šè·¯ç»“æœæŒ‰ Reciprocal Rank Fusion åˆå¹¶ã€‚
+  // score(d) = Î£ 1/(k + rank_i(d))ï¼Œk=60ï¼ˆæ ‡å‡† RRF å¸¸æ•°ï¼‰ã€‚
+  // hits è¯†åˆ«é”®ï¼šdoc_id + node_idï¼ˆåŒèŠ‚ç‚¹ä¸åŒ chunk è§†ä¸ºåŒä¸€è¯æ®ï¼‰ã€‚
+  function rrfFuse(paths, k = 60) {
+    const scores = new Map(); // key â†’ {item, rrf}
+    for (const hits of paths) {
+      if (!hits) continue;
+      hits.forEach((h, i) => {
+        const key = `${h.node.doc_id}:${h.node.node_id}`;
+        const rrf = 1 / (k + i + 1);
+        const entry = scores.get(key);
+        if (entry) {
+          entry.rrf += rrf;
+          // ä¿ç•™æœ€é«˜ BM25 åˆ† + chunk ä¿¡æ¯ï¼ˆæ¥è‡ªä»»æ„ä¸€è·¯ï¼‰
+          if ((h.score || 0) > (entry.item.score || 0)) entry.item = h;
+        } else {
+          scores.set(key, { item: h, rrf });
+        }
+      });
+    }
+    return [...scores.values()]
+      .map((e) => ({ ...e.item, score: Math.round(e.rrf * 1000) / 1000, rrfScore: e.rrf }))
+      .sort((a, b) => b.rrfScore - a.rrfScore);
+  }
+
+  // searchMultiPathï¼šåè°ƒå¤šè·¯å¬å› + RRFã€‚
+  // è¿”å› RRF èåˆåçš„ hitsï¼ˆå« rrfScoreï¼‰ï¼Œä¸ search/searchInverted å…¼å®¹ç»“æ„ã€‚
+  function searchMultiPath(query, postings, chunkStats, globalIndex, topK = 50) {
+    if (!postings || !chunkStats) return [];
+    // è·¯ Bï¼šBM25F bodyï¼ˆä¸»è·¯ï¼Œå«åŒä¹‰è¯æ‰©å±• + åŠ æƒï¼‰
+    const pathB = searchInverted(query, postings, chunkStats, Math.max(topK, 50));
+    // è·¯ Aï¼štitle phrase
+    const pathA = searchTitlePhrase(query, postings, chunkStats, 20);
+    // è·¯ Eï¼šdoc title / TOC è·¯ç”±
+    const pathE = searchDocRoute(query, globalIndex, postings, chunkStats, 20);
+    // RRF èåˆï¼ˆB æƒé‡æœ€é«˜ï¼ŒA/E è¡¥å……ï¼‰
+    const fused = rrfFuse([pathA, pathB, pathE]);
+    // per-doc æˆªæ–­
+    const docCount = new Map(),
+      results = [];
+    for (const item of fused) {
+      const c = docCount.get(item.node.doc_id) || 0;
+      if (c < 3) {
+        results.push(item);
+        docCount.set(item.node.doc_id, c + 1);
+      }
+      if (results.length >= topK * 2) break;
+    }
+    return results.slice(0, topK);
+  }
+
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // RM3 ä¼ªç›¸å…³åé¦ˆ + è¯æ³•ç²¾æ’ + MMR å»å†—ä½™ + token budget
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+  // â”€â”€ RM3 ä¼ªç›¸å…³åé¦ˆï¼šç”¨ BM25 top-M å½“åé¦ˆé›†æ‰©å±• query term â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // å¯¹çŸ­ query / è¯é¢ä¸åŒ¹é…çš„åœºæ™¯æå‡å¬å›è´¨é‡ã€‚è¿”å›æ‰©å±•åçš„ token æ•°ç»„ã€‚
+  function rm3Expand(queryTokens, hits) {
+    const M = 10, // åé¦ˆæ–‡æ¡£æ•°
+      topExpansions = 15; // æ‰©å±• term ä¸Šé™
+    const topM = hits.slice(0, M);
+    if (!topM.length) return queryTokens;
+    // ç»Ÿè®¡ topM é‡Œæ¯ä¸ª term çš„åŠ æƒé¢‘æ¬¡ï¼ˆç”¨ BM25 score åŠ æƒï¼‰
+    const termScores = {};
+    for (const h of topM) {
+      const n = h.node;
+      const text = `${n.title || ""} ${(n.terms || []).join(" ")} ${n.summary || n.excerpt || ""}`;
+      const tks = tokenize(text);
+      for (const t of tks) termScores[t] = (termScores[t] || 0) + h.score;
+    }
+    const expanded = Object.entries(termScores)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, topExpansions)
+      .map((x) => x[0]);
+    // åŸå§‹ tokens ä¼˜å…ˆï¼ˆRM3 æ’å€¼ï¼ŒåŸå§‹æƒé‡ Î±=0.4ï¼Œä½†åˆå¹¶æ—¶ä¿æŒåŸå§‹åœ¨å‰ï¼‰
+    return [...new Set([...queryTokens, ...expanded])];
+  }
+
+  // â”€â”€ è¯æ³•ç²¾æ’ï¼šproximity + phrase + coverage ä¸‰ä¿¡å· + BM25 å½’ä¸€åŒ–åŠ æƒ â”€â”€â”€â”€â”€â”€â”€â”€
+  // å„å­åˆ† min-max å½’ä¸€åŒ–åˆ° [0,1]ï¼ŒåŠ æƒæ±‚å’Œã€‚æƒé‡ï¼šbm25 0.5, prox 0.2, phrase 0.2, cov 0.1
+  const RERANK_WEIGHTS = { bm25: 0.5, prox: 0.2, phrase: 0.2, cov: 0.1 };
+
+  function lexicalRerank(queryTokens, rawQuery, hits) {
+    if (!hits.length) return hits;
+    // é˜²å¾¡:rawQuery å¯èƒ½æ˜¯ undefined(æ¨¡å‹è¿”å›çš„ tool arguments ç¼º query å­—æ®µ,
+    // æˆ– JSON.parse å¼‚å¸¸å…œåº•ä¸ºç©º {})ã€‚L657/663 çš„ rawQuery.match ä¼šæŠ›
+    // "Cannot read properties of undefined (reading 'match')" å¯¼è‡´æ•´æ¡æ£€ç´¢é“¾å´©æºƒã€‚
+    // å…œåº•ä¸ºç©ºå­—ç¬¦ä¸²,match è¿”å› null,åç»­é€»è¾‘å®‰å…¨è·³è¿‡ã€‚
+    rawQuery = rawQuery || "";
+    // è®¡ç®—å„å­åˆ†
+    const sub = hits.map((h) => {
+      const posSet = h.positions || {};
+      // (a) proximityï¼šæŒ‰å­—æ®µåˆ†åˆ«ç®— query tokens çš„æœ€å°è·¨åº¦ï¼Œå–æœ€ä¼˜å­—æ®µã€‚
+      //     è·¨å­—æ®µä½ç½®ä¸å¯æ¯”ï¼ˆtitle[0] vs excerpt[50] æ— æ„ä¹‰ï¼‰ï¼Œå¿…é¡»åŒå­—æ®µå†…ç®—ã€‚
+      let bestProx = 0;
+      for (const f of ["title", "breadcrumb", "terms", "summary"]) {
+        const positionsInField = [];
+        for (const qt of queryTokens) {
+          const p = posSet[qt]?.[f];
+          if (p !== undefined) positionsInField.push(p);
+        }
+        if (positionsInField.length >= 2) {
+          const span = Math.max(...positionsInField) - Math.min(...positionsInField);
+          const score = 1 / (span + 1);
+          if (score > bestProx) bestProx = score;
+        }
+      }
+      if (bestProx === 0) {
+        // åªå‘½ä¸­å•ä¸ª tokenï¼Œç»™åŸºç¡€åˆ†
+        const anyHit = Object.values(posSet).some((fp) => Object.keys(fp).length > 0);
+        bestProx = anyHit ? 0.2 : 0;
+      }
+      // (b) phraseï¼šæ£€æŸ¥ query çš„è¿ç»­ç‰‡æ®µæ˜¯å¦åœ¨ title/breadcrumb ç²¾ç¡®å‡ºç°ã€‚
+      //     ä¸­æ–‡ï¼šç”¨ 2 å­—æ»‘çª—å­ä¸²ï¼ˆ"çº¿æ€§å“åº”"â†’"çº¿æ€§/æ€§å“/å“åº”/åº”ç†/ç†è®º"ï¼‰ï¼Œ
+      //     å› ä¸º 2-gram token æ‹¼æ¥ "çº¿æ€§ æ€§å“" æ— æ³•åŒ¹é…åŸæ–‡ï¼Œå¿…é¡»ç”¨åŸæ–‡å­ä¸²ã€‚
+      //     è‹±æ–‡ï¼šç”¨ token bigramï¼ˆ"berry phase"ï¼‰åŒ¹é…ã€‚
+      const titleText = (
+        (h.node.title || "") +
+        " " +
+        (h.node.breadcrumb || []).join(" ")
+      ).toLowerCase();
+      let phraseHits = 0,
+        phraseTotal = 0;
+      // ä¸­æ–‡ 2 å­—æ»‘çª—
+      const cjkPart = (rawQuery.match(/[ä¸€-é¿¿]+/g) || []).join("");
+      for (let i = 0; i <= cjkPart.length - 2; i++) {
+        phraseTotal++;
+        if (titleText.includes(cjkPart.slice(i, i + 2).toLowerCase())) phraseHits++;
+      }
+      // è‹±æ–‡ token bigram
+      const enTokens = rawQuery.toLowerCase().match(/[a-z][a-z0-9]{1,}/g) || [];
+      for (let i = 0; i < enTokens.length - 1; i++) {
+        phraseTotal++;
+        if (titleText.includes(enTokens[i] + " " + enTokens[i + 1])) phraseHits++;
+      }
+      const phraseScore = phraseTotal ? Math.min(phraseHits / phraseTotal, 1) : 0;
+      // (c) coverageï¼šå‘½ä¸­ query token æ•° / æ€» query token æ•°
+      const hitTk = new Set();
+      for (const qt of queryTokens) if (posSet[qt]) hitTk.add(qt);
+      const covScore = queryTokens.length ? hitTk.size / queryTokens.length : 0;
+      return { h, bm25: h.score, prox: bestProx, phrase: phraseScore, cov: covScore };
+    });
+    // min-max å½’ä¸€åŒ–å„å­åˆ†
+    const norm = (key) => {
+      const vals = sub.map((s) => s[key]);
+      const mn = Math.min(...vals),
+        mx = Math.max(...vals);
+      const range = mx - mn || 1;
+      for (const s of sub) s["_" + key] = (s[key] - mn) / range;
+    };
+    norm("bm25");
+    norm("prox");
+    norm("phrase");
+    // coverage å·²ç»æ˜¯ [0,1]ï¼Œæ— éœ€å½’ä¸€åŒ–
+    // åŠ æƒæ±‚å’Œ â†’ rerankScore
+    for (const s of sub) {
+      s.h.rerankScore =
+        RERANK_WEIGHTS.bm25 * s._bm25 +
+        RERANK_WEIGHTS.prox * s._prox +
+        RERANK_WEIGHTS.phrase * s._phrase +
+        RERANK_WEIGHTS.cov * s.cov;
+    }
+    return sub.map((s) => s.h).sort((a, b) => b.rerankScore - a.rerankScore);
+  }
+
+  // â”€â”€ MMR å»å†—ä½™ï¼š4-gram shingle Jaccardï¼Œè´ªå¿ƒé€‰ top-N â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Î»=0.6 åç›¸å…³ä½†ä¿ç•™å¤šæ ·æ€§ã€‚contexts é¡»å·²æŒ‰ rerankScore é™åºï¼Œä¸”å« .text
+  function shingle(text, k = 4) {
+    const tokens = tokenize(text);
+    if (tokens.length < k) return new Set(tokens);
+    const shingles = new Set();
+    for (let i = 0; i <= tokens.length - k; i++) shingles.add(tokens.slice(i, i + k).join(" "));
+    return shingles;
+  }
+
+  function jaccard(setA, setB) {
+    if (!setA.size || !setB.size) return 0;
+    let inter = 0;
+    for (const s of setA) if (setB.has(s)) inter++;
+    return inter / (setA.size + setB.size - inter);
+  }
+
+  function mmrSelect(contexts, lambda = 0.6, maxChunks = 8) {
+    if (contexts.length <= 1) return contexts;
+    // é¢„è®¡ç®— shingle
+    for (const c of contexts) c._shingle = shingle(c.text || "");
+    const selected = [contexts[0]], // ç¬¬ä¸€ä¸ªï¼ˆæœ€é«˜åˆ†ï¼‰ç›´æ¥é€‰
+      remaining = contexts.slice(1);
+    while (selected.length < maxChunks && remaining.length) {
+      let bestIdx = 0,
+        bestScore = -Infinity;
+      for (let i = 0; i < remaining.length; i++) {
+        const cand = remaining[i];
+        let maxSim = 0;
+        for (const s of selected) {
+          const sim = jaccard(cand._shingle, s._shingle);
+          if (sim > maxSim) maxSim = sim;
+        }
+        const mmr = lambda * (cand.rerankScore || 0) - (1 - lambda) * maxSim;
+        if (mmr > bestScore) {
+          bestScore = mmr;
+          bestIdx = i;
+        }
+      }
+      selected.push(remaining.splice(bestIdx, 1)[0]);
+    }
+    return selected;
+  }
+
+  // â”€â”€ Token ä¼°ç®— + æ„ŸçŸ¥å†å²çš„ budget packing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // è¿‘ä¼¼ï¼šä¸­æ–‡ chars/1.5ï¼Œè‹±æ–‡ chars/4
+  function estimateTokens(text) {
+    if (!text) return 0;
+    const cjk = (text.match(/[ä¸€-é¿¿]/g) || []).length;
+    const other = text.length - cjk;
+    return Math.ceil(cjk / 1.5 + other / 4);
+  }
+
+  // â”€â”€ Confidence åˆ†çº§ï¼ˆé˜¶æ®µ 5ï¼šå¤šä¿¡å·ç»å¯¹åˆ†ï¼Œä¿® min-max å½’ä¸€åŒ–è™šé«˜ï¼‰ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // æ—§ classifyConfidence åŸºäº min-max å½’ä¸€åŒ– rerankScoreï¼ˆç›¸å¯¹åˆ†ï¼‰ï¼Œå¯¼è‡´å¼±åŒ¹é…ä¹Ÿæ˜¾ highã€‚
+  // æ–°ç‰ˆç”¨ç»å¯¹ä¿¡å·ï¼šquery token è¦†ç›–ç‡ï¼ˆæœ€å¼ºé‰´åˆ«ï¼‰+ rrfScore + title å‘½ä¸­ã€‚
+  function classifyConfidence(topRerank, sourceCount) {
+    // å…¼å®¹æ—§ç­¾åï¼ˆå·²åºŸå¼ƒï¼Œä¿ç•™ä»¥é˜²å¤–éƒ¨è°ƒç”¨ï¼‰ã€‚å»ºè®®ç”¨ classifyConfidenceMultiã€‚
+    if (topRerank >= 0.6 && sourceCount >= 2) return "high";
+    if (topRerank >= 0.3 || (topRerank >= 0.15 && sourceCount >= 2)) return "medium";
+    return "low";
+  }
+
+  // å¤šä¿¡å· confidenceï¼ˆé˜¶æ®µ 5 æ ¸å¿ƒï¼‰ã€‚
+  // ä¿¡å·ï¼ˆå®æµ‹é‰´åˆ«åŠ›æ’åºï¼‰ï¼š
+  //   coverage  æœ€å¼ºï¼šgood æŸ¥è¯¢ ~1.0ï¼Œno_answer 0.25-0.57
+  //   rrfScore  æ¬¡å¼ºï¼šgood â‰¥0.06ï¼Œno_answer â‰¤0.047
+  //   titleHit   è¡¥å……ï¼štop1 æ ‡é¢˜å‘½ä¸­ query æ ¸å¿ƒè¯
+  //   margin     è¡¥å……ï¼štop1-top2 rrfScore å·®ï¼ˆæ˜æ˜¾é¢†å…ˆæ›´å¯ä¿¡ï¼‰
+  function classifyConfidenceMulti(signals) {
+    const { coverage = 0, rrfScore = 0, titleHit = false, margin = 0, sourceCount = 1 } = signals;
+    // ä½è¦†ç›–ç›´æ¥ lowï¼ˆå¤§é‡ query è¯æœªå‘½ä¸­ â†’ å¾ˆå¯èƒ½æ— ç­”æ¡ˆï¼‰
+    if (coverage < 0.5) return "low";
+    // é«˜è¦†ç›– + å¼º rrf + (æ ‡é¢˜å‘½ä¸­æˆ–å¤šæº) â†’ high
+    if (coverage >= 0.7 && rrfScore >= 0.05 && (titleHit || sourceCount >= 2 || margin >= 0.01)) {
+      return "high";
+    }
+    // ä¸­ç­‰è¦†ç›– æˆ– ä¸­ç­‰ rrf â†’ medium
+    if (coverage >= 0.5 || rrfScore >= 0.04) return "medium";
+    return "low";
+  }
+
+  // è®¡ç®— confidence ä¿¡å·ï¼ˆä» rerank åçš„ hits + query æå–ï¼‰ã€‚
+  function computeConfidenceSignals(query, hits) {
+    if (!hits || !hits.length) {
+      return { coverage: 0, rrfScore: 0, titleHit: false, margin: 0, sourceCount: 0 };
+    }
+    const qToks = tokenizeUnique(query);
+    const top5 = hits.slice(0, 5);
+    // coverageï¼štop5 é‡Œå‘½ä¸­äº†å¤šå°‘ query token
+    const hitTk = new Set();
+    for (const h of top5) {
+      for (const qt of qToks) {
+        if (h.positions?.[qt]) hitTk.add(qt);
+      }
+    }
+    const coverage = qToks.length ? hitTk.size / qToks.length : 0;
+    const rrfScore = hits[0].rrfScore || 0;
+    const margin = (hits[0].rrfScore || 0) - (hits[1]?.rrfScore || 0);
+    // titleHitï¼štop1 æ ‡é¢˜/breadcrumb å« query çš„ä»»ä¸€æ ¸å¿ƒè¯
+    const top1 = hits[0];
+    const titleText = (
+      (top1.node.title || "") +
+      " " +
+      (top1.node.breadcrumb || []).join(" ")
+    ).toLowerCase();
+    const titleHit = qToks.some((t) => titleText.includes(t));
+    const sourceCount = new Set(hits.slice(0, 10).map((h) => h.node.doc_id)).size;
+    return { coverage, rrfScore, titleHit, margin, sourceCount };
+  }
+
+  const Retrieval = {
+    tokenize,
+    tokenizeRaw,
+    tokenizeUnique,
+    SYNONYMS,
+    expandQuery,
+    expandQueryWeighted,
+    SYNONYM_WEIGHT,
+    buildBM25Stats,
+    bm25Score,
+    search,
+    buildChunkStats,
+    bm25ScoreChunk,
+    searchInverted,
+    searchTitlePhrase,
+    searchDocRoute,
+    rrfFuse,
+    searchMultiPath,
+    CHUNK_FIELD_BOOST,
+    rm3Expand,
+    lexicalRerank,
+    RERANK_WEIGHTS,
+    FIELD_BOOST,
+    FIELDS,
+    shingle,
+    jaccard,
+    mmrSelect,
+    estimateTokens,
+    classifyConfidence,
+    classifyConfidenceMulti,
+    computeConfidenceSignals,
+  };
+
+  if (typeof module !== "undefined" && module.exports) module.exports = Retrieval;
+  else root.YuuRetrieval = Retrieval;
+})(typeof globalThis !== "undefined" ? globalThis : this);
