@@ -1082,7 +1082,7 @@ def write_inverted_index(all_chunk_nodes: list[dict], global_docs: list[dict]) -
         json.dump({"postings": filtered, "num_chunks": n_chunks}, f,
                   ensure_ascii=False, separators=(",", ":"))
     print(f"  chunks:       {n_chunks} chunks, "
-          f"{kept_tokens} tokens (dropped {dropped_tokens} stopwords, cap={stopword_cap})")
+          f"{kept_tokens} tokens (dropped {dropped_tokens} stopwords, threshold={STOPWORD_DF_RATIO:.0%})")
 
 
 def changed_docs(file_paths: list[str]) -> set[tuple[str, str]]:
