@@ -6,7 +6,8 @@
   'use strict';
 
   var registry = {};
-  var nextId = 1;
+
+  var mountedTabId = null;
 
   function $(id) { return document.getElementById(id); }
 
@@ -19,7 +20,9 @@
   }
 
   function generateId() {
-    return 'tab-' + (nextId++);
+    return window.LqdTabIds.next(function (id) {
+      return !!findTab(id);
+    });
   }
 
   function getTabs() {
@@ -77,6 +80,7 @@
       var el = document.createElement('div');
       el.className = 'lqd-tab' + (tab.id === activeId ? ' active' : '');
       el.setAttribute('data-tab-id', tab.id);
+      el.setAttribute('data-tab-type', tab.type);
       el.setAttribute('aria-label', tab.title || '');
       el.setAttribute('role', 'tab');
       el.setAttribute('tabindex', '0');
@@ -150,7 +154,9 @@
     container.innerHTML = '';
     try {
       comp.mount(container, tab);
+      mountedTabId = tab.id;
     } catch (e) {
+      mountedTabId = null;
       if (window.console && window.console.error) {
         window.console.error('[LqdTabs] mount error', tab, e);
       }
@@ -174,6 +180,7 @@
       var container = getContainer();
       if (container) container.innerHTML = '';
     }
+    if (mountedTabId === tab.id) mountedTabId = null;
   }
 
   function open(options) {
@@ -190,8 +197,11 @@
     var comp = registry[type];
     var title = options.title || (typeof comp.getTitle === 'function' ? comp.getTitle(options.state || {}) : '未命名');
 
+    var tabId = options.id || generateId();
+    if (options.id) window.LqdTabIds.reserve(options.id);
+
     var tab = {
-      id: options.id || generateId(),
+      id: tabId,
       type: type,
       title: title,
       state: options.state || {}
@@ -212,7 +222,10 @@
     if (!tab) return;
 
     var currentId = getActiveId();
-    if (currentId === id) return;
+    if (currentId === id) {
+      if (mountedTabId !== id) mountTab(tab);
+      return;
+    }
 
     if (currentId) {
       var currentTab = findTab(currentId);

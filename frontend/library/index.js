@@ -14,20 +14,11 @@
         '<div class="library-reader" id="library-reader"></div>' +
       '</div>';
 
-    if (typeof window.initLibrary === 'function') {
-      window.initLibrary();
-    }
-
-    // 如果 tab 携带了要打开的文档，恢复它
-    if (tab.state && tab.state.type && tab.state.slug) {
-      if (typeof window.selectDoc === 'function') {
-        window.selectDoc(tab.state.type, tab.state.slug);
-      }
-    }
+    if (typeof window.initLibrary === 'function') window.initLibrary(container, tab);
   }
 
   function unmount(container, tab) {
-    // 无需特殊清理
+    if (typeof window.unmountLibrary === 'function') window.unmountLibrary(tab);
   }
 
   function getTitle(tab) {

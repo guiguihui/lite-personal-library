@@ -12,54 +12,42 @@
 (function () {
   'use strict';
 
-  function openDoc(type, slug, nodeId) {
-    if (!type || !slug) return null;
-    if (!window.LqdTabs) return null;
+  var TYPE_ALIASES = { book: 'books', paper: 'papers', note: 'notes' };
+  function normalizeType(type) { return TYPE_ALIASES[type] || type; }
 
-    // 复用已打开的同文档 library 标签(若存在),否则新开
+  function openDoc(type, slug, nodeId) {
+    if (!type || !slug || !window.LqdTabs) return null;
+    type = normalizeType(type);
     var tabs = window.LqdTabs.list();
     var existing = null;
     for (var i = 0; i < tabs.length; i++) {
-      var t = tabs[i];
-      if (t.type === 'library' && t.state && t.state.type === type && t.state.slug === slug) {
-        existing = t;
+      var candidate = tabs[i];
+      if (candidate.type === 'library' && candidate.state && normalizeType(candidate.state.type) === type && candidate.state.slug === slug) {
+        existing = candidate;
         break;
       }
     }
 
-    var state = { type: type, slug: slug };
-    if (nodeId) state.nodeId = nodeId;
-
     if (existing) {
-      // 更新 state 以反映可能的 nodeId 跳转
-      window.LqdTabs.updateTabState(existing.id, { nodeId: nodeId || existing.state.nodeId });
+      var active = window.LqdTabs.active();
+      var alreadyActive = !!active && active.id === existing.id;
+      window.LqdTabs.updateTabState(existing.id, { type: type, slug: slug, nodeId: nodeId || existing.state.nodeId || null });
       window.LqdTabs.activate(existing.id);
-      // 若 library 已 mount,直接触发节点跳转
-      if (nodeId && window.LqdEvents) {
+      if (alreadyActive && nodeId && window.LqdEvents) {
         window.LqdEvents.emit('library:node:select', { nodeId: nodeId, type: type, slug: slug });
       }
       if (window.LqdEvents) window.LqdEvents.emit('library:doc:opened', { type: type, slug: slug, nodeId: nodeId, reused: true });
       return existing.id;
     }
 
-    var title = slug;
     var id = window.LqdTabs.open({
       type: 'library',
-      title: title,
-      state: state
+      title: slug,
+      state: { type: type, slug: slug, nodeId: nodeId || null }
     });
-
-    // mount 完成后,若携带 nodeId,发事件让 library.js 跳转到该节点
-    if (nodeId && window.LqdEvents) {
-      // 延迟到下一帧,确保 mount 已执行
-      setTimeout(function () {
-        window.LqdEvents.emit('library:node:select', { nodeId: nodeId, type: type, slug: slug });
-      }, 0);
-    }
     if (window.LqdEvents) window.LqdEvents.emit('library:doc:opened', { type: type, slug: slug, nodeId: nodeId, reused: false });
     return id;
   }
-
   function searchDocs(query) {
     if (!query) return Promise.resolve([]);
     var url = '/api/search?q=' + encodeURIComponent(query) + '&limit=10';
