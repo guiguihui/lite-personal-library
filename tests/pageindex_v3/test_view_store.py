@@ -27,8 +27,10 @@ from app.index.v3.view_store import (
     finalize_base_object,
     finalize_search_view,
     load_base_object,
+    load_base_object_metadata,
     load_search_view,
     load_view_documents,
+    load_view_statistics,
     write_base_candidate,
     write_search_view_candidate,
 )
@@ -48,20 +50,26 @@ def _canonical(value: object) -> bytes:
     ).encode("utf-8")
 
 
-def _generation(root: Path, *, document_count: int) -> LogicalGenerationReceipt:
+def _generation(
+    root: Path,
+    *,
+    document_count: int,
+    revision: str = "",
+) -> LogicalGenerationReceipt:
+    suffix = f":{revision}" if revision else ""
     return LogicalGenerationReceipt(
         candidate_dir=root / "logical-generation",
-        generation_id=_digest(f"generation:{document_count}"),
+        generation_id=_digest(f"generation:{document_count}{suffix}"),
         generation_recipe_hash=_digest("generation-recipe"),
         manifest_ref=ArtifactRef(
             "manifest.json",
-            _digest(f"generation-manifest:{document_count}"),
+            _digest(f"generation-manifest:{document_count}{suffix}"),
             313,
             document_count,
         ),
         input_proof_ref=ArtifactRef(
             "input-proof.json",
-            _digest(f"input-proof:{document_count}"),
+            _digest(f"input-proof:{document_count}{suffix}"),
             211,
             document_count,
         ),
@@ -286,6 +294,186 @@ def test_new_candidate_sealing_and_first_finalize_do_not_reaudit_layer(
     )
     finalized = finalize_base_object(tmp_path / "store", base)
     assert finalized.root.is_dir()
+
+
+def test_metadata_and_statistics_loaders_touch_only_control_plane_files(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _generation_receipt, _recipe, totals, base, view, *_rest = _build_pair(
+        tmp_path
+    )
+    store = tmp_path / "store"
+    base = finalize_base_object(store, base)
+    view = finalize_search_view(store, view)
+    original_open = view_store_module._open_regular
+    opened: list[str] = []
+
+    def control_plane_only(root: Path, relative_path: str):
+        opened.append(relative_path)
+        if relative_path in view_store_module._LAYER_PATHS:
+            raise AssertionError("metadata loader opened a posting-layer artifact")
+        return original_open(root, relative_path)
+
+    def forbidden_audit(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("metadata loader invoked the deep layer audit")
+
+    monkeypatch.setattr(view_store_module, "_open_regular", control_plane_only)
+    monkeypatch.setattr(
+        view_store_module.PostingLayerReader,
+        "audit",
+        forbidden_audit,
+    )
+
+    metadata = load_base_object_metadata(store, base.base_id)
+    assert metadata.attestation_dict() == base.attestation_dict()
+    assert opened == ["manifest.json"]
+
+    opened.clear()
+    assert load_view_statistics(view) == totals
+    assert opened == ["statistics.json"]
+
+
+def test_incremental_view_appends_one_delta_over_an_older_base(
+    tmp_path: Path,
+) -> None:
+    _old_generation, recipe, totals, base, parent, doc_uid, owner = _build_pair(
+        tmp_path
+    )
+    store = tmp_path / "store"
+    base = finalize_base_object(store, base)
+    parent = finalize_search_view(store, parent)
+    target = _generation(
+        tmp_path / "target",
+        document_count=1,
+        revision="next",
+    )
+    delta_id = _digest("delta:next")
+
+    incremental = write_search_view_candidate(
+        tmp_path / "view-incremental",
+        generation=target,
+        recipe=recipe,
+        base=base,
+        statistics=totals,
+        documents=((doc_uid, owner),),
+        delta_ids=parent.delta_ids + (delta_id,),
+        parent=parent,
+    )
+
+    assert base.generation != target.generation_id
+    assert incremental.generation == target.generation_id
+    assert incremental.base_id == base.base_id
+    assert incremental.delta_ids == (delta_id,)
+
+
+def test_incremental_view_rejects_missing_or_invalid_parent_and_chain(
+    tmp_path: Path,
+) -> None:
+    old_generation, recipe, totals, base, parent, doc_uid, owner = _build_pair(
+        tmp_path
+    )
+    store = tmp_path / "store"
+    base = finalize_base_object(store, base)
+    parent = finalize_search_view(store, parent)
+    target = _generation(
+        tmp_path / "target",
+        document_count=1,
+        revision="next",
+    )
+    first_delta = _digest("delta:first")
+    second_delta = _digest("delta:second")
+
+    with pytest.raises(ViewStoreError, match="requires a parent"):
+        write_search_view_candidate(
+            tmp_path / "missing-parent",
+            generation=target,
+            recipe=recipe,
+            base=base,
+            statistics=totals,
+            documents=((doc_uid, owner),),
+            delta_ids=(first_delta,),
+        )
+
+    with pytest.raises(ViewStoreError, match="append exactly one"):
+        write_search_view_candidate(
+            tmp_path / "chain-jump",
+            generation=target,
+            recipe=recipe,
+            base=base,
+            statistics=totals,
+            documents=((doc_uid, owner),),
+            delta_ids=(first_delta, second_delta),
+            parent=parent,
+        )
+
+    forged_parent = replace(parent, root=tmp_path / "not-a-finalized-view")
+    with pytest.raises(ViewStoreError, match="finalized local View"):
+        write_search_view_candidate(
+            tmp_path / "forged-parent",
+            generation=target,
+            recipe=recipe,
+            base=base,
+            statistics=totals,
+            documents=((doc_uid, owner),),
+            delta_ids=(first_delta,),
+            parent=forged_parent,
+        )
+
+    with pytest.raises(ViewStoreError, match="must advance"):
+        write_search_view_candidate(
+            tmp_path / "same-generation",
+            generation=old_generation,
+            recipe=recipe,
+            base=base,
+            statistics=totals,
+            documents=((doc_uid, owner),),
+            delta_ids=(first_delta,),
+            parent=parent,
+        )
+
+    _empty_generation, _empty_recipe, _empty_totals, wrong_base, _wrong_view = (
+        _build_empty_pair(tmp_path, "wrong-base")
+    )
+    with pytest.raises(ViewStoreError, match="parent and Base IDs differ"):
+        write_search_view_candidate(
+            tmp_path / "wrong-base",
+            generation=target,
+            recipe=recipe,
+            base=wrong_base,
+            statistics=totals,
+            documents=((doc_uid, owner),),
+            delta_ids=(first_delta,),
+            parent=parent,
+        )
+
+    first = write_search_view_candidate(
+        tmp_path / "first-incremental",
+        generation=target,
+        recipe=recipe,
+        base=base,
+        statistics=totals,
+        documents=((doc_uid, owner),),
+        delta_ids=(first_delta,),
+        parent=parent,
+    )
+    first = finalize_search_view(store, first)
+    later = _generation(
+        tmp_path / "later",
+        document_count=1,
+        revision="later",
+    )
+    with pytest.raises(ViewStoreError, match="append exactly one"):
+        write_search_view_candidate(
+            tmp_path / "chain-reordered",
+            generation=later,
+            recipe=recipe,
+            base=base,
+            statistics=totals,
+            documents=((doc_uid, owner),),
+            delta_ids=(second_delta, first_delta),
+            parent=first,
+        )
 
 
 def test_receipts_reject_artifact_rebinding_without_changing_identity(

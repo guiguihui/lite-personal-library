@@ -53,11 +53,29 @@ from .view_store import (
     finalize_search_view,
     load_base_object,
     load_search_view,
+    load_search_view_metadata,
     load_view_documents,
     write_base_candidate,
     write_search_view_candidate,
 )
 from .base_builder import build_base_view
+from .delta_store import (
+    DeltaObjectReceipt,
+    DeltaStoreConflictError,
+    DeltaStoreError,
+    DocumentReplacement,
+    StatisticsDelta,
+    finalize_delta_object,
+    load_delta_object,
+    load_delta_object_metadata,
+    write_delta_candidate,
+)
+from .delta_builder import (
+    CompactionRecommendation,
+    DeltaBuildResult,
+    DeltaBuildWork,
+    build_delta_view,
+)
 
 __all__ = [
     "ChunkMetric",
@@ -115,4 +133,18 @@ __all__ = [
     "validate_sha256",
     "write_base_candidate",
     "write_search_view_candidate",
+    "CompactionRecommendation",
+    "DeltaBuildResult",
+    "DeltaBuildWork",
+    "DeltaObjectReceipt",
+    "DeltaStoreConflictError",
+    "DeltaStoreError",
+    "DocumentReplacement",
+    "StatisticsDelta",
+    "build_delta_view",
+    "finalize_delta_object",
+    "load_delta_object",
+    "load_delta_object_metadata",
+    "load_search_view_metadata",
+    "write_delta_candidate",
 ]

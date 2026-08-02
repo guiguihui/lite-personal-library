@@ -234,6 +234,182 @@ def test_sparse_lookup_scans_at_most_stride_lines(tmp_path: Path) -> None:
         assert 1 <= reader.last_sparse_scan_lines <= 128
 
 
+def test_batched_sparse_lookup_canonicalizes_dedupes_and_reads_each_window_once(
+    tmp_path: Path,
+) -> None:
+    document = _documents()[0]
+    rows = tuple(
+        LayerPosting(f"token-{index:04d}", 0, 0, 1, 0, 0)
+        for index in range(300)
+    )
+    receipt = write_posting_layer(
+        tmp_path / "batched-terms",
+        documents=(document,),
+        postings=rows,
+        layer_kind="base",
+    )
+    sparse = json.loads(
+        (receipt.root / "terms.sidx.json").read_text("utf-8")
+    )
+    selected_windows = (sparse["anchors"][0], sparse["anchors"][1])
+    reads: list[tuple[str, int, int]] = []
+
+    with PostingLayerReader(
+        receipt,
+        read_observer=lambda name, offset, size: reads.append(
+            (name, offset, size)
+        ),
+    ) as reader:
+        reads.clear()
+        found = reader.lookup_terms(
+            token
+            for token in (
+                "token-0200",
+                "token-0001",
+                "token-0127",
+                "token-0200",
+                "token-0127x",
+                "000-before-first-anchor",
+            )
+        )
+
+        expected_keys = sorted(
+            {
+                "token-0200",
+                "token-0001",
+                "token-0127",
+                "token-0127x",
+                "000-before-first-anchor",
+            },
+            key=lambda token: token.encode("utf-8"),
+        )
+        assert list(found) == expected_keys
+        assert found["token-0001"] is not None
+        assert found["token-0127"] is not None
+        assert found["token-0200"] is not None
+        assert found["token-0127x"] is None
+        assert found["000-before-first-anchor"] is None
+        assert reader.last_sparse_windows_read == 2
+        assert reader.last_sparse_scan_lines == 256
+
+        assert {name for name, _offset, _size in reads} == {"terms.jsonl"}
+        term_ranges = sorted(
+            (offset, offset + size)
+            for name, offset, size in reads
+            if name == "terms.jsonl"
+        )
+        expected_ranges = sorted(
+            (anchor[1], anchor[1] + anchor[2])
+            for anchor in selected_windows
+        )
+        assert sum(end - start for start, end in term_ranges) == sum(
+            end - start for start, end in expected_ranges
+        )
+        for expected_start, expected_end in expected_ranges:
+            covered = [
+                (start, end)
+                for start, end in term_ranges
+                if expected_start <= start < expected_end
+            ]
+            assert covered[0][0] == expected_start
+            assert covered[-1][1] == expected_end
+            assert all(
+                left[1] == right[0]
+                for left, right in zip(covered, covered[1:])
+            )
+
+
+def test_batched_sparse_lookup_validates_inputs_and_resets_work_counters(
+    tmp_path: Path,
+) -> None:
+    receipt, _documents_value = _write_base(tmp_path)
+
+    with PostingLayerReader(receipt) as reader:
+        assert reader.lookup_terms(["apple"])["apple"] is not None
+        assert reader.last_sparse_windows_read == 1
+        assert reader.last_sparse_scan_lines == receipt.term_count
+
+        assert reader.lookup_terms([]) == {}
+        assert reader.last_sparse_windows_read == 0
+        assert reader.last_sparse_scan_lines == 0
+
+        with pytest.raises(TypeError, match="iterable of tokens"):
+            reader.lookup_terms("apple")
+        with pytest.raises(TypeError, match="token must be a string"):
+            reader.lookup_terms(["apple", 1])
+        with pytest.raises(ValueError, match="non-empty"):
+            reader.lookup_terms([""])
+        with pytest.raises(ValueError, match="valid UTF-8"):
+            reader.lookup_terms(["\ud800"])
+
+
+def test_batched_sparse_lookup_rejects_bad_window_digest_and_sorting(
+    tmp_path: Path,
+) -> None:
+    document = _documents()[0]
+    rows = tuple(
+        LayerPosting(f"token-{index:04d}", 0, 0, 1, 0, 0)
+        for index in range(129)
+    )
+    receipt = write_posting_layer(
+        tmp_path / "corrupt-batch",
+        documents=(document,),
+        postings=rows,
+        layer_kind="base",
+    )
+    terms_path = receipt.root / "terms.jsonl"
+    lines = terms_path.read_bytes().splitlines(keepends=True)
+    record = json.loads(lines[1])
+    record["token"] = "token-0000"
+    lines[1] = canonical_bytes(record) + b"\n"
+    terms_path.write_bytes(b"".join(lines))
+    receipt = _rebind_artifact(receipt, "terms")
+
+    sparse_path = receipt.root / "terms.sidx.json"
+    sparse = json.loads(sparse_path.read_text("utf-8"))
+    sparse["terms_sha256"] = receipt.terms.sha256
+    sparse_path.write_bytes(canonical_bytes(sparse))
+    receipt = _rebind_artifact(receipt, "sparse_index")
+
+    with PostingLayerReader(receipt) as reader:
+        with pytest.raises(LayerCodecError, match="strictly sorted"):
+            reader.lookup_terms(["token-0000", "token-0001"])
+        assert reader.last_sparse_windows_read == 1
+        assert reader.last_sparse_scan_lines == 2
+
+    # Restore sorting but mutate an attested field while retaining the old window digest.
+    record["token"] = "token-0001"
+    prefix_sha256 = record["prefix_sha256"]
+    assert isinstance(prefix_sha256, str)
+    record["prefix_sha256"] = (
+        ("1" if prefix_sha256[0] == "0" else "0") + prefix_sha256[1:]
+    )
+    lines[1] = canonical_bytes(record) + b"\n"
+    terms_path.write_bytes(b"".join(lines))
+    receipt = _rebind_artifact(receipt, "terms")
+    sparse["terms_sha256"] = receipt.terms.sha256
+    sparse_path.write_bytes(canonical_bytes(sparse))
+    receipt = _rebind_artifact(receipt, "sparse_index")
+
+    with PostingLayerReader(receipt) as reader:
+        with pytest.raises(LayerCodecError, match="SHA-256"):
+            reader.lookup_terms(["token-0001", "token-0127"])
+        assert reader.last_sparse_windows_read == 1
+        assert reader.last_sparse_scan_lines == 128
+
+
+def test_batched_sparse_lookup_rejects_bad_sparse_stride(tmp_path: Path) -> None:
+    receipt, _documents_value = _write_base(tmp_path)
+    sparse_path = receipt.root / "terms.sidx.json"
+    sparse = json.loads(sparse_path.read_text("utf-8"))
+    sparse["stride"] = 64
+    sparse_path.write_bytes(canonical_bytes(sparse))
+    receipt = _rebind_artifact(receipt, "sparse_index")
+
+    with pytest.raises(LayerCodecError, match="unsupported sparse term index"):
+        PostingLayerReader(receipt)
+
+
 def test_reader_rejects_artifact_mutation_before_yield(tmp_path: Path) -> None:
     receipt, _documents_value = _write_base(tmp_path)
     path = receipt.root / receipt.postings.relative_path
@@ -368,6 +544,79 @@ def test_hot_open_and_lookup_do_not_scan_large_base_artifacts(
         assert target_anchor[2] < receipt.terms.byte_size // 2
         assert reader.last_sparse_scan_lines == 128
 
+
+def test_sparse_only_reader_defers_document_table_and_rejects_non_bool_flag(
+    tmp_path: Path,
+) -> None:
+    receipt, _documents_value = _write_base(tmp_path)
+    reads: list[tuple[str, int, int]] = []
+
+    with PostingLayerReader(
+        receipt,
+        load_documents=False,
+        read_observer=lambda name, offset, size: reads.append(
+            (name, offset, size)
+        ),
+    ) as reader:
+        assert reader.startup_bytes_read["layer-documents.json"] == 0
+        assert {name for name, _offset, _size in reads} == {
+            "terms.sidx.json"
+        }
+        reads.clear()
+        terms = reader.lookup_terms(["apple", "missing"])
+        assert terms["apple"] is not None
+        assert terms["missing"] is None
+        assert {name for name, _offset, _size in reads} == {"terms.jsonl"}
+        assert reader.startup_bytes_read["layer-documents.json"] == 0
+
+    for invalid in (0, 1, None, "false"):
+        with pytest.raises(TypeError, match="load_documents must be a bool"):
+            PostingLayerReader(receipt, load_documents=invalid)  # type: ignore[arg-type]
+
+
+def test_lazy_ownership_paths_load_documents_once_and_audit_does_not_rehash(
+    tmp_path: Path,
+) -> None:
+    receipt, documents = _write_base(tmp_path)
+    reads: list[tuple[str, int, int]] = []
+    first = documents[0]
+    ref = ChunkRef(first.doc_uid, first.segment_hash, 0)
+
+    with PostingLayerReader(
+        receipt,
+        load_documents=False,
+        read_observer=lambda name, offset, size: reads.append(
+            (name, offset, size)
+        ),
+    ) as reader:
+        assert reader.get_chunk_metrics((ref,))[ref] == first.chunk_metrics[0]
+        assert reader.startup_bytes_read["layer-documents.json"] == (
+            receipt.documents.byte_size
+        )
+        assert list(reader.iter_token("apple"))
+        reader.audit()
+
+    document_reads = [
+        size for name, _offset, size in reads if name == "layer-documents.json"
+    ]
+    assert sum(document_reads) == receipt.documents.byte_size
+
+
+def test_sparse_only_reader_defers_but_never_trusts_corrupt_documents(
+    tmp_path: Path,
+) -> None:
+    receipt, documents = _write_base(tmp_path)
+    path = receipt.root / receipt.documents.relative_path
+    payload = bytearray(path.read_bytes())
+    payload[len(payload) // 2] ^= 1
+    path.write_bytes(payload)
+    first = documents[0]
+    ref = ChunkRef(first.doc_uid, first.segment_hash, 0)
+
+    with PostingLayerReader(receipt, load_documents=False) as reader:
+        assert reader.lookup_term("apple") is not None
+        with pytest.raises(LayerCodecError, match="SHA-256"):
+            reader.get_chunk_metrics((ref,))
 
 def test_pcv_block_hash_rejects_same_size_local_id_mutation(tmp_path: Path) -> None:
     receipt, documents = _write_base(tmp_path)

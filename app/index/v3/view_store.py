@@ -893,6 +893,43 @@ def _safe_cleanup_new_view(candidate: Path, primary: BaseException) -> None:
         raise ViewStoreError("failed to safely clean View candidate") from cleanup_error
 
 
+def _validate_incremental_parent(
+    parent: SearchViewReceipt,
+    *,
+    base: BaseObjectReceipt,
+    recipe_hash: str,
+    generation: LogicalGenerationReceipt,
+    delta_ids: tuple[str, ...],
+) -> None:
+    """Bind one incremental View to an authenticated finalized parent."""
+
+    if not isinstance(parent, SearchViewReceipt):
+        raise TypeError("parent must be a SearchViewReceipt or None")
+    parent_root = _absolute_path(parent.root)
+    if parent_root.name != parent.view_id or parent_root.parent.name != "views":
+        raise ViewStoreError("incremental parent must be a finalized local View")
+    pageindex_dir = parent_root.parent.parent
+    authenticated = load_search_view_metadata(pageindex_dir, parent.view_id)
+    if authenticated.root != parent_root:
+        raise ViewStoreError("incremental parent root does not match finalized View")
+    if authenticated.attestation_dict() != parent.attestation_dict():
+        raise ViewStoreError("incremental parent receipt does not match local View")
+    load_view_statistics(authenticated)
+    if parent.base_id != base.base_id:
+        raise ViewStoreError("incremental parent and Base IDs differ")
+    if parent.search_view_recipe_hash != recipe_hash:
+        raise ViewStoreError("incremental parent and View recipes differ")
+    if generation.generation_id == parent.generation:
+        raise ViewStoreError("incremental target Generation must advance")
+    if generation.manifest_ref.sha256 == parent.generation_manifest_sha256:
+        raise ViewStoreError("incremental target Generation manifest must advance")
+    expected_length = len(parent.delta_ids) + 1
+    if len(delta_ids) != expected_length or delta_ids[:-1] != parent.delta_ids:
+        raise ViewStoreError(
+            "incremental delta_ids must append exactly one ID to the parent chain"
+        )
+
+
 def write_search_view_candidate(
     candidate_dir: Path,
     *,
@@ -902,6 +939,7 @@ def write_search_view_candidate(
     statistics: CorpusTotals,
     documents: Iterable[tuple[str, ViewDocumentOwner]],
     delta_ids: Iterable[str] = (),
+    parent: SearchViewReceipt | None = None,
 ) -> SearchViewReceipt:
     """Stream the two View artifacts and seal their content-addressed manifest."""
 
@@ -913,10 +951,6 @@ def write_search_view_candidate(
         raise TypeError("base must be a BaseObjectReceipt")
     if not isinstance(statistics, CorpusTotals):
         raise TypeError("statistics must be CorpusTotals")
-    if base.generation != generation.generation_id:
-        raise ViewStoreError("Base and logical Generation IDs differ")
-    if base.generation_manifest_sha256 != generation.manifest_ref.sha256:
-        raise ViewStoreError("Base and logical Generation manifests differ")
     recipe_hash = canonical_hash(recipe.as_dict())
     if base.search_view_recipe_hash != recipe_hash:
         raise ViewStoreError("Base and View SearchViewRecipe hashes differ")
@@ -925,8 +959,23 @@ def write_search_view_candidate(
     deltas = _validate_delta_ids(delta_ids)
     if base.base_id in deltas:
         raise ViewStoreError("base_id cannot also appear in delta_ids")
-    if not deltas and statistics != base.statistics:
-        raise ViewStoreError("initial Base View statistics must equal Base statistics")
+    if parent is None:
+        if deltas:
+            raise ViewStoreError("incremental View requires a parent")
+        if base.generation != generation.generation_id:
+            raise ViewStoreError("initial Base and logical Generation IDs differ")
+        if base.generation_manifest_sha256 != generation.manifest_ref.sha256:
+            raise ViewStoreError("initial Base and logical Generation manifests differ")
+        if statistics != base.statistics:
+            raise ViewStoreError("initial Base View statistics must equal Base statistics")
+    else:
+        _validate_incremental_parent(
+            parent,
+            base=base,
+            recipe_hash=recipe_hash,
+            generation=generation,
+            delta_ids=deltas,
+        )
 
     candidate = Path(candidate_dir)
     if os.path.lexists(candidate):
@@ -1030,8 +1079,11 @@ def _parse_base_manifest(root: Path, value: object, manifest_ref: ArtifactRef) -
     return receipt, recipe
 
 
-def load_base_object(pageindex_dir: Path, base_id: str) -> BaseObjectReceipt:
-    """Load and deeply authenticate one finalized Base by its full identity."""
+def load_base_object_metadata(
+    pageindex_dir: Path,
+    base_id: str,
+) -> BaseObjectReceipt:
+    """Authenticate a finalized Base contract without opening posting artifacts."""
 
     try:
         digest = validate_sha256(base_id, "base_id")
@@ -1045,9 +1097,22 @@ def load_base_object(pageindex_dir: Path, base_id: str) -> BaseObjectReceipt:
     manifest_ref = ArtifactRef(
         BASE_MANIFEST_PATH, actual.sha256, actual.byte_size, 1
     )
-    receipt, recipe = _parse_base_manifest(root, value, manifest_ref)
+    receipt, _recipe = _parse_base_manifest(root, value, manifest_ref)
     if receipt.base_id != digest:
         raise ViewStoreError("Base directory name does not match manifest identity")
+    return receipt
+
+
+def load_base_object(pageindex_dir: Path, base_id: str) -> BaseObjectReceipt:
+    """Load Base metadata, then explicitly deep-audit its posting layer."""
+
+    receipt = load_base_object_metadata(pageindex_dir, base_id)
+    manifest_value, _actual = _read_canonical(
+        receipt.root, BASE_MANIFEST_PATH, receipt.manifest_ref
+    )
+    manifest = _strict_mapping(manifest_value, "Base manifest")
+    recipe = _recipe_from_dict(manifest["search_view_recipe"])
+    _check_recipe_hash(recipe, receipt.search_view_recipe_hash)
     try:
         with PostingLayerReader(receipt.layer, recipe=recipe) as reader:
             reader.audit()
@@ -1116,6 +1181,21 @@ def load_view_documents(
     return _parse_owner_map(value, receipt)
 
 
+def load_view_statistics(receipt: SearchViewReceipt) -> CorpusTotals:
+    """Authenticate only one View's canonical scalar-statistics artifact."""
+
+    if not isinstance(receipt, SearchViewReceipt):
+        raise TypeError("receipt must be a SearchViewReceipt")
+    _require_plain_directory_chain(receipt.root)
+    value, _actual = _read_canonical(
+        receipt.root, STATISTICS_PATH, receipt.statistics_ref
+    )
+    statistics = _totals_from_dict(value)
+    if statistics.documents != receipt.documents_ref.records:
+        raise ViewStoreError("View statistics/documents counts differ")
+    return statistics
+
+
 def _parse_view_manifest(
     root: Path,
     value: object,
@@ -1181,8 +1261,11 @@ def _parse_view_manifest(
     return receipt, recipe
 
 
-def load_search_view(pageindex_dir: Path, view_id: str) -> SearchViewReceipt:
-    """Load and deeply authenticate one finalized Search View."""
+def load_search_view_metadata(
+    pageindex_dir: Path,
+    view_id: str,
+) -> SearchViewReceipt:
+    """Authenticate the finalized View manifest and its compact receipt."""
 
     try:
         digest = validate_sha256(view_id, "view_id")
@@ -1199,10 +1282,14 @@ def load_search_view(pageindex_dir: Path, view_id: str) -> SearchViewReceipt:
     receipt, _recipe = _parse_view_manifest(root, manifest_value, manifest_ref)
     if receipt.view_id != digest:
         raise ViewStoreError("View directory name does not match manifest identity")
-    statistics_value, _ = _read_canonical(
-        root, STATISTICS_PATH, receipt.statistics_ref
-    )
-    statistics = _totals_from_dict(statistics_value)
+    return receipt
+
+
+def load_search_view(pageindex_dir: Path, view_id: str) -> SearchViewReceipt:
+    """Load and deeply authenticate one finalized Search View."""
+
+    receipt = load_search_view_metadata(pageindex_dir, view_id)
+    statistics = load_view_statistics(receipt)
     owners = load_view_documents(receipt)
     if statistics.documents != len(owners):
         raise ViewStoreError("View statistics/documents counts differ")
@@ -1394,8 +1481,11 @@ __all__ = [
     "finalize_base_object",
     "finalize_search_view",
     "load_base_object",
+    "load_base_object_metadata",
     "load_search_view",
+    "load_search_view_metadata",
     "load_view_documents",
+    "load_view_statistics",
     "write_base_candidate",
     "write_search_view_candidate",
 ]

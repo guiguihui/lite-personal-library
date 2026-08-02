@@ -1757,6 +1757,7 @@ class PostingLayerReader:
         *,
         recipe: SearchViewRecipe | None = None,
         read_observer: Callable[[str, int, int], None] | None = None,
+        load_documents: bool = True,
     ) -> None:
         if not isinstance(receipt, PostingLayerReceipt):
             raise TypeError("receipt must be a PostingLayerReceipt")
@@ -1767,6 +1768,8 @@ class PostingLayerReader:
             raise ValueError("posting layer SearchViewRecipe does not match receipt")
         if read_observer is not None and not callable(read_observer):
             raise TypeError("read_observer must be callable")
+        if type(load_documents) is not bool:
+            raise TypeError("load_documents must be a bool")
         self.receipt = receipt
         self.read_observer = read_observer
         self._lookup_state = threading.local()
@@ -1783,6 +1786,7 @@ class PostingLayerReader:
         self._magic_verified: set[str] = set()
         self._documents: tuple[_DocumentRecord, ...] = ()
         self._documents_by_uid: dict[str, tuple[int, _DocumentRecord]] = {}
+        self._documents_loaded = False
         self._windows: tuple[_SparseWindow, ...] = ()
         self._window_keys: tuple[bytes, ...] = ()
         try:
@@ -1799,27 +1803,8 @@ class PostingLayerReader:
                 self._handles[name] = handle
                 self._identities[name] = identity
 
-            documents_raw = _authenticate_handle(
-                self._handles[_DOCUMENTS_NAME],
-                receipt.documents,
-                _DOCUMENTS_NAME,
-                self.read_observer,
-                capture=True,
-            )
-            assert documents_raw is not None
-            self.startup_bytes_read[_DOCUMENTS_NAME] = receipt.documents.byte_size
-            self._documents = _parse_documents(
-                documents_raw, receipt.chunks.byte_size
-            )
-            del documents_raw
-            if len(self._documents) != receipt.document_count:
-                raise LayerCodecError("document count does not match receipt")
-            if sum(item.chunk_count for item in self._documents) != receipt.chunk_count:
-                raise LayerCodecError("chunk count does not match receipt")
-            self._documents_by_uid = {
-                item.doc_uid: (ordinal, item)
-                for ordinal, item in enumerate(self._documents)
-            }
+            if load_documents:
+                self._ensure_documents_loaded()
 
             sparse_raw = _authenticate_handle(
                 self._handles[_SPARSE_NAME],
@@ -1871,6 +1856,42 @@ class PostingLayerReader:
     def _ensure_open(self) -> None:
         if not self._handles:
             raise RuntimeError("posting layer reader is closed")
+
+    def _ensure_documents_loaded(self) -> None:
+        self._ensure_open()
+        if self._documents_loaded:
+            return
+        with self._lock:
+            if self._documents_loaded:
+                return
+            self._ensure_identity(_DOCUMENTS_NAME)
+            documents_raw = _authenticate_handle(
+                self._handles[_DOCUMENTS_NAME],
+                self.receipt.documents,
+                _DOCUMENTS_NAME,
+                self.read_observer,
+                capture=True,
+            )
+            assert documents_raw is not None
+            self._ensure_identity(_DOCUMENTS_NAME)
+            self.startup_bytes_read[_DOCUMENTS_NAME] = (
+                self.receipt.documents.byte_size
+            )
+            documents = _parse_documents(
+                documents_raw, self.receipt.chunks.byte_size
+            )
+            del documents_raw
+            if len(documents) != self.receipt.document_count:
+                raise LayerCodecError("document count does not match receipt")
+            if sum(item.chunk_count for item in documents) != self.receipt.chunk_count:
+                raise LayerCodecError("chunk count does not match receipt")
+            documents_by_uid = {
+                item.doc_uid: (ordinal, item)
+                for ordinal, item in enumerate(documents)
+            }
+            self._documents = documents
+            self._documents_by_uid = documents_by_uid
+            self._documents_loaded = True
 
     def _reference(self, name: str) -> ArtifactRef:
         references = {
@@ -1981,22 +2002,27 @@ class PostingLayerReader:
     def last_sparse_scan_lines(self) -> int:
         return getattr(self._lookup_state, "scanned_lines", 0)
 
-    def lookup_term(self, token: str) -> TermRecord | None:
-        target = _token_bytes(token)
+    @property
+    def last_sparse_windows_read(self) -> int:
+        return getattr(self._lookup_state, "windows_read", 0)
+
+    def _reset_sparse_work(self) -> None:
         self._lookup_state.scanned_lines = 0
-        if not self._windows:
-            return None
-        index = bisect_right(self._window_keys, target) - 1
-        if index < 0:
-            return None
+        self._lookup_state.windows_read = 0
+
+    def _decode_sparse_window(
+        self,
+        index: int,
+    ) -> tuple[tuple[bytes, TermRecord], ...]:
         window = self._windows[index]
+        self._lookup_state.windows_read += 1
         digest = hashlib.sha256()
-        scanned = 0
-        candidate: TermRecord | None = None
+        records: list[tuple[bytes, TermRecord]] = []
         previous: bytes | None = None
         for offset, raw in self._window_lines(window.offset, window.end):
             digest.update(raw)
-            scanned += 1
+            self._lookup_state.scanned_lines += 1
+            scanned = len(records) + 1
             if scanned > TERM_INDEX_STRIDE:
                 raise LayerCodecError("sparse term lookup exceeded its stride")
             record = _term_from_line(raw)
@@ -2007,15 +2033,70 @@ class PostingLayerReader:
                 record.token != window.first_token or offset != window.offset
             ):
                 raise LayerCodecError("term window does not match its sparse anchor")
-            if encoded == target:
-                candidate = record
+            records.append((encoded, record))
             previous = encoded
-        self._lookup_state.scanned_lines = scanned
-        if scanned != window.lines:
+        if len(records) != window.lines:
             raise LayerCodecError("term window line count does not match sparse index")
         if digest.hexdigest() != window.sha256:
             raise LayerCodecError("term window SHA-256 does not match sparse index")
-        return candidate
+        if (
+            previous is not None
+            and index + 1 < len(self._window_keys)
+            and previous >= self._window_keys[index + 1]
+        ):
+            raise LayerCodecError("term windows are not strictly sorted")
+        return tuple(records)
+
+    def lookup_term(self, token: str) -> TermRecord | None:
+        target = _token_bytes(token)
+        self._reset_sparse_work()
+        if not self._windows:
+            return None
+        index = bisect_right(self._window_keys, target) - 1
+        if index < 0:
+            return None
+        for encoded, record in self._decode_sparse_window(index):
+            if encoded == target:
+                return record
+        return None
+
+    def lookup_terms(
+        self,
+        tokens: Iterable[str],
+    ) -> dict[str, TermRecord | None]:
+        if isinstance(tokens, (str, bytes, bytearray)):
+            raise TypeError("tokens must be an iterable of tokens")
+        try:
+            iterator = iter(tokens)
+        except TypeError as exc:
+            raise TypeError("tokens must be an iterable of tokens") from exc
+
+        unique: dict[bytes, str] = {}
+        for token in iterator:
+            encoded = _token_bytes(token)
+            unique.setdefault(encoded, token)
+        ordered = sorted(unique.items())
+        self._reset_sparse_work()
+        result: dict[str, TermRecord | None] = {
+            token: None for _encoded, token in ordered
+        }
+        if not ordered or not self._windows:
+            return result
+
+        targets_by_window: dict[int, dict[bytes, str]] = {}
+        for encoded, token in ordered:
+            index = bisect_right(self._window_keys, encoded) - 1
+            if index >= 0:
+                targets_by_window.setdefault(index, {})[encoded] = token
+
+        for index in sorted(targets_by_window):
+            targets = targets_by_window[index]
+            for encoded, record in self._decode_sparse_window(index):
+                token = targets.get(encoded)
+                if token is not None:
+                    result[token] = record
+        return result
+
     def _posting_header(
         self,
         record: TermRecord,
@@ -2068,6 +2149,7 @@ class PostingLayerReader:
             raise LayerCodecError("body row count exceeds its attested bytes")
         return nonbody_start, nonbody_end, nonbody_count, body_count, prefix_end
     def _validate_row_ref(self, ordinal: int, local_id: int) -> _DocumentRecord:
+        self._ensure_documents_loaded()
         if ordinal >= len(self._documents):
             raise LayerCodecError("posting references an unknown document ordinal")
         document = self._documents[ordinal]
@@ -2122,6 +2204,7 @@ class PostingLayerReader:
         breadcrumb_tf: int,
         body_tf: int,
     ) -> SearchPosting:
+        self._ensure_documents_loaded()
         ordinal, local_id = key
         document = self._documents[ordinal]
         return SearchPosting(
@@ -2142,6 +2225,7 @@ class PostingLayerReader:
         record = self.lookup_term(token)
         if record is None or not record.has_postings:
             return iter(())
+        self._ensure_documents_loaded()
         if not include_body:
             return self._iter_nonbody_only(record)
         return self._iter_complete(record)
@@ -2227,6 +2311,7 @@ class PostingLayerReader:
     ) -> dict[ChunkRef, ChunkMetric]:
         if isinstance(refs, (str, bytes, bytearray)):
             raise TypeError("refs must be an iterable of ChunkRef values")
+        self._ensure_documents_loaded()
         requested: list[ChunkRef] = []
         grouped: dict[int, set[int]] = {}
         seen: set[ChunkRef] = set()
@@ -2293,9 +2378,10 @@ class PostingLayerReader:
     def audit(self) -> None:
         """Explicitly authenticate and decode all artifacts off the hot path."""
 
+        self._ensure_documents_loaded()
         with self._lock:
+            self._ensure_identity(_DOCUMENTS_NAME)
             for name, reference in (
-                (_DOCUMENTS_NAME, self.receipt.documents),
                 (_POSTINGS_NAME, self.receipt.postings),
                 (_CHUNKS_NAME, self.receipt.chunks),
                 (_TERMS_NAME, self.receipt.terms),

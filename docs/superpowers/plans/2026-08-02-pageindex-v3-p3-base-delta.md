@@ -490,51 +490,197 @@ git commit -m "feat(pageindex): build immutable base search views"
 ### Task 7: Write document-replacement deltas without touching base postings
 
 **Files:**
+- Modify: `app/index/v3/__init__.py`
+- Modify: `app/index/v3/layer_codec.py`
+- Modify: `app/index/v3/view_store.py`
+- Create: `app/index/v3/delta_store.py`
 - Create: `app/index/v3/delta_builder.py`
+- Modify: `tests/pageindex_v3/test_layer_codec.py`
+- Modify: `tests/pageindex_v3/test_view_store.py`
+- Create: `tests/pageindex_v3/test_delta_store.py`
 - Create: `tests/pageindex_v3/test_delta_builder.py`
+- Modify: `docs/superpowers/plans/2026-08-02-pageindex-v3-p3-base-delta.md`
 
 **Interfaces:**
-- Consumes: a parent pinned View, `SegmentChangeSet`, old/new Segment refs, trusted `StoredSummaryRef` values and summaries, touched-token lookups, Task 4 layer codec, Task 5 totals, and a non-identifying `CompactionPolicy`.
-- Produces: `DeltaObjectReceipt` and `build_delta_view(parent, generation, changes, ...) -> SearchViewReceipt` plus a separate compaction recommendation.
+- Consumes: a finalized parent `SearchViewReceipt`, `SegmentChangeSet`, exact add/edit `StoredSegmentRef` values, the target `LogicalGenerationReceipt`, authenticated old/new summaries, sparse term metadata from the Base plus chronological parent Deltas, Task 4's staged layer builder, and a non-identifying `CompactionPolicy`.
+- Produces: batched sparse lookup, metadata-only Base/View helpers, immutable Delta objects, a replacement-patched Search View, proportional-work counters, and a separate compaction recommendation.
 
-- [ ] **Step 1: Write add/edit/delete/token-disappearance tests**
+```python
+@dataclass(frozen=True, slots=True)
+class StatisticsDelta:
+    documents: int
+    total_chunks: int
+    token_count: int
+    title_length_sum: int
+    breadcrumb_length_sum: int
+    body_length_sum: int
+    posting_count: int
 
-Cover multiple changed docs, same slug across types, deletion, empty new Segment, token disappearance, posting with zero net DF change, deterministic order, repeated A->B->C->delete ownership, threshold crossings, cancellation, and exact equality with a clean base.
 
-- [ ] **Step 2: Freeze replacement and delta contracts**
+@dataclass(frozen=True, slots=True)
+class DocumentReplacement:
+    doc_key: str
+    doc_uid: str
+    old_segment_hash: str | None
+    old_summary_sha256: str | None
+    old_summary_bytes: int | None
+    new_segment_hash: str | None
+    new_summary_sha256: str | None
+    new_summary_bytes: int | None
+    new_doc_ordinal: int | None
 
-A delta lives at `objects/search/deltas/<delta_id>/`. Its manifest binds parent View, target Generation and manifest SHA-256, Search View recipe, scalar `statistics_delta`, all Task 4 layer receipts, and one sorted unique `replacements` array:
 
-```text
-{doc_key, doc_uid, old_segment_hash|null,
- old_summary_sha256|null, old_summary_bytes|null,
- new_segment_hash|null, new_summary_sha256|null,
- new_summary_bytes|null, new_doc_ordinal|null}
+@dataclass(frozen=True, slots=True)
+class DeltaObjectReceipt:
+    root: Path
+    delta_id: str
+    parent_view_id: str
+    parent_view_manifest_sha256: str
+    generation: str
+    generation_manifest_sha256: str
+    search_view_recipe_hash: str
+    manifest_ref: ArtifactRef
+    layer: PostingLayerReceipt
+    statistics_delta: StatisticsDelta
+    replacements: tuple[DocumentReplacement, ...]
+    schema_version: int = 1
+    artifact_kind: str = "search_delta_receipt"
+
+
+@dataclass(frozen=True, slots=True)
+class DeltaBuildWork:
+    old_summaries_loaded: int
+    old_segments_loaded: int
+    new_segments_loaded: int
+    new_summaries_built: int
+    projected_postings: int
+    touched_tokens: int
+    parent_term_windows_read: int
+    base_posting_bytes_read: int
+    bytes_written: int
+    layer_count: int
+    segments_loaded_peak: int
+
+
+@dataclass(frozen=True, slots=True)
+class CompactionRecommendation:
+    recommended: bool
+    layer_limit_reached: bool
+    byte_ratio_reached: bool
+    delta_layers: int
+    base_bytes: int
+    delta_bytes: int
+
+
+@dataclass(frozen=True, slots=True)
+class DeltaBuildResult:
+    delta: DeltaObjectReceipt
+    view: SearchViewReceipt
+    compaction: CompactionRecommendation
+    work: DeltaBuildWork
+
 ```
 
-Only add `(null,new)`, edit `(old,new; old != new)`, and delete `(old,null)` are legal. Old hash and old summary receipt must equal the parent owner; new hash must equal the target Generation and its new summary receipt must match the just-projected Segment; new non-null records occur exactly once in the delta document table; deletes have no new receipt, ordinal, PCV, or posting rows. `delta_id = canonical_hash(delta_core)`.
+Exact entry point:
 
-- [ ] **Step 3: Build only changed data and signed touched-token contributions**
+```text
+build_delta_view(
+    pageindex_dir: Path,
+    parent: SearchViewReceipt,
+    generation: LogicalGenerationReceipt,
+    generation_recipe: GenerationRecipe,
+    changes: SegmentChangeSet,
+    new_refs: Iterable[StoredSegmentRef],
+    search_view_recipe: SearchViewRecipe | None = None,
+    compaction_policy: CompactionPolicy | None = None,
+    *,
+    max_run_bytes: int = 64 * 1024 * 1024,
+    merge_fan_in: int = 32,
+    check_cancelled: Callable[[], None] | None = None,
+) -> DeltaBuildResult
+```
 
-The posting/PCV layer contains only new versions of added/changed documents. Removed/old postings are never copied and there are no per-token tombstones. Load old/new summary sidecars only under the receipts bound by the parent owner/new replacement, then emit signed `df_any/df_nonbody/df_body` records for the touched-token union, including negative-only disappearance records. Use sparse lookups of those same tokens in the parent layers to verify non-negative effective after-stats and compute `token_count_delta`; never scan the base vocabulary or open base postings.
+`StatisticsDelta.apply(parent) -> CorpusTotals` performs signed subtraction/overflow barriers before constructing the result, and `StatisticsDelta.as_dict()` plus `DocumentReplacement.as_dict()` emit their exact manifest fields. Every signed scalar is an integer in `[-MAX_U64, MAX_U64]`; booleans are rejected.
 
-- [ ] **Step 4: Patch control-plane View artifacts only**
+- [x] **Step 1: Write failing hot-path, replacement, and clean-base oracle tests**
 
-Apply scalar deltas to parent `statistics.json`; apply replacements to the document owner map; append the delta ID in chronological order; and write/finalize the new View. Owner records bind layer kind/ID/ordinal and segment hash. `CompactionPolicy` computes a recommendation in the build result, but that recommendation/policy is excluded from immutable object bytes and IDs and never triggers compaction here.
+Add `PostingLayerReader.lookup_terms(tokens) -> dict[str, TermRecord | None]` tests proving requested tokens are canonicalized and each sparse window is authenticated at most once; expose `last_sparse_windows_read` and total `last_sparse_scan_lines`. Add metadata-loader tests proving `load_base_object_metadata()` never calls `PostingLayerReader.audit()` and `load_view_statistics()` authenticates only `statistics.json`.
 
-- [ ] **Step 5: Add proportional-work counters**
+Build add/edit/delete/empty-Segment fixtures, same-slug/different-type docs, token disappearance, posting-with-zero-net-DF-change, body-to-title migration, repeated A->B->C->delete, threshold crossings, reversed inputs, cancellation, and exact equality with a clean Base. During the dirty build monkeypatch every Base `postings.piv` read, `PostingLayerReader.audit()`, full `terms.jsonl` iteration, compatibility compiler, and legacy export to raise.
 
-Report changed old/new summaries and Segments loaded, projected postings, touched tokens, parent term windows read, base posting bytes read, bytes written, layer count, and peak live Segments. For one edit, `segments_loaded_peak <= 1`, `base_posting_bytes_read == 0`, and postings/term work is bounded by the changed document.
+- [x] **Step 2: Implement batched sparse lookup and metadata-only control-plane reads**
 
-- [ ] **Step 6: Run tests**
+`lookup_terms()` validates and UTF-8-sorts a unique touched-token set, groups targets by sparse anchor, authenticates each selected `terms.jsonl` window once, returns every requested token with a `TermRecord` or `None`, and never reads `postings.piv`. One layer reports actual windows and lines read for `DeltaBuildWork`.
 
-Run: `python -m pytest tests/pageindex_v3/test_delta_builder.py -q`
-Expected: every incremental View has the same logical Generation, owners, scalar/token statistics, raw effective postings, and chunk metrics as a clean base.
+Add:
 
-- [ ] **Step 7: Commit**
+```python
+load_base_object_metadata(pageindex_dir, base_id) -> BaseObjectReceipt
+load_view_statistics(receipt) -> CorpusTotals
+```
+
+The Base metadata loader validates exact files, canonical manifest, identity core, recipe, and layer receipts without `PostingLayerReader.audit()`. Keep `load_base_object()` as the explicit deep wrapper. Add keyword-only `parent: SearchViewReceipt | None = None` to `write_search_view_candidate()`: an initial View requires `parent is None`, `delta_ids == ()`, and Base/target Generation equality; an incremental View requires the same Base/recipe as parent and exactly `delta_ids == parent.delta_ids + (new_delta_id,)`, while allowing the immutable Base to belong to an older Generation.
+
+`PostingLayerReader(load_documents=False)` keeps the layer document table lazy for term-only work. Dirty parent lookup therefore reads neither `layer-documents.json` nor `postings.piv`; ownership, posting, PCV, and explicit audit paths load and authenticate documents on demand.
+
+- [x] **Step 3: Freeze and implement the immutable Delta store**
+
+A Delta lives at `objects/search/deltas/<delta_id>/` with the five Task 4 layer files plus canonical `manifest.json`. Its exact identity core is:
+
+```python
+delta_core = {
+    "artifact_kind": "search_delta",
+    "schema_version": 1,
+    "parent_view_id": parent.view_id,
+    "parent_view_manifest_sha256": parent.manifest_ref.sha256,
+    "generation": generation.generation_id,
+    "generation_manifest_sha256": generation.manifest_ref.sha256,
+    "search_view_recipe_hash": canonical_hash(recipe.as_dict()),
+    "statistics_delta": statistics_delta.as_dict(),
+    "layer": layer.as_dict(),
+    "replacements": [item.as_dict() for item in replacements],
+}
+delta_id = canonical_hash(delta_core)
+```
+
+The manifest adds only `delta_id` and the normalized `search_view_recipe`. `CompactionPolicy`, work counters, staging paths, and recommendations never enter immutable bytes or identity. Implement `write_delta_candidate()`, `load_delta_object_metadata()`, deep `load_delta_object()`, and `finalize_delta_object()` with the Task 6 no-clobber/conflict/candidate-retention and link/junction rules.
+
+A replacement is strictly add `(old null, new complete)`, edit `(old complete, new complete, hashes differ)`, or delete `(old complete, new null)`. Records are strictly sorted by `doc_uid`; every non-delete ordinal is exactly `0..N-1` and matches the Delta layer document table. Old fields must bind the parent owner; new fields bind the just-written summary and target Generation. Deletes have no LayerDocument, PCV, or posting rows.
+
+- [x] **Step 4: Build only changed Segments and signed touched-token contributions**
+
+Authenticate the parent View, statistics, owner map, Base metadata, and chronological parent Delta metadata. Prove `changes.base_by_doc` equals parent owners by `doc_key/doc_uid/segment_hash`; prove `new_refs` exactly covers `added | changed`; combine unchanged old refs plus add/edit new refs and bind the exact target Generation without loading unchanged Segments.
+
+Process dirty docs in `doc_uid` order. For edit/delete, load one old summary under the parent owner's SHA/size and release it. For add/edit, execute `begin_document -> project_to_sink(ticket.add_posting)` exactly once, `put_summary`, `ticket.commit`, record its replacement, then release the Segment, summary, and metrics. Removed postings are never copied and there are no token tombstones.
+
+Keep the touched-token union separately from its signed triple accumulator, because a token can have net `(0,0,0)` while still owning new postings. For each touched token, batch-read only parent Base/Delta term windows, sum chronological `TermRecord.delta` triples, require every effective after-value in `[0, total_chunks_after]` with `max(nonbody, body) <= any <= nonbody + body`, and compute `token_count_delta` from before/after `df_any > 0`. Pass sorted `TokenContribution` values to `stage.finish()`: negative-only posting-free disappearance is retained; zero triple with new postings is retained; zero triple without postings is rejected.
+
+- [x] **Step 5: Patch only View control-plane artifacts and report proportional work**
+
+Apply `StatisticsDelta` to authenticated parent totals, patch the on-disk owner map newest-wins, append `delta_id` without sorting, and write/finalize the new View with `parent=parent`. After successful View finalization do not call cancellation again. A published but unreachable Delta left by cancellation/View conflict is an acceptable immutable orphan.
+
+Compute `CompactionRecommendation` from layer count and attested Base/Delta byte totals; it never triggers compaction. For one edit, assert `segments_loaded_peak <= 1`, `base_posting_bytes_read == 0`, `new_segments_loaded == 1`, and all term work is bounded by touched sparse windows rather than corpus vocabulary/postings.
+
+The schema-v1 View still authenticates and rewrites one active owner map, but the builder patches that map in place and never retains a second full copy or an eager Base layer document table. The exact-50k gate in Task 12 decides whether this remaining O(N) control-plane artifact requires a schema-v2 sparse/patch representation.
+
+- [x] **Step 6: Run focused and complete regressions**
+
+Run:
 
 ```powershell
-git add app/index/v3/delta_builder.py tests/pageindex_v3/test_delta_builder.py
+python -m pytest tests/pageindex_v3/test_layer_codec.py tests/pageindex_v3/test_view_store.py tests/pageindex_v3/test_delta_store.py tests/pageindex_v3/test_delta_builder.py -q
+python -m pytest tests/pageindex_v3 -q
+python -m pytest -q
+```
+
+Expected: every incremental View has the same logical Generation, active owners, scalar/token statistics, raw effective postings, and chunk metrics as a clean Base; dirty build observers report zero Base posting bytes and no full vocabulary/audit work.
+
+Result: focused Task 7 `69 passed, 2 skipped`; PageIndex v3 `412 passed, 5 skipped`; complete repository `888 passed, 7 skipped, 1 warning`. Dirty observers report zero parent `postings.piv` and zero parent `layer-documents.json` bytes for touched-term resolution.
+
+- [x] **Step 7: Commit**
+
+```powershell
+git add app/index/v3/__init__.py app/index/v3/layer_codec.py app/index/v3/view_store.py app/index/v3/delta_store.py app/index/v3/delta_builder.py tests/pageindex_v3/test_layer_codec.py tests/pageindex_v3/test_view_store.py tests/pageindex_v3/test_delta_store.py tests/pageindex_v3/test_delta_builder.py docs/superpowers/plans/2026-08-02-pageindex-v3-p3-base-delta.md
 git commit -m "feat(pageindex): build document replacement deltas"
 ```
 
