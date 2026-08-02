@@ -20,6 +20,7 @@ from .protocol import (
     BuildRequest,
     ProtocolError,
     VALID_BUILD_MODES,
+    VALID_BUILD_OUTCOMES,
     read_json_object,
 )
 
@@ -51,12 +52,27 @@ def _verify_success_result(
                 f"does not match request {expected!r}"
             )
 
+    outcome = result.get("outcome")
+    if outcome not in VALID_BUILD_OUTCOMES:
+        raise WorkerProcessError(
+            f"worker returned unknown build outcome {outcome!r}"
+        )
+
     generation = result.get("generation")
     if not isinstance(generation, str) or not _GENERATION_ID_RE.fullmatch(
         generation
     ):
         raise WorkerProcessError(
             f"worker returned unsafe generation ID {generation!r}"
+        )
+
+    if outcome == "no_change" and (
+        request.mode != "incremental"
+        or request.base_generation is None
+        or generation != request.base_generation
+    ):
+        raise WorkerProcessError(
+            "no_change requires incremental mode and the unchanged base Generation"
         )
 
     generation_dir_value = result.get("generation_dir")
@@ -128,6 +144,37 @@ def _verify_success_result(
             f"worker manifest hash {manifest_sha256!r} does not match "
             f"{actual_sha256}"
         )
+
+
+def verify_worker_completion(
+    result: dict[str, object],
+    request: BuildRequest,
+    pageindex_dir: Path,
+    returncode: int,
+) -> None:
+    """Verify the process exit status and any successful Generation result."""
+
+    expected_codes = {
+        "ready_to_publish": EXIT_SUCCESS,
+        "failed": (
+            EXIT_INVALID_REQUEST
+            if result.get("error_code") == "invalid_request"
+            else EXIT_BUILD_FAILED
+        ),
+        "cancelled": EXIT_CANCELLED,
+    }
+    expected = expected_codes.get(result.get("status"))
+    if expected is None:
+        raise WorkerProcessError(
+            f"worker returned unknown result status {result.get('status')!r}"
+        )
+    if returncode != expected:
+        raise WorkerProcessError(
+            f"worker exit code {returncode} disagrees with "
+            f"result status {result.get('status')!r}"
+        )
+    if expected == EXIT_SUCCESS:
+        _verify_success_result(result, request, Path(pageindex_dir))
 
 
 def worker_command(
@@ -245,27 +292,7 @@ def run_shadow_build(
         )
 
     result = read_json_object(result_path)
-    expected_codes = {
-        "ready_to_publish": EXIT_SUCCESS,
-        "failed": (
-            EXIT_INVALID_REQUEST
-            if result.get("error_code") == "invalid_request"
-            else EXIT_BUILD_FAILED
-        ),
-        "cancelled": EXIT_CANCELLED,
-    }
-    expected = expected_codes.get(result.get("status"))
-    if expected is None:
-        raise WorkerProcessError(
-            f"worker returned unknown result status {result.get('status')!r}"
-        )
-    if completed.returncode != expected:
-        raise WorkerProcessError(
-            f"worker exit code {completed.returncode} disagrees with "
-            f"result status {result.get('status')!r}"
-        )
-    if expected == EXIT_SUCCESS:
-        _verify_success_result(result, request, pageindex)
+    verify_worker_completion(result, request, pageindex, completed.returncode)
 
     return {**result, "worker_exit_code": completed.returncode}
 
@@ -309,4 +336,5 @@ __all__ = [
     "main",
     "run_shadow_build",
     "worker_command",
+    "verify_worker_completion",
 ]

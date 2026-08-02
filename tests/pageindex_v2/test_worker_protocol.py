@@ -16,6 +16,7 @@ from app.index.v2.supervisor import (
     WorkerProcessError,
     run_shadow_build,
     worker_command,
+    verify_worker_completion,
 )
 from app.index.v2.worker import run_worker
 
@@ -91,6 +92,7 @@ def _install_success_worker_mock(
         result: dict[str, object] = {
             "schema_version": 1,
             "status": "ready_to_publish",
+            "outcome": "built",
             "job_id": request["job_id"],
             "mode": request["mode"],
             "base_generation": request["base_generation"],
@@ -364,6 +366,13 @@ def test_corrupt_base_fails_without_touching_legacy_and_full_recovers(
     )
     object_path.write_text('{"corrupt":true}', encoding="utf-8")
 
+    note_path = sample_content / "notes" / "welcome.md"
+    original_note = note_path.read_text(encoding="utf-8")
+    note_path.write_text(
+        original_note + "\nForce the changed-input build path.\n",
+        encoding="utf-8",
+    )
+
     failed_dir = pageindex / "build" / "idx_corrupt_base"
     assert run_worker(
         _request(
@@ -378,6 +387,8 @@ def test_corrupt_base_fails_without_touching_legacy_and_full_recovers(
     assert failed["status"] == "failed"
     assert failed["error_code"] == "build_failed"
     assert {path: path.read_bytes() for path in protected_paths} == before
+
+    note_path.write_text(original_note, encoding="utf-8")
 
     recovery_dir = pageindex / "build" / "idx_full_recovery"
     assert run_worker(
@@ -484,6 +495,36 @@ def test_supervisor_accepts_verified_mock_success(
     assert result["job_id"] == job_id
     assert result["generation"] == generation
     assert result["worker_exit_code"] == 0
+
+
+def test_supervisor_rejects_unknown_success_outcome(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pageindex = tmp_path / "pageindex"
+    _install_success_worker_mock(
+        monkeypatch,
+        pageindex,
+        result_overrides={"outcome": "maybe"},
+    )
+
+    with pytest.raises(WorkerProcessError, match="outcome"):
+        run_shadow_build(tmp_path / "content", pageindex, "full")
+
+
+def test_supervisor_rejects_no_change_for_full_build(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pageindex = tmp_path / "pageindex"
+    _install_success_worker_mock(
+        monkeypatch,
+        pageindex,
+        result_overrides={"outcome": "no_change"},
+    )
+
+    with pytest.raises(WorkerProcessError, match="no_change"):
+        run_shadow_build(tmp_path / "content", pageindex, "full")
 
 
 def test_supervisor_rejects_forged_generation_path(
@@ -650,3 +691,33 @@ def test_setuptools_discovers_nested_app_packages() -> None:
         'include = [' + chr(34) + 'app*' + chr(34) + ']' in pyproject
     )
     assert 'packages = [' + chr(34) + 'app' + chr(34) + ']' not in pyproject
+
+
+def test_verify_worker_completion_rejects_exit_status_disagreement(
+    tmp_path: Path,
+) -> None:
+    request = BuildRequest.from_dict(
+        {
+            "schema_version": 1,
+            "job_id": "idx_verifier",
+            "mode": "full",
+            "content_dir": str((tmp_path / "content").resolve()),
+            "pageindex_dir": str((tmp_path / "pageindex").resolve()),
+            "base_generation": None,
+        }
+    )
+    result: dict[str, object] = {
+        "schema_version": 1,
+        "status": "ready_to_publish",
+        "job_id": request.job_id,
+        "mode": request.mode,
+        "base_generation": None,
+    }
+
+    with pytest.raises(WorkerProcessError, match="exit code"):
+        verify_worker_completion(
+            result,
+            request,
+            request.pageindex_dir,
+            returncode=1,
+        )

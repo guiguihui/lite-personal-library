@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 import pytest
 
+import app.index.v2.validator as validator_module
 from app.index.v2.canonical import canonical_hash, write_json_atomic
 from app.index.v2.compiler import compile_generation
 from app.index.v2.models import CompilerRecipe, SegmentRecipe
@@ -87,6 +89,115 @@ def test_materialized_candidate_validates(tmp_path: Path) -> None:
     pageindex, candidate = _candidate(tmp_path)
     report = validate_candidate(candidate, pageindex)
     assert report.ok, report.errors
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected"),
+    [
+        ("delete", "input_proof_missing"),
+        ("noncanonical", "file_not_canonical"),
+        ("change_content_hash", "input_proof_hash_mismatch"),
+        ("remove_document", "input_proof_documents_mismatch"),
+    ],
+)
+def test_validator_rejects_invalid_input_proof(
+    tmp_path: Path,
+    mutation: str,
+    expected: str,
+) -> None:
+    pageindex, candidate = _candidate(tmp_path)
+    proof_path = candidate / "input-proof.json"
+    manifest_path = candidate / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+
+    if mutation == "delete":
+        proof_path.unlink()
+    elif mutation == "noncanonical":
+        raw = json.dumps(proof, ensure_ascii=False, indent=2).encode("utf-8")
+        proof_path.write_bytes(raw)
+        manifest["files"]["input-proof.json"] = {
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "bytes": len(raw),
+        }
+        write_json_atomic(manifest_path, manifest)
+    elif mutation == "change_content_hash":
+        proof["documents"]["note:alpha"]["content_hash"] = "f" * 64
+        write_json_atomic(proof_path, proof)
+        raw = proof_path.read_bytes()
+        manifest["files"]["input-proof.json"] = {
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "bytes": len(raw),
+        }
+        write_json_atomic(manifest_path, manifest)
+    elif mutation == "remove_document":
+        del proof["documents"]["note:alpha"]
+        write_json_atomic(proof_path, proof)
+        raw = proof_path.read_bytes()
+        manifest["input_proof_sha256"] = canonical_hash(proof)
+        manifest["files"]["input-proof.json"] = {
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "bytes": len(raw),
+        }
+        write_json_atomic(manifest_path, manifest)
+    else:  # pragma: no cover - parametrization is exhaustive
+        raise AssertionError(mutation)
+
+    report = validate_candidate(candidate, pageindex)
+
+    assert not report.ok
+    assert expected in report.error_codes
+
+
+@pytest.mark.parametrize(
+    "fingerprint_field",
+    ["content_hash", "segment_recipe_hash"],
+)
+def test_validator_compares_input_proof_directly_to_loaded_segment_fingerprints(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    fingerprint_field: str,
+) -> None:
+    pageindex, candidate = _candidate(tmp_path)
+    proof_path = candidate / "input-proof.json"
+    manifest_path = candidate / "manifest.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    proof["documents"]["note:alpha"][fingerprint_field] = "f" * 64
+    write_json_atomic(proof_path, proof)
+    proof_raw = proof_path.read_bytes()
+    proof_hash = canonical_hash(proof)
+    manifest["input_proof_sha256"] = proof_hash
+    manifest["files"]["input-proof.json"] = {
+        "sha256": hashlib.sha256(proof_raw).hexdigest(),
+        "bytes": len(proof_raw),
+    }
+    revision = canonical_hash(
+        {
+            "schema_version": manifest["schema_version"],
+            "compiler_recipe_hash": manifest["compiler_recipe_hash"],
+            "input_proof_sha256": proof_hash,
+            "documents": manifest["documents"],
+        }
+    )
+    manifest["revision_sha256"] = revision
+    manifest["generation"] = revision[:20]
+    write_json_atomic(manifest_path, manifest)
+
+    def fail_deep_compile(*_args: object, **_kwargs: object) -> object:
+        raise RuntimeError("deep recompilation intentionally disabled")
+
+    monkeypatch.setattr(
+        validator_module,
+        "compile_generation",
+        fail_deep_compile,
+    )
+
+    report = validate_candidate(candidate, pageindex)
+
+    assert not report.ok
+    assert "input_proof_segment_mismatch" in report.error_codes
 
 
 def test_validator_rejects_dangling_posting_even_with_updated_file_hash(tmp_path: Path) -> None:

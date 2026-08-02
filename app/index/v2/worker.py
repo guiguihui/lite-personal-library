@@ -9,18 +9,13 @@ import tempfile
 import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .canonical import canonical_hash, write_json_atomic
 from .catalog import DocumentSource, discover_documents, fingerprint_document
-from .compiler import CompiledGeneration, compile_generation
 from .ids import normalize_relative_path
 from .models import CompilerRecipe, SegmentRecipe
-from .object_store import (
-    find_reusable_segments,
-    load_segment,
-    put_segment,
-)
+from .no_change import NoChangeMatch, try_no_change
 from .protocol import (
     EXIT_BUILD_FAILED,
     EXIT_CANCELLED,
@@ -33,7 +28,51 @@ from .protocol import (
     read_json_object,
     utc_now,
 )
-from .segment_builder import build_segment
+
+if TYPE_CHECKING:
+    from .compiler import CompiledGeneration
+
+
+def compile_generation(
+    segments: Sequence[Mapping[str, object]],
+    recipe: CompilerRecipe,
+) -> CompiledGeneration:
+    from .compiler import compile_generation as implementation
+
+    return implementation(segments, recipe)
+
+
+def find_reusable_segments(
+    pageindex_dir: Path,
+) -> dict[tuple[str, str, str], str]:
+    from .object_store import find_reusable_segments as implementation
+
+    return implementation(pageindex_dir)
+
+
+def load_segment(
+    pageindex_dir: Path, segment_hash: str
+) -> dict[str, object]:
+    from .object_store import load_segment as implementation
+
+    return implementation(pageindex_dir, segment_hash)
+
+
+def put_segment(
+    pageindex_dir: Path, segment: Mapping[str, object]
+) -> object:
+    from .object_store import put_segment as implementation
+
+    return implementation(pageindex_dir, segment)
+
+
+def build_segment(
+    source: DocumentSource,
+    recipe: SegmentRecipe | None = None,
+) -> dict[str, Any]:
+    from .segment_builder import build_segment as implementation
+
+    return implementation(source, recipe)
 
 
 class BuildCancelled(RuntimeError):
@@ -74,6 +113,20 @@ _LEGACY_CORE_FILES = (
 def _check_cancel(reporter: TaskReporter) -> None:
     if reporter.is_cancelled():
         raise BuildCancelled("cancel.request was observed")
+
+
+def _try_no_change(
+    request: BuildRequest, reporter: TaskReporter
+) -> NoChangeMatch | None:
+    if request.mode != "incremental" or request.base_generation is None:
+        return None
+    reporter.transition(
+        "checking_no_change",
+        base_generation=request.base_generation,
+    )
+    return try_no_change(
+        request, check_cancel=lambda: _check_cancel(reporter)
+    )
 
 
 def _mapping(value: object, field: str) -> Mapping[str, Any]:
@@ -562,6 +615,56 @@ def run_worker(request_path: Path) -> int:
         reporter.transition("accepted", mode=request.mode)
         _check_cancel(reporter)
 
+        no_change = _try_no_change(request, reporter)
+        if no_change is not None:
+            manifest_stats = _mapping(
+                no_change.manifest.get("stats"),
+                "manifest.stats",
+            )
+            stats: dict[str, object] = {
+                **dict(manifest_stats),
+                "no_op": True,
+                "segments_loaded": 0,
+                "segments_rebuilt": 0,
+                "segments_reused": no_change.document_count,
+                "segments_deleted": 0,
+                "stabilization_attempts": no_change.stabilization_attempts,
+                "postings_visited": 0,
+                "generation_bytes_written": 0,
+                "deep_validation_runs": 0,
+                "duration_ms": round(
+                    (time.perf_counter() - started) * 1000,
+                    3,
+                ),
+                "shadow_duration_ms": 0.0,
+            }
+            result: dict[str, object] = {
+                "schema_version": PROTOCOL_SCHEMA_VERSION,
+                "status": "ready_to_publish",
+                "outcome": "no_change",
+                "job_id": request.job_id,
+                "mode": request.mode,
+                "base_generation": request.base_generation,
+                "generation": no_change.generation_dir.name,
+                "manifest_sha256": no_change.manifest_sha256,
+                "generation_dir": str(no_change.generation_dir),
+                "warnings": [],
+                "shadow_report": {
+                    "status": "not_run",
+                    "reason": "no_change",
+                },
+                "stats": stats,
+                "finished_at": utc_now(),
+            }
+            reporter.transition(
+                "ready_to_publish",
+                generation=no_change.generation_dir.name,
+                outcome="no_change",
+                warnings=0,
+            )
+            reporter.finish(result)
+            return EXIT_SUCCESS
+
         base_segments: list[dict[str, object]] = []
         base_doc_keys: set[str] = set()
         if request.base_generation is not None:
@@ -611,6 +714,7 @@ def run_worker(request_path: Path) -> int:
         manifest_stats = _mapping(compiled.manifest.get("stats"), "manifest.stats")
         stats: dict[str, object] = {
             **build_stats,
+            "no_op": False,
             "segments_deleted": len(base_doc_keys - current_doc_keys),
             **dict(manifest_stats),
             "duration_ms": round((time.perf_counter() - started) * 1000, 3),
@@ -619,6 +723,7 @@ def run_worker(request_path: Path) -> int:
         result: dict[str, object] = {
             "schema_version": PROTOCOL_SCHEMA_VERSION,
             "status": "ready_to_publish",
+            "outcome": "built",
             "job_id": request.job_id,
             "mode": request.mode,
             "base_generation": request.base_generation,

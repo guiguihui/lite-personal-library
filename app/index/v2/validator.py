@@ -15,7 +15,16 @@ from app.retrieval.tokenizer import tokenize
 from .canonical import canonical_bytes, canonical_hash, sha256_bytes, write_json_atomic
 from .compiler import CompiledGeneration, compile_generation
 from .ids import normalize_relative_path
-from .models import CompilerRecipe, SegmentRecipe
+from .input_proof import (
+    INPUT_PROOF_PATH,
+    proof_from_segments,
+    validate_input_proof,
+)
+from .models import (
+    COMPILER_SCHEMA_VERSION,
+    CompilerRecipe,
+    SegmentRecipe,
+)
 from .object_store import load_segment
 
 __all__ = ["ValidationReport", "materialize_candidate", "validate_candidate"]
@@ -423,8 +432,12 @@ def validate_candidate(candidate_dir: Path, pageindex_dir: Path) -> ValidationRe
         return ValidationReport(False, tuple(errors), tuple(warnings))
     if manifest_raw != canonical_bytes(manifest):
         _add(errors, "manifest_not_canonical", "manifest.json")
-    if manifest.get("schema_version") != 2:
-        _add(errors, "schema_unknown", f"manifest schema {manifest.get('schema_version')!r}")
+    if manifest.get("schema_version") != COMPILER_SCHEMA_VERSION:
+        _add(
+            errors,
+            "schema_unknown",
+            f"manifest schema {manifest.get('schema_version')!r}",
+        )
 
     documents = _mapping(manifest.get("documents"))
     files = _mapping(manifest.get("files"))
@@ -434,6 +447,8 @@ def validate_candidate(candidate_dir: Path, pageindex_dir: Path) -> ValidationRe
     if files is None:
         _add(errors, "manifest_invalid", "files must be an object")
         files = {}
+    if INPUT_PROOF_PATH not in files:
+        _add(errors, "input_proof_missing", "manifest files")
 
     recipe_value = _mapping(manifest.get("compiler_recipe"))
     if recipe_value is None:
@@ -449,8 +464,9 @@ def validate_candidate(candidate_dir: Path, pageindex_dir: Path) -> ValidationRe
         _add(errors, "compiler_recipe_hash_mismatch", "manifest compiler recipe")
 
     core_manifest = {
-        "schema_version": 2,
+        "schema_version": COMPILER_SCHEMA_VERSION,
         "compiler_recipe_hash": manifest.get("compiler_recipe_hash"),
+        "input_proof_sha256": manifest.get("input_proof_sha256"),
         "documents": dict(documents),
     }
     revision = canonical_hash(core_manifest)
@@ -494,6 +510,43 @@ def validate_candidate(candidate_dir: Path, pageindex_dir: Path) -> ValidationRe
     for missing in sorted(expected_files - actual_files):
         _add(errors, "file_missing", missing)
 
+    input_proof: dict[str, object] | None = None
+    input_proof_value = payloads.get(INPUT_PROOF_PATH)
+    if INPUT_PROOF_PATH not in payloads:
+        _add(errors, "input_proof_missing", INPUT_PROOF_PATH)
+    else:
+        try:
+            input_proof = validate_input_proof(input_proof_value)
+        except ValueError as exc:
+            _add(errors, "input_proof_invalid", str(exc))
+        else:
+            proof_hash = canonical_hash(input_proof)
+            if proof_hash != manifest.get("input_proof_sha256"):
+                _add(
+                    errors,
+                    "input_proof_hash_mismatch",
+                    f"expected {manifest.get('input_proof_sha256')!r}, "
+                    f"got {proof_hash}",
+                )
+            proof_documents = _mapping(input_proof.get("documents"))
+            if (
+                proof_documents is None
+                or set(proof_documents) != set(documents)
+            ):
+                _add(
+                    errors,
+                    "input_proof_documents_mismatch",
+                    "proof documents differ from manifest documents",
+                )
+            if input_proof.get("compiler_recipe_hash") != manifest.get(
+                "compiler_recipe_hash"
+            ):
+                _add(
+                    errors,
+                    "input_proof_compiler_recipe_mismatch",
+                    "proof compiler recipe differs from manifest",
+                )
+
     segments: list[Mapping[str, object]] = []
     for doc_key, segment_hash in sorted(documents.items()):
         if not isinstance(doc_key, str) or not isinstance(segment_hash, str):
@@ -513,6 +566,41 @@ def validate_candidate(candidate_dir: Path, pageindex_dir: Path) -> ValidationRe
         _validate_segment_payload(segment, doc_key, errors)
         segments.append(segment)
 
+    if input_proof is not None and len(segments) == len(documents):
+        compiler_hash = input_proof.get("compiler_recipe_hash")
+        if not isinstance(compiler_hash, str):
+            _add(
+                errors,
+                "input_proof_segment_mismatch",
+                "validated proof has no compiler recipe hash",
+            )
+        else:
+            try:
+                segment_input_proof = proof_from_segments(
+                    segments,
+                    compiler_hash,
+                )
+            except ValueError as exc:
+                _add(
+                    errors,
+                    "input_proof_segment_mismatch",
+                    f"cannot derive proof from loaded Segments: {exc}",
+                )
+            else:
+                if segment_input_proof != input_proof:
+                    proof_documents = _mapping(input_proof.get("documents")) or {}
+                    segment_documents = (
+                        _mapping(segment_input_proof.get("documents")) or {}
+                    )
+                    mismatched = sorted(
+                        doc_key
+                        for doc_key in set(proof_documents) | set(segment_documents)
+                        if proof_documents.get(doc_key)
+                        != segment_documents.get(doc_key)
+                    )
+                    detail = ", ".join(mismatched) or "proof metadata"
+                    _add(errors, "input_proof_segment_mismatch", detail)
+
     try:
         expected = compile_generation(segments, compiler_recipe)
     except Exception as exc:
@@ -522,6 +610,14 @@ def validate_candidate(candidate_dir: Path, pageindex_dir: Path) -> ValidationRe
             _add(errors, "compiler_recipe_mismatch", expected.compiler_recipe_hash)
         if expected.generation_id != manifest.get("generation"):
             _add(errors, "compiled_generation_mismatch", expected.generation_id)
+        if expected.manifest.get("input_proof_sha256") != manifest.get(
+            "input_proof_sha256"
+        ):
+            _add(
+                errors,
+                "input_proof_hash_mismatch",
+                "deep recompilation produced a different input proof",
+            )
         for relative, expected_payload in expected.payloads.items():
             actual_payload = payloads.get(relative)
             if actual_payload != expected_payload:

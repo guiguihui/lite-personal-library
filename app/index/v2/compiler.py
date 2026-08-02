@@ -9,7 +9,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from .canonical import canonical_bytes, canonical_hash
-from .models import CompilerRecipe
+from .input_proof import INPUT_PROOF_PATH, proof_from_segments
+from .models import COMPILER_SCHEMA_VERSION, CompilerRecipe
 
 
 BODY_DF_MIN = 256
@@ -250,9 +251,12 @@ def compile_generation(
         document_hashes[doc_key] = canonical_hash(segment)
         segment_records.append((segment, document, doc_key, doc_type, slug))
 
+    input_proof = proof_from_segments(ordered_segments, compiler_recipe_hash)
+    input_proof_sha256 = canonical_hash(input_proof)
     core_manifest: dict[str, object] = {
-        "schema_version": 2,
+        "schema_version": COMPILER_SCHEMA_VERSION,
         "compiler_recipe_hash": compiler_recipe_hash,
+        "input_proof_sha256": input_proof_sha256,
         "documents": document_hashes,
     }
     revision_sha256 = canonical_hash(core_manifest)
@@ -425,6 +429,7 @@ def compile_generation(
         "node-index.json": {"nodes": global_nodes},
         "chunks.json": {"chunks": global_chunks},
         "inverted-index.json": inverted_payload,
+        INPUT_PROOF_PATH: input_proof,
         **tree_payloads,
     }
     payloads = dict(sorted(payloads.items()))
@@ -443,10 +448,11 @@ def compile_generation(
     )
     after_bytes = len(canonical_bytes(inverted_payload))
     manifest: dict[str, object] = {
-        "schema_version": 2,
+        "schema_version": COMPILER_SCHEMA_VERSION,
         "generation": generation_id,
         "revision_sha256": revision_sha256,
         "compiler_recipe_hash": compiler_recipe_hash,
+        "input_proof_sha256": input_proof_sha256,
         "compiler_recipe": dict(recipe_payload),
         "documents": document_hashes,
         "files": file_metadata,

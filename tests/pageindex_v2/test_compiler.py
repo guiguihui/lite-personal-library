@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError
+import hashlib
 
 import pytest
 
+from app.index.v2.canonical import canonical_hash
 from app.index.v2.compiler import compile_generation, should_prune_body
 from app.index.v2.models import CompilerRecipe
 
@@ -31,8 +33,8 @@ def _segment(
             "tags": [],
         },
         "fingerprint": {
-            "content_hash": f"content-{slug}",
-            "recipe_hash": "segment-recipe",
+            "content_hash": hashlib.sha256(slug.encode("utf-8")).hexdigest(),
+            "recipe_hash": "a" * 64,
             "source_files": [],
         },
         "nodes": [
@@ -111,6 +113,7 @@ def test_compiler_exports_legacy_compatible_payloads() -> None:
     )
 
     assert set(compiled.payloads) == {
+        "input-proof.json",
         "global-index.json",
         "node-index.json",
         "chunks.json",
@@ -126,6 +129,27 @@ def test_compiler_exports_legacy_compatible_payloads() -> None:
     assert compiled.manifest["generation"] == compiled.generation_id
     assert compiled.manifest["revision_sha256"] == compiled.revision_sha256
     assert set(compiled.manifest["files"]) == set(compiled.payloads)
+    assert compiled.manifest["schema_version"] == 3
+    input_proof = compiled.payloads["input-proof.json"]
+    assert input_proof == {
+        "schema_version": 1,
+        "compiler_recipe_hash": compiled.compiler_recipe_hash,
+        "documents": {
+            "book:alpha": {
+                "content_hash": hashlib.sha256(b"alpha").hexdigest(),
+                "segment_recipe_hash": "a" * 64,
+            }
+        },
+    }
+    assert compiled.manifest["input_proof_sha256"] == canonical_hash(input_proof)
+    assert compiled.revision_sha256 == canonical_hash(
+        {
+            "schema_version": 3,
+            "compiler_recipe_hash": compiled.compiler_recipe_hash,
+            "input_proof_sha256": canonical_hash(input_proof),
+            "documents": compiled.manifest["documents"],
+        }
+    )
 
 
 def test_pruned_body_keeps_title_and_breadcrumb_tf() -> None:

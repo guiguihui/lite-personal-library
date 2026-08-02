@@ -85,7 +85,8 @@ def test_recipe_dicts_are_versioned_and_recipe_instances_are_immutable() -> None
     compiler = CompilerRecipe()
     assert segment.as_dict()["schema_version"] == 2
     assert segment.as_dict()["chunk_target_chars"] == 500
-    assert compiler.as_dict()["schema_version"] == 2
+    assert compiler.as_dict()["schema_version"] == 3
+    assert compiler.as_dict()["generation_layout_version"] == "manifest-input-proof-v1"
     assert compiler.as_dict()["body_df_min"] == 256
     assert compiler.as_dict()["body_df_ratio"] == 0.90
     with pytest.raises(FrozenInstanceError):

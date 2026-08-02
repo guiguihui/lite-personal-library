@@ -122,9 +122,19 @@ no-op 必须在 `_read_base_segments()` 前执行：
 5. 输入证明完全一致时复用原 Generation；
 6. 不加载 Segment，不编译，不物化，不执行 Validator 或 Shadow 对拍。
 
+实现修订：稳定性确认不是第二次全量内容读取。采集先记录目录状态，再发现文档并解析受信路径；文件通过已打开句柄做前后 `fstat`，按首次句柄大小流式计算一次 SHA-256；结束时并行复核文件状态、目录状态和基于 `os.scandir` 的完整支持文档拓扑。祖先 symlink/junction 和最终文件 symlink 均必须解析后仍位于 content root。源文件采用 4 路有界并行，且编译器、Segment builder 与对象存储只在快路未命中后懒加载。
+
+该快照协议面向正常编辑器、同步工具和文件系统事件，而不是能在采集窗口内原位改写同一 inode、保持长度并伪造或恢复全部时间元数据的对抗写者。操作系统没有跨文件原子快照时，仅靠单次内容读取无法彻底关闭最后一个竞态；需要这种更强保证的环境必须使用文件系统快照、强制文件锁或 Windows USN Journal，并接受额外平台耦合或 I/O 成本。
+
+recorded recipe 内部自洽但落后于当前 recipe 时，no-op 返回不匹配并进入普通构建升级；只有 manifest、proof、recipe hash 或 Generation identity 互相矛盾时才硬失败。
+
 成功结果继续使用 `status=ready_to_publish`，并以 `outcome=no_change` 区分；普通构建使用 `outcome=built`。
 
 schema 2 Generation 没有输入证明时自动回退现有构建路径，第一次成功构建迁移到 schema 3。
+
+P1 的信任边界是“由本程序校验后原子落盘、之后不可变的 Generation”。no-op 会重新验证 canonical manifest、绑定 proof、recipe、Generation identity 和当前源内容，但不会重读或重哈希所有运行时 payload；外部篡改与介质损坏由 P2 的 Sampled/Deep Audit 处理。
+
+50k 实测中 no-op wall P95 为 **467.773 ms**，20/20 为 `no_change`，且 Segment 加载、postings 遍历、Generation 写入和深度校验均为 0。完整证据见 `docs/pageindex-v3-p0-p1-performance-evidence.md`。
 
 ## 6. P2：内存所有权、流式编译和分层校验
 

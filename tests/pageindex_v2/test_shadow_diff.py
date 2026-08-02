@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -62,8 +63,8 @@ def _segment(
             "url": f"/{folder}/{slug}.html",
         },
         "fingerprint": {
-            "content_hash": f"content-{slug}",
-            "recipe_hash": "recipe-alpha",
+            "content_hash": hashlib.sha256(slug.encode("utf-8")).hexdigest(),
+            "recipe_hash": "a" * 64,
             "source_files": [],
         },
         "nodes": [

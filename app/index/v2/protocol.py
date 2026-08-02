@@ -16,6 +16,7 @@ from .canonical import canonical_bytes, write_json_atomic
 
 PROTOCOL_SCHEMA_VERSION = 1
 VALID_BUILD_MODES = frozenset({"incremental", "full", "recompile"})
+VALID_BUILD_OUTCOMES = frozenset({"built", "no_change"})
 
 EXIT_SUCCESS = 0
 EXIT_BUILD_FAILED = 1
@@ -215,6 +216,13 @@ class TaskReporter:
         status = result.get("status")
         if status not in _TERMINAL_STATES:
             raise ProtocolError(f"invalid terminal result status: {status!r}")
+        if (
+            status == "ready_to_publish"
+            and result.get("outcome") not in VALID_BUILD_OUTCOMES
+        ):
+            raise ProtocolError(
+                f"invalid successful build outcome: {result.get('outcome')!r}"
+            )
         write_json_atomic(self.job_dir / "result.json", dict(result))
 
     def _append_event(self, payload: Mapping[str, object]) -> None:
@@ -236,6 +244,7 @@ __all__ = [
     "ProtocolError",
     "TaskReporter",
     "VALID_BUILD_MODES",
+    "VALID_BUILD_OUTCOMES",
     "load_request",
     "read_json_object",
 ]

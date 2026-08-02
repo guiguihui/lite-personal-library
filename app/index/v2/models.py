@@ -15,7 +15,7 @@ __all__ = [
 
 
 SEGMENT_SCHEMA_VERSION = 2
-COMPILER_SCHEMA_VERSION = 2
+COMPILER_SCHEMA_VERSION = 3
 
 
 def _require_int(name: str, value: int, *, minimum: int) -> None:
@@ -100,6 +100,7 @@ class CompilerRecipe:
     body_df_ratio: float = 0.90
     compatibility_format_version: str = "legacy-pageindex-v1"
     ordering_version: str = "doc-node-chunk-v1"
+    generation_layout_version: str = "manifest-input-proof-v1"
 
     def __post_init__(self) -> None:
         if self.schema_version != COMPILER_SCHEMA_VERSION:
@@ -117,12 +118,14 @@ class CompilerRecipe:
             "field_postings_version",
             "compatibility_format_version",
             "ordering_version",
+            "generation_layout_version",
         ):
             _require_nonempty(name, getattr(self, name))
         supported = {
             "field_postings_version": "field-tf-v1",
             "compatibility_format_version": "legacy-pageindex-v1",
             "ordering_version": "doc-node-chunk-v1",
+            "generation_layout_version": "manifest-input-proof-v1",
         }
         for name, expected in supported.items():
             actual = getattr(self, name)
@@ -140,6 +143,7 @@ class CompilerRecipe:
             "body_df_ratio": float(self.body_df_ratio),
             "compatibility_format_version": self.compatibility_format_version,
             "ordering_version": self.ordering_version,
+            "generation_layout_version": self.generation_layout_version,
         }
 
 
