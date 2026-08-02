@@ -816,39 +816,50 @@ git commit -m "feat(pageindex): read pinned base and delta views"
 **Files:**
 - Create: `app/retrieval/search_view.py`
 - Create: `tests/pageindex_v3/test_search_view.py`
+- Create: `tests/pageindex_v3/test_search_view_integration.py`
+- Create: `tests/pageindex_v3/test_reader_search_api.py`
+- Create: `tests/retrieval/test_hit_identity.py`
+- Add: `tests/http/test_search_view_shadow.py`
 - Modify: `app/http/schemas.py`
 - Modify: `app/http/routes_search.py`
-- Add: `tests/http/test_search_view_shadow.py`
+- Modify: `app/index/v3/reader.py`
+- Modify: `app/index/v3/segment_projection.py`
+- Modify: `app/retrieval/search.py`
+- Modify: `app/retrieval/fuse.py`
+- Modify: `app/retrieval/rerank.py`
+- Modify: `tests/pageindex_v3/test_segment_projection.py`
 
 **Interfaces:**
 - Consumes: `PinnedSearchView`, existing tokenizer/query expansion/RRF/`Hit` semantics.
 - Produces: `search_pinned_view(query, view, top_k) -> list[Hit]` and an opt-in `/api/search` shadow comparison that does not change the response source.
 
-- [ ] **Step 1: Lock BM25 and multi-path parity on a query corpus**
+- [x] **Step 1: Lock BM25 and multi-path parity on a query corpus**
 
-Use queries covering body, title phrase, breadcrumb, document title routing, repeated terms, CJK, English, high-DF body pruning, and empty results. Compare stable result identities and scores against the legacy `search_multi_path` oracle with the same Segment facts.
+Use queries covering body, title phrase, breadcrumb, document title routing, repeated terms, CJK, English, high-DF body pruning, and empty results. Unpruned queries compare stable result identities and scores exactly against the legacy `search_multi_path` oracle. Incremental and clean-base Views for the same Generation must always match exactly. Extreme-body-DF cases lock the intentional `effective-df-v1` policy difference because legacy includes body TF/`df_any` while P3 suppresses body TF and uses `df_nonbody`.
 
-- [ ] **Step 2: Implement candidate-only BM25F**
+- [x] **Step 2: Implement candidate-only BM25F**
 
 Collect effective raw field postings only for expanded query tokens, use each token's pinned `effective_df`, plus `total_chunks` and field length sums for IDF/normalization, load only candidate chunks, then reuse existing phrase scoring and RRF ordering. Do not call `build_chunk_stats()`, build a global CID map, or read root `inverted-index.json`/`chunks.json`.
 
-- [ ] **Step 3: Add stable response references without breaking clients**
+- [x] **Step 3: Add stable response references without breaking clients**
 
 Add optional response fields `generation`, `view_id`, `doc_key`, `doc_uid`, `segment_hash`, `local_id`, and `node_key`; retain existing `doc_type`, `slug`, `node_id`, `title`, `breadcrumb`, `text`, and `score`.
 
-- [ ] **Step 4: Add an opt-in shadow comparison path**
+- [x] **Step 4: Add an opt-in shadow comparison path**
 
 When `request.app.state.search_view_shadow_pin` is set, open that exact pin, run P3 off the event loop using FastAPI's synchronous handler/threadpool boundary, compare top results/latency, and record diagnostics without serving P3 results. One request holds one pin throughout.
 
-- [ ] **Step 5: Run retrieval and HTTP tests**
+- [x] **Step 5: Run retrieval and HTTP tests**
 
 Run: `python -m pytest tests/pageindex_v3/test_search_view.py tests/http/test_search_view_shadow.py tests/retrieval -q`
-Expected: legacy response compatibility passes; P3 shadow result differences are zero on the locked corpus.
+Expected: legacy response compatibility passes; unpruned P3 shadow differences are zero on the locked corpus, while body-pruned differences are explicitly classified as the chosen field-policy semantic delta.
 
-- [ ] **Step 6: Commit**
+Result: retrieval/HTTP compatibility `107 passed`; PageIndex v3 `496 passed, 5 skipped`; full repository `985 passed, 7 skipped`. BM25F scores every matching candidate from sparse postings plus addressed PCV metrics, applies the legacy per-document Path B/A shortlists, and only then hydrates their bounded union plus at most 20 Path E results. A 100-candidate assertion proves only 60 chunk payloads load. The real Base-plus-three-Delta View and a clean Base for the same Generation return identical stable identities and scores. Segment chunk hydration derives `legacy_node_id` from the authenticated node table. RRF and per-document limits use `(doc_uid,node_key)`/`doc_key` for P3 while retaining legacy fallbacks, so same-slug cross-type documents no longer collide. Shadow runs off the event loop, never serves P3, excludes new `None` response fields, records latency/identity/score/stable refs, fails open, and labels body-policy-affected mismatches separately.
+
+- [x] **Step 6: Commit**
 
 ```powershell
-git add app/retrieval/search_view.py app/http/schemas.py app/http/routes_search.py tests/pageindex_v3/test_search_view.py tests/http/test_search_view_shadow.py
+git add app/retrieval/search_view.py app/http/schemas.py app/http/routes_search.py app/index/v3/reader.py app/index/v3/segment_projection.py app/retrieval/search.py app/retrieval/fuse.py app/retrieval/rerank.py tests/pageindex_v3/test_search_view.py tests/pageindex_v3/test_search_view_integration.py tests/pageindex_v3/test_reader_search_api.py tests/pageindex_v3/test_segment_projection.py tests/retrieval/test_hit_identity.py tests/http/test_search_view_shadow.py docs/superpowers/plans/2026-08-02-pageindex-v3-p3-base-delta.md
 git commit -m "feat(search): add pinned search view shadow reader"
 ```
 

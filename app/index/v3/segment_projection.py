@@ -177,6 +177,24 @@ def _node_keys(segment: Mapping[str, object]) -> set[str]:
     return result
 
 
+def _node_legacy_ids(segment: Mapping[str, object]) -> dict[str, str]:
+    """Return the authenticated stable-node to legacy-node projection."""
+
+    raw_nodes = _sequence(segment.get("nodes"), "segment.nodes")
+    result: dict[str, str] = {}
+    for position, raw_node in enumerate(raw_nodes):
+        node = _mapping(raw_node, f"segment.nodes[{position}]")
+        node_key = _nonempty_string(node.get("node_key"), "node.node_key")
+        legacy_node_id = _nonempty_string(
+            node.get("legacy_node_id") or node.get("node_id"),
+            "node.legacy_node_id",
+        )
+        if node_key in result:
+            raise ValueError(f"duplicate node_key in segment: {node_key}")
+        result[node_key] = legacy_node_id
+    return result
+
+
 def _field_text_and_lengths(
     chunk: Mapping[str, Any],
     local_id: int,
@@ -706,14 +724,32 @@ class SegmentProjector:
             raise TypeError("loaded Segment must be a mapping")
         _validate_segment_metadata(ref, segment)
         node_keys = _node_keys(segment)
+        legacy_ids = _node_legacy_ids(segment)
+        if set(legacy_ids) != node_keys:
+            raise ValueError("Segment node identity projections differ")
         chunks, _metrics = _validated_chunks(segment, node_keys)
         missing = sorted(set(requested) - set(chunks))
         if missing:
             raise KeyError(f"unknown Segment local IDs: {missing}")
-        return {
-            local_id: copy.deepcopy(dict(chunks[local_id]))
-            for local_id in sorted(requested)
-        }
+        result: dict[int, dict[str, object]] = {}
+        for local_id in sorted(requested):
+            chunk = copy.deepcopy(dict(chunks[local_id]))
+            node_key = _nonempty_string(
+                chunk.get("node_key"),
+                f"chunk {local_id} node_key",
+            )
+            legacy_node_id = legacy_ids[node_key]
+            raw_legacy_node_id = chunk.get("legacy_node_id")
+            if (
+                raw_legacy_node_id is not None
+                and raw_legacy_node_id != legacy_node_id
+            ):
+                raise ValueError(
+                    f"chunk {local_id} legacy_node_id differs from its node"
+                )
+            chunk["legacy_node_id"] = legacy_node_id
+            result[local_id] = chunk
+        return result
 
 
 __all__ = [

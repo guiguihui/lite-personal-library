@@ -390,6 +390,52 @@ class PinnedSearchView:
             self._ensure_open()
             return self._owner_view
 
+    def document_chunk_refs(self, doc_uids: Iterable[str]) -> tuple[ChunkRef, ...]:
+        """Return every active chunk reference for the selected documents.
+
+        Document order follows the input and local IDs are emitted in ascending
+        order. The chunk counts come from the authenticated owner layer's
+        document table, so enumerating candidates never reads Segment payloads
+        or creates a View-wide chunk catalog.
+        """
+
+        if isinstance(doc_uids, (str, bytes, bytearray)):
+            raise TypeError("doc_uids must be an iterable of document UID strings")
+        try:
+            iterator = iter(doc_uids)
+        except TypeError as exc:
+            raise TypeError("doc_uids must be iterable") from exc
+        with self._state_lock:
+            self._ensure_open()
+            refs: list[ChunkRef] = []
+            seen: set[str] = set()
+            for doc_uid in iterator:
+                if not isinstance(doc_uid, str):
+                    raise TypeError("doc_uids must contain only strings")
+                if doc_uid in seen:
+                    raise ValueError("duplicate document UID request")
+                owner = self._owners.get(doc_uid)
+                if owner is None:
+                    raise PinnedSearchViewError(
+                        "document UID is not active in the pinned View"
+                    )
+                layer = self._layers_by_id[owner.owner_layer_id]
+                routed = layer.reader._documents_by_uid.get(doc_uid)
+                if routed is None or routed[0] != owner.doc_ordinal:
+                    raise PinnedSearchViewError("document owner route is invalid")
+                document = routed[1]
+                if (
+                    document.doc_key != owner.doc_key
+                    or document.segment_hash != owner.segment_hash
+                ):
+                    raise PinnedSearchViewError("document owner route is invalid")
+                refs.extend(
+                    ChunkRef(doc_uid, owner.segment_hash, local_id)
+                    for local_id in range(document.chunk_count)
+                )
+                seen.add(doc_uid)
+            return tuple(refs)
+
     def _summary(
         self, token: str, values: tuple[int, int, int]
     ) -> TokenSummary | None:

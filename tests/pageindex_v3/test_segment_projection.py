@@ -335,6 +335,20 @@ def test_load_chunks_returns_sorted_requested_deep_copies(tmp_path: Path) -> Non
     second = projector.load_chunks(ref, [0])
     assert second[0]["breadcrumb"] == ["Path"]
     assert second[0]["lengths"]["body"] == 3
+    assert second[0]["legacy_node_id"] == "1"
+
+
+def test_load_chunks_rejects_chunk_node_legacy_identity_drift(
+    tmp_path: Path,
+) -> None:
+    segment = _valid_segment()
+    chunks = segment["chunks"]
+    assert isinstance(chunks, list)
+    chunks[0]["legacy_node_id"] = "999"
+    pageindex, ref = _store(tmp_path, segment)
+
+    with pytest.raises(ValueError, match="legacy_node_id differs"):
+        SegmentProjector(pageindex).load_chunks(ref, [0])
 
 
 @pytest.mark.parametrize("local_ids", [[True], [-1], [0, 0], [99], "0"])
