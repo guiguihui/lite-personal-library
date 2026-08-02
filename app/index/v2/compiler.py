@@ -6,11 +6,16 @@ import copy
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from .canonical import canonical_bytes, canonical_hash
 from .input_proof import INPUT_PROOF_PATH, proof_from_segments
 from .models import COMPILER_SCHEMA_VERSION, CompilerRecipe
+
+if TYPE_CHECKING:
+    from .artifacts import CandidateReceipt
+    from .object_store import StoredSegmentRef
 
 
 BODY_DF_MIN = 256
@@ -487,10 +492,36 @@ def compile_generation(
     )
 
 
+def compile_generation_to_candidate(
+    refs: Sequence["StoredSegmentRef"],
+    pageindex_dir: Path,
+    candidate_dir: Path,
+    recipe: CompilerRecipe,
+    *,
+    max_run_bytes: int = 32 * 1024 * 1024,
+    merge_fan_in: int = 32,
+) -> "CandidateReceipt":
+    """Compile Segment refs directly into a bounded-memory candidate."""
+
+    from .streaming_compiler import (
+        compile_generation_to_candidate as compile_streaming,
+    )
+
+    return compile_streaming(
+        refs,
+        pageindex_dir,
+        candidate_dir,
+        recipe,
+        max_run_bytes=max_run_bytes,
+        merge_fan_in=merge_fan_in,
+    )
+
+
 __all__ = [
     "BODY_COVERAGE_MIN",
     "BODY_DF_MIN",
     "CompiledGeneration",
     "compile_generation",
+    "compile_generation_to_candidate",
     "should_prune_body",
 ]

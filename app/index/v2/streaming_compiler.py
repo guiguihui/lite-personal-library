@@ -303,6 +303,181 @@ def _write_inverted_index(
     return reference, pruning
 
 
+def _emit_one_segment(
+    *,
+    ref: StoredSegmentRef,
+    pageindex: Path,
+    candidate: Path,
+    docs_sink: AtomicHashingSink,
+    nodes_sink: AtomicHashingSink,
+    chunks_sink: AtomicHashingSink,
+    run_builder: PostingRunBuilder,
+    docs_count: int,
+    nodes_count: int,
+    chunks_count: int,
+) -> tuple[ArtifactRef, int, int, int]:
+    """Load, project, and release exactly one decoded Segment.
+
+    Only scalar counts, posting records, and an artifact receipt escape this
+    call frame.  Returning before the caller loads the next ref prevents
+    references to nested Segment containers from overlapping across documents.
+    """
+
+    segment = load_segment(pageindex, ref)
+    document, _fingerprint = _validate_ref_segment(ref, segment)
+
+    if docs_count:
+        docs_sink.write(b",")
+    _write_value(docs_sink, _global_document(document))
+    docs_count += 1
+
+    nodes_value = _required_sequence(
+        segment.get("nodes"), "segment.nodes"
+    )
+    nodes: list[Mapping[str, Any]] = []
+    node_by_key: dict[str, Mapping[str, Any]] = {}
+    for value in nodes_value:
+        node = _required_mapping(value, "segment.nodes[]")
+        node_key = _required_string(
+            node.get("node_key"), "node.node_key"
+        )
+        if node_key in node_by_key:
+            raise ValueError(
+                f"duplicate node_key in {ref.doc_key}: {node_key}"
+            )
+        node_by_key[node_key] = node
+        nodes.append(node)
+    nodes.sort(key=_legacy_node_sort_key)
+    for node in nodes:
+        if nodes_count:
+            nodes_sink.write(b",")
+        _write_value(
+            nodes_sink,
+            _node_payload(node, ref.doc_type, ref.slug),
+        )
+        nodes_count += 1
+
+    tree_path, tree = _tree_payload(
+        segment, ref.doc_type, ref.slug
+    )
+    if not isinstance(tree, Mapping):
+        raise ValueError("document tree must be a mapping")
+    tree_ref = write_canonical_object(
+        candidate / Path(tree_path),
+        tree,
+        relative_path=tree_path,
+    )
+
+    chunks_value = _required_sequence(
+        segment.get("chunks"), "segment.chunks"
+    )
+    chunks = [
+        _required_mapping(value, "segment.chunks[]")
+        for value in chunks_value
+    ]
+    chunks.sort(
+        key=lambda chunk: (
+            _required_string(
+                chunk.get("node_key"), "chunk.node_key"
+            ),
+            _nonnegative_int(
+                chunk.get("local_id"), "chunk.local_id"
+            ),
+        )
+    )
+    local_to_global: dict[int, int] = {}
+    for chunk in chunks:
+        local_id = _nonnegative_int(
+            chunk.get("local_id"), "chunk.local_id"
+        )
+        if local_id in local_to_global:
+            raise ValueError(
+                f"duplicate chunk local_id in {ref.doc_key}: {local_id}"
+            )
+        node_key = _required_string(
+            chunk.get("node_key"), "chunk.node_key"
+        )
+        node = node_by_key.get(node_key)
+        if node is None:
+            raise ValueError(
+                f"chunk {ref.doc_key}:{local_id} references "
+                f"unknown node {node_key}"
+            )
+        chunks_count += 1
+        global_id = chunks_count
+        local_to_global[local_id] = global_id
+        legacy_node_id = _required_string(
+            node.get("legacy_node_id") or node.get("node_id"),
+            "node.legacy_node_id",
+        )
+        breadcrumb = chunk.get("breadcrumb") or []
+        if not isinstance(breadcrumb, list) or not all(
+            isinstance(part, str) for part in breadcrumb
+        ):
+            raise ValueError(
+                "chunk.breadcrumb must be a list of strings"
+            )
+        payload = {
+            "chunk_id": f"c{global_id:06d}",
+            "doc_id": ref.slug,
+            "node_id": legacy_node_id,
+            "title": str(chunk.get("title") or ""),
+            "breadcrumb": list(breadcrumb),
+            "body": str(chunk.get("body") or ""),
+            "source_md": str(chunk.get("source_md") or ""),
+            "line_num": _nonnegative_int(
+                chunk.get("line_num", 0), "chunk.line_num"
+            ),
+        }
+        if chunks_count > 1:
+            chunks_sink.write(b",")
+        _write_value(chunks_sink, payload)
+
+    postings = _required_mapping(
+        segment.get("postings"), "segment.postings"
+    )
+    for raw_token, posting_values in postings.items():
+        token = _required_string(raw_token, "posting token")
+        posting_sequence = _required_sequence(
+            posting_values, f"postings[{token!r}]"
+        )
+        for item in posting_sequence:
+            fields = _required_sequence(
+                item, f"postings[{token!r}][]"
+            )
+            if len(fields) != 4:
+                raise ValueError(
+                    f"posting for {token!r} must contain "
+                    "[local_id, title_tf, breadcrumb_tf, body_tf]"
+                )
+            local_id = _nonnegative_int(
+                fields[0], "posting.local_id"
+            )
+            global_id = local_to_global.get(local_id)
+            if global_id is None:
+                raise ValueError(
+                    f"posting for {token!r} references unknown "
+                    f"chunk {ref.doc_key}:{local_id}"
+                )
+            run_builder.add(
+                PostingRecord(
+                    token,
+                    global_id,
+                    _nonnegative_int(
+                        fields[1], "posting.title_tf"
+                    ),
+                    _nonnegative_int(
+                        fields[2], "posting.breadcrumb_tf"
+                    ),
+                    _nonnegative_int(
+                        fields[3], "posting.body_tf"
+                    ),
+                )
+            )
+
+    return tree_ref, docs_count, nodes_count, chunks_count
+
+
 def _compile_generation_to_candidate(
     refs: Sequence[StoredSegmentRef],
     pageindex_dir: Path,
@@ -367,159 +542,24 @@ def _compile_generation_to_candidate(
             chunks_sink.write(b'{"chunks":[')
 
             for ref in ordered_refs:
-                segment = load_segment(pageindex, ref)
-                document, _ = _validate_ref_segment(ref, segment)
-
-                if docs_count:
-                    docs_sink.write(b",")
-                _write_value(docs_sink, _global_document(document))
-                docs_count += 1
-
-                nodes_value = _required_sequence(
-                    segment.get("nodes"), "segment.nodes"
+                (
+                    tree_ref,
+                    docs_count,
+                    nodes_count,
+                    chunks_count,
+                ) = _emit_one_segment(
+                    ref=ref,
+                    pageindex=pageindex,
+                    candidate=candidate,
+                    docs_sink=docs_sink,
+                    nodes_sink=nodes_sink,
+                    chunks_sink=chunks_sink,
+                    run_builder=run_builder,
+                    docs_count=docs_count,
+                    nodes_count=nodes_count,
+                    chunks_count=chunks_count,
                 )
-                nodes: list[Mapping[str, Any]] = []
-                node_by_key: dict[str, Mapping[str, Any]] = {}
-                for value in nodes_value:
-                    node = _required_mapping(value, "segment.nodes[]")
-                    node_key = _required_string(
-                        node.get("node_key"), "node.node_key"
-                    )
-                    if node_key in node_by_key:
-                        raise ValueError(
-                            f"duplicate node_key in {ref.doc_key}: {node_key}"
-                        )
-                    node_by_key[node_key] = node
-                    nodes.append(node)
-                nodes.sort(key=_legacy_node_sort_key)
-                for node in nodes:
-                    if nodes_count:
-                        nodes_sink.write(b",")
-                    _write_value(
-                        nodes_sink,
-                        _node_payload(node, ref.doc_type, ref.slug),
-                    )
-                    nodes_count += 1
-
-                tree_path, tree = _tree_payload(
-                    segment, ref.doc_type, ref.slug
-                )
-                if not isinstance(tree, Mapping):
-                    raise ValueError("document tree must be a mapping")
-                artifacts[tree_path] = write_canonical_object(
-                    candidate / Path(tree_path),
-                    tree,
-                    relative_path=tree_path,
-                )
-
-                chunks_value = _required_sequence(
-                    segment.get("chunks"), "segment.chunks"
-                )
-                chunks = [
-                    _required_mapping(value, "segment.chunks[]")
-                    for value in chunks_value
-                ]
-                chunks.sort(
-                    key=lambda chunk: (
-                        _required_string(
-                            chunk.get("node_key"), "chunk.node_key"
-                        ),
-                        _nonnegative_int(
-                            chunk.get("local_id"), "chunk.local_id"
-                        ),
-                    )
-                )
-                local_to_global: dict[int, int] = {}
-                for chunk in chunks:
-                    local_id = _nonnegative_int(
-                        chunk.get("local_id"), "chunk.local_id"
-                    )
-                    if local_id in local_to_global:
-                        raise ValueError(
-                            f"duplicate chunk local_id in {ref.doc_key}: {local_id}"
-                        )
-                    node_key = _required_string(
-                        chunk.get("node_key"), "chunk.node_key"
-                    )
-                    node = node_by_key.get(node_key)
-                    if node is None:
-                        raise ValueError(
-                            f"chunk {ref.doc_key}:{local_id} references "
-                            f"unknown node {node_key}"
-                        )
-                    chunks_count += 1
-                    global_id = chunks_count
-                    local_to_global[local_id] = global_id
-                    legacy_node_id = _required_string(
-                        node.get("legacy_node_id") or node.get("node_id"),
-                        "node.legacy_node_id",
-                    )
-                    breadcrumb = chunk.get("breadcrumb") or []
-                    if not isinstance(breadcrumb, list) or not all(
-                        isinstance(part, str) for part in breadcrumb
-                    ):
-                        raise ValueError(
-                            "chunk.breadcrumb must be a list of strings"
-                        )
-                    payload = {
-                        "chunk_id": f"c{global_id:06d}",
-                        "doc_id": ref.slug,
-                        "node_id": legacy_node_id,
-                        "title": str(chunk.get("title") or ""),
-                        "breadcrumb": list(breadcrumb),
-                        "body": str(chunk.get("body") or ""),
-                        "source_md": str(chunk.get("source_md") or ""),
-                        "line_num": _nonnegative_int(
-                            chunk.get("line_num", 0), "chunk.line_num"
-                        ),
-                    }
-                    if chunks_count > 1:
-                        chunks_sink.write(b",")
-                    _write_value(chunks_sink, payload)
-
-                postings = _required_mapping(
-                    segment.get("postings"), "segment.postings"
-                )
-                for raw_token, posting_values in postings.items():
-                    token = _required_string(raw_token, "posting token")
-                    posting_sequence = _required_sequence(
-                        posting_values, f"postings[{token!r}]"
-                    )
-                    for item in posting_sequence:
-                        fields = _required_sequence(
-                            item, f"postings[{token!r}][]"
-                        )
-                        if len(fields) != 4:
-                            raise ValueError(
-                                f"posting for {token!r} must contain "
-                                "[local_id, title_tf, breadcrumb_tf, body_tf]"
-                            )
-                        local_id = _nonnegative_int(
-                            fields[0], "posting.local_id"
-                        )
-                        global_id = local_to_global.get(local_id)
-                        if global_id is None:
-                            raise ValueError(
-                                f"posting for {token!r} references unknown "
-                                f"chunk {ref.doc_key}:{local_id}"
-                            )
-                        run_builder.add(
-                            PostingRecord(
-                                token,
-                                global_id,
-                                _nonnegative_int(
-                                    fields[1], "posting.title_tf"
-                                ),
-                                _nonnegative_int(
-                                    fields[2], "posting.breadcrumb_tf"
-                                ),
-                                _nonnegative_int(
-                                    fields[3], "posting.body_tf"
-                                ),
-                            )
-                        )
-
-                del local_to_global, chunks, node_by_key, nodes, segment
+                artifacts[tree_ref.relative_path] = tree_ref
 
             docs_sink.write(b"]}")
             nodes_sink.write(b"]}")
@@ -628,7 +668,16 @@ def compile_generation_to_candidate(
     """Compile refs directly to a candidate without materializing a Generation."""
 
     candidate = Path(candidate_dir)
+    owns_candidate = False
     try:
+        try:
+            candidate.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            # A pre-existing path is never owned by this compilation and must
+            # therefore survive every validation or compilation failure.
+            pass
+        else:
+            owns_candidate = True
         return _compile_generation_to_candidate(
             refs,
             Path(pageindex_dir),
@@ -638,7 +687,7 @@ def compile_generation_to_candidate(
             merge_fan_in=merge_fan_in,
         )
     except BaseException:
-        if candidate.is_dir():
+        if owns_candidate and candidate.is_dir():
             shutil.rmtree(candidate, ignore_errors=True)
         raise
 
