@@ -201,14 +201,15 @@ git commit -m "refactor(pageindex): reuse one stable source snapshot"
 **Files:**
 - Create: `app/index/v3/segment_projection.py`
 - Create: `app/index/v3/summary_store.py`
+- Modify: `app/index/v3/__init__.py`
 - Create: `tests/pageindex_v3/test_segment_projection.py`
 - Create: `tests/pageindex_v3/test_summary_store.py`
 
 **Interfaces:**
-- Consumes: `StoredSegmentRef`, `load_segment()`, Task 1 models.
-- Produces: `SegmentProjector.project(ref) -> SegmentProjection`, `summarize(ref) -> SegmentSummary`, `iter_postings(ref) -> Iterator[SearchPosting]`, `load_chunks(ref, local_ids) -> dict[int, dict]`, `put_summary(pageindex_dir, summary)`, and `load_summary(pageindex_dir, ref)`.
+- Consumes: `StoredSegmentRef`, `load_segment()`, `SegmentRecipe`, the v2 tokenizer, and Task 1 models.
+- Produces: `ChunkMetric`, detached `SegmentProjection`, `StoredSummaryRef`, `SegmentProjector.project(ref)`, allocation-bounded `summarize(ref)`, streaming `iter_postings(ref)` and `project_to_sink(ref, consume_posting)`, `load_chunks(ref, local_ids)`, `put_summary(pageindex_dir, summary) -> StoredSummaryRef`, and `load_summary(pageindex_dir, ref, summary_ref)`.
 
-- [ ] **Step 1: Write projection oracle tests**
+- [x] **Step 1: Write projection oracle tests**
 
 ```python
 def test_projection_keeps_all_field_tf_and_stable_chunk_refs(pageindex, ref):
@@ -217,17 +218,20 @@ def test_projection_keeps_all_field_tf_and_stable_chunk_refs(pageindex, ref):
     assert any(row.title_tf and not row.body_tf for row in projection.postings)
     assert any(row.breadcrumb_tf and not row.body_tf for row in projection.postings)
     assert any(row.body_tf for row in projection.postings)
-    assert all(row.doc_uid == make_doc_uid(ref.doc_key) for row in projection.postings)
+    assert all(
+        row.chunk_ref.doc_uid == make_doc_uid(ref.doc_key)
+        for row in projection.postings
+    )
 ```
 
-Assert `df_any`, `df_nonbody`, `df_body`, field length sums, compact local IDs, posting count, duplicate rejection, empty fields, Unicode tokens, same slug across different types, and that body TF remains present even above the pruning threshold.
+Assert `df_any`, `df_nonbody`, `df_body`, exact re-tokenized field lengths/postings, compact local IDs, posting count, duplicate rejection, empty fields, Unicode tokens, same slug across different types, and that body TF remains present even above the pruning threshold.
 
-- [ ] **Step 2: Run tests and confirm missing projector/store failures**
+- [x] **Step 2: Run tests and confirm missing projector/store failures**
 
 Run: `python -m pytest tests/pageindex_v3/test_segment_projection.py tests/pageindex_v3/test_summary_store.py -q`
-Expected: imports fail.
+Observed: both imports failed before implementation.
 
-- [ ] **Step 3: Implement one-Segment projection**
+- [x] **Step 3: Implement one-Segment projection**
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -235,28 +239,31 @@ class SegmentProjection:
     ref: StoredSegmentRef
     summary: SegmentSummary
     postings: tuple[SearchPosting, ...]
+    chunk_metrics: tuple[ChunkMetric, ...]
 
 class SegmentProjector:
-    def project(self, ref: StoredSegmentRef) -> SegmentProjection:
-        segment = load_segment(self.pageindex_dir, ref)
-        return self.project_mapping(ref, segment)
+    def project_to_sink(self, ref, consume_posting):
+        # validate once; emit one SearchPosting at a time
+        ...
 ```
 
-`project_mapping()` validates the same local ID, node, and field-TF invariants as the v2 compiler, sorts by `(token, doc_uid, local_id)`, computes `df_any` as one row per token/chunk, `df_nonbody` as rows with positive title or breadcrumb TF, and `df_body` as rows with positive body TF, and releases the decoded Segment when the call returns.
+The private analyzer performs validator-level checks in one decoded Segment: exact recipe/source fingerprints, unique nodes, compact chunk IDs, node references, strict field types and lengths, complete raw postings re-derived one chunk at a time with the v2 tokenizer, and stable UTF-8 ordering without cloning the posting table. It computes union `df_any`, `df_nonbody`, and `df_body` and never invokes body pruning. `summarize()` builds no `SearchPosting` rows; `iter_postings()` and `project_to_sink()` retain no posting tuple; `SegmentProjection` uses adjacent ordering checks instead of full key/sort/set copies. Task 4/6 builders must use `project_to_sink()` rather than `project()`.
 
-- [ ] **Step 4: Implement canonical summary sidecars**
+- [x] **Step 4: Implement canonical authenticated summary sidecars**
 
-Store summaries at `objects/search/summaries/<segment_hash[:2]>/<segment_hash>.json`. The payload includes `artifact_kind="segment_search_summary"`, schema 1, segment/doc identity, chunk count, three field length sums, posting count, and token summaries sorted by token. Existing bytes must match exactly; corruption is an error, not a silent overwrite.
+Store summaries at `objects/search/summaries/<segment_hash[:2]>/<segment_hash>.json`. Encoding and exact-byte comparison stream scalar fields and one token record at a time; they never call `canonical_bytes()` or build `summary.as_dict()` for the full token table. `put_summary()` returns a strict `StoredSummaryRef` containing SHA-256, byte size, and complete Segment identity. A trusted View/owner manifest must retain that receipt; `load_summary()` requires it and streams file hash/size verification before parsing and re-hashes the strict parsed semantics against the same receipt, so canonical-but-wrong statistics and hash/parse replacement races cannot silently rebind themselves.
 
-- [ ] **Step 5: Verify one-live-Segment ownership and deterministic sidecars**
+Publication uses a same-directory fsynced temporary plus exclusive hard-link install. Concurrent identical writers converge while corruption/conflicts are never overwritten. On Windows filesystems without hard-link support, same-directory `os.rename` provides atomic no-clobber fallback; POSIX never falls back to an overwriting rename. Loads additionally require canonical JSON, exact keys, strict model invariants, no symlink escape, and complete ref identity binding.
+
+- [x] **Step 5: Verify one-live-Segment ownership and deterministic sidecars**
 
 Run: `python -m pytest tests/pageindex_v3/test_segment_projection.py tests/pageindex_v3/test_summary_store.py -q`
-Expected: all tests pass, including a weak-reference assertion that two decoded Segment graphs never overlap.
+Observed: 59 passed, 1 skipped; full suite 630 passed, 4 skipped. Tests cover summary-only/no-posting materialization, one-row-at-a-time sink output, lazy posting iteration, adjacent validation, trusted receipt tampering, Windows hard-link fallback, exact idempotence, conflicts, and weak-reference Segment release.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
-git add app/index/v3/segment_projection.py app/index/v3/summary_store.py tests/pageindex_v3/test_segment_projection.py tests/pageindex_v3/test_summary_store.py
+git add app/index/v3/__init__.py app/index/v3/segment_projection.py app/index/v3/summary_store.py tests/pageindex_v3/test_segment_projection.py tests/pageindex_v3/test_summary_store.py docs/superpowers/plans/2026-08-02-pageindex-v3-p3-base-delta.md
 git commit -m "feat(pageindex): persist raw search projections"
 ```
 
@@ -429,7 +436,7 @@ Build a rich three-document base twice with reversed refs and forced multi-level
 
 A base lives at `objects/search/bases/<base_id>/` and contains `layer-documents.json`, `postings.piv`, `chunks.pcv`, `terms.jsonl`, `terms.sidx.json`, and `manifest.json`. Its core binds the target Generation ID and manifest SHA-256, Search View recipe hash, every layer receipt, and scalar statistics. `base_id = canonical_hash(base_core)`.
 
-A View lives at `views/<view_id>/` and contains canonical `manifest.json`, O(1) `statistics.json`, and document-level `documents.json`. Statistics contains only `documents, total_chunks, token_count, posting_count` and the three field-length sums; never a token map. Documents is an active owner map keyed by `doc_uid`, with `doc_key, segment_hash, owner_layer_kind, owner_layer_id, doc_ordinal`; deleted documents are absent.
+A View lives at `views/<view_id>/` and contains canonical `manifest.json`, O(1) `statistics.json`, and document-level `documents.json`. Statistics contains only `documents, total_chunks, token_count, posting_count` and the three field-length sums; never a token map. Documents is an active owner map keyed by `doc_uid`, with `doc_key, segment_hash, summary_sha256, summary_bytes, owner_layer_kind, owner_layer_id, doc_ordinal`; deleted documents are absent. The trusted summary receipt is physical validation metadata and is excluded from logical Generation identity.
 
 ```python
 view_core = {
@@ -448,7 +455,7 @@ view_id = canonical_hash(view_core)
 
 - [ ] **Step 3: Implement a one-Segment-at-a-time full base build**
 
-For each ref, project one Segment, persist/reuse its summary, assign the layer ordinal, append raw postings and PCV metrics to bounded runs, update scalar totals/document owners, and release the decoded projection before the next ref. The external merge emits base-positive term contributions and token_count. Do not write a legacy export.
+For each ref, call `project_to_sink()` once, persist/reuse its summary and retain the returned `StoredSummaryRef`, assign the layer ordinal, feed raw postings directly to bounded runs, append PCV metrics, update scalar totals/document owners with the trusted summary SHA/size, and release all Segment-derived containers before the next ref. The external merge emits base-positive term contributions and token_count. Do not write a legacy export.
 
 - [ ] **Step 4: Implement content-addressed finalization**
 
@@ -473,7 +480,7 @@ git commit -m "feat(pageindex): build immutable base search views"
 - Create: `tests/pageindex_v3/test_delta_builder.py`
 
 **Interfaces:**
-- Consumes: a parent pinned View, `SegmentChangeSet`, old/new refs and summaries, touched-token lookups, Task 4 layer codec, Task 5 totals, and a non-identifying `CompactionPolicy`.
+- Consumes: a parent pinned View, `SegmentChangeSet`, old/new Segment refs, trusted `StoredSummaryRef` values and summaries, touched-token lookups, Task 4 layer codec, Task 5 totals, and a non-identifying `CompactionPolicy`.
 - Produces: `DeltaObjectReceipt` and `build_delta_view(parent, generation, changes, ...) -> SearchViewReceipt` plus a separate compaction recommendation.
 
 - [ ] **Step 1: Write add/edit/delete/token-disappearance tests**
@@ -486,14 +493,16 @@ A delta lives at `objects/search/deltas/<delta_id>/`. Its manifest binds parent 
 
 ```text
 {doc_key, doc_uid, old_segment_hash|null,
- new_segment_hash|null, new_doc_ordinal|null}
+ old_summary_sha256|null, old_summary_bytes|null,
+ new_segment_hash|null, new_summary_sha256|null,
+ new_summary_bytes|null, new_doc_ordinal|null}
 ```
 
-Only add `(null,new)`, edit `(old,new; old != new)`, and delete `(old,null)` are legal. Old hash must equal the parent owner; new hash must equal the target Generation; new non-null records occur exactly once in the delta document table; deletes have no ordinal, PCV, or posting rows. `delta_id = canonical_hash(delta_core)`.
+Only add `(null,new)`, edit `(old,new; old != new)`, and delete `(old,null)` are legal. Old hash and old summary receipt must equal the parent owner; new hash must equal the target Generation and its new summary receipt must match the just-projected Segment; new non-null records occur exactly once in the delta document table; deletes have no new receipt, ordinal, PCV, or posting rows. `delta_id = canonical_hash(delta_core)`.
 
 - [ ] **Step 3: Build only changed data and signed touched-token contributions**
 
-The posting/PCV layer contains only new versions of added/changed documents. Removed/old postings are never copied and there are no per-token tombstones. From old/new summary sidecars, emit signed `df_any/df_nonbody/df_body` records for the touched-token union, including negative-only disappearance records. Use sparse lookups of those same tokens in the parent layers to verify non-negative effective after-stats and compute `token_count_delta`; never scan the base vocabulary or open base postings.
+The posting/PCV layer contains only new versions of added/changed documents. Removed/old postings are never copied and there are no per-token tombstones. Load old/new summary sidecars only under the receipts bound by the parent owner/new replacement, then emit signed `df_any/df_nonbody/df_body` records for the touched-token union, including negative-only disappearance records. Use sparse lookups of those same tokens in the parent layers to verify non-negative effective after-stats and compute `token_count_delta`; never scan the base vocabulary or open base postings.
 
 - [ ] **Step 4: Patch control-plane View artifacts only**
 
@@ -542,8 +551,8 @@ Dirty delta validation independently checks:
 1. exact files, receipts, parent/target/recipe identity and ordered acyclic chain;
 2. replacement states and agreement with parent owner map/target Generation;
 3. PIV/PCV rows reference exactly live new replacements;
-4. `statistics_delta == sum(new_summary - old_summary)`;
-5. term deltas equal the changed-summary union;
+4. every old/new summary file matches the trusted owner/replacement SHA-256 and size before parsing, and `statistics_delta == sum(new_summary - old_summary)`;
+5. term deltas equal the authenticated changed-summary union;
 6. for each touched token, parent effective triple plus delta is non-negative, each DF is `<= total_chunks_after`, and `max(df_nonbody,df_body) <= df_any <= df_nonbody+df_body`;
 7. new scalar totals and token_count equal parent plus delta;
 8. new owner map equals parent owners plus replacements and every owner segment equals the target Generation.
