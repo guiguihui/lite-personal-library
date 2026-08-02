@@ -43,6 +43,7 @@ from app.index.v3.source_diff import SegmentChangeSet
 from app.index.v3.statistics import CorpusTotals
 from app.index.v3.validator import (
     validate_base_normal,
+    validate_delta_incremental_fast,
     validate_delta_normal,
     validate_generation_normal,
     validate_view_normal,
@@ -332,6 +333,223 @@ def test_validate_delta_normal_returns_validation_report(
             target_pin=_pin(corpus.target),
         )
     )
+
+
+def test_incremental_delta_fast_never_replays_parent_layers_or_control_maps(
+    corpus: ValidationCorpus,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old = {ref.doc_key: ref for ref in corpus.initial_refs}
+    new = {ref.doc_key: ref for ref in corpus.target_refs}
+    dirty = {
+        key
+        for key in set(old) | set(new)
+        if key not in old
+        or key not in new
+        or old[key].segment_hash != new[key].segment_hash
+    }
+
+    def forbidden(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("fast validation must not replay unchanged state")
+
+    monkeypatch.setattr(validator_module, "_validate_generation", forbidden)
+    monkeypatch.setattr(validator_module, "load_view_documents", forbidden)
+    monkeypatch.setattr(validator_module.PostingLayerReader, "audit", forbidden)
+    monkeypatch.setattr(
+        validator_module.PostingLayerReader, "lookup_terms", forbidden
+    )
+    _assert_ok_report(
+        validate_delta_incremental_fast(
+            corpus.delta,
+            corpus.parent,
+            corpus.target,
+            corpus.initial_generation,
+            corpus.target_generation,
+            corpus.pageindex,
+            old_refs=tuple(old[key] for key in sorted(dirty & set(old))),
+            new_refs=tuple(new[key] for key in sorted(dirty & set(new))),
+            parent_witness=corpus.delta_result.parent_df_witness,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(corpus.target),
+        )
+    )
+
+
+def test_incremental_delta_fast_rejects_incomplete_dirty_scope(
+    corpus: ValidationCorpus,
+) -> None:
+    report = validate_delta_incremental_fast(
+        corpus.delta,
+        corpus.parent,
+        corpus.target,
+        corpus.initial_generation,
+        corpus.target_generation,
+        corpus.pageindex,
+        old_refs=(corpus.initial_refs[0],),
+        new_refs=(corpus.target_refs[0],),
+        parent_witness=corpus.delta_result.parent_df_witness,
+        parent_pin=_pin(corpus.parent),
+        target_pin=_pin(corpus.target),
+    )
+
+    _assert_invalid_report(report, "delta_invalid")
+    assert "replacements do not exactly cover" in report.errors[0]
+
+
+def test_incremental_delta_fast_rejects_incomplete_parent_df_witness(
+    corpus: ValidationCorpus,
+) -> None:
+    old = {ref.doc_key: ref for ref in corpus.initial_refs}
+    new = {ref.doc_key: ref for ref in corpus.target_refs}
+    dirty = set(old) ^ set(new) | {
+        key
+        for key in set(old) & set(new)
+        if old[key].segment_hash != new[key].segment_hash
+    }
+    incomplete = replace(
+        corpus.delta_result.parent_df_witness,
+        contributions=corpus.delta_result.parent_df_witness.contributions[:-1],
+    )
+    report = validate_delta_incremental_fast(
+        corpus.delta,
+        corpus.parent,
+        corpus.target,
+        corpus.initial_generation,
+        corpus.target_generation,
+        corpus.pageindex,
+        old_refs=tuple(old[key] for key in sorted(dirty & set(old))),
+        new_refs=tuple(new[key] for key in sorted(dirty & set(new))),
+        parent_witness=incomplete,
+        parent_pin=_pin(corpus.parent),
+        target_pin=_pin(corpus.target),
+    )
+
+    _assert_invalid_report(report, "delta_invalid")
+    assert "does not exactly cover touched tokens" in report.errors[0]
+
+
+def test_incremental_delta_fast_rejects_same_length_wrong_witness_tokens(
+    corpus: ValidationCorpus,
+) -> None:
+    old = {ref.doc_key: ref for ref in corpus.initial_refs}
+    new = {ref.doc_key: ref for ref in corpus.target_refs}
+    dirty = set(old) ^ set(new) | {
+        key
+        for key in set(old) & set(new)
+        if old[key].segment_hash != new[key].segment_hash
+    }
+    wrong_tokens = replace(
+        corpus.delta_result.parent_df_witness,
+        contributions=tuple(
+            TokenContribution(f"wrong-{index:08d}", 0, 0, 0)
+            for index, _contribution in enumerate(
+                corpus.delta_result.parent_df_witness.contributions
+            )
+        ),
+    )
+    report = validate_delta_incremental_fast(
+        corpus.delta,
+        corpus.parent,
+        corpus.target,
+        corpus.initial_generation,
+        corpus.target_generation,
+        corpus.pageindex,
+        old_refs=tuple(old[key] for key in sorted(dirty & set(old))),
+        new_refs=tuple(new[key] for key in sorted(dirty & set(new))),
+        parent_witness=wrong_tokens,
+        parent_pin=_pin(corpus.parent),
+        target_pin=_pin(corpus.target),
+    )
+
+    _assert_invalid_report(report, "delta_invalid")
+    assert "witness token differs from Delta terms" in report.errors[0]
+
+
+def test_incremental_delta_fast_recomputes_token_count_zero_crossing(
+    corpus: ValidationCorpus,
+) -> None:
+    old = {ref.doc_key: ref for ref in corpus.initial_refs}
+    new = {ref.doc_key: ref for ref in corpus.target_refs}
+    dirty = set(old) ^ set(new) | {
+        key
+        for key in set(old) & set(new)
+        if old[key].segment_hash != new[key].segment_hash
+    }
+    with PostingLayerReader(
+        corpus.delta.layer,
+        load_documents=False,
+    ) as reader:
+        reader.authenticate_artifacts()
+        records = {
+            record.token: record
+            for record in reader._iter_authenticated_terms()
+        }
+
+    contributions = list(
+        corpus.delta_result.parent_df_witness.contributions
+    )
+    position = next(
+        index
+        for index, contribution in enumerate(contributions)
+        if contribution.df_any_delta == 0
+        and records[contribution.token].delta[0] == 1
+    )
+    record = records[contributions[position].token]
+    contributions[position] = TokenContribution(
+        record.token,
+        *record.delta,
+    )
+    wrong_zero_crossing = replace(
+        corpus.delta_result.parent_df_witness,
+        contributions=tuple(contributions),
+    )
+    report = validate_delta_incremental_fast(
+        corpus.delta,
+        corpus.parent,
+        corpus.target,
+        corpus.initial_generation,
+        corpus.target_generation,
+        corpus.pageindex,
+        old_refs=tuple(old[key] for key in sorted(dirty & set(old))),
+        new_refs=tuple(new[key] for key in sorted(dirty & set(new))),
+        parent_witness=wrong_zero_crossing,
+        parent_pin=_pin(corpus.parent),
+        target_pin=_pin(corpus.target),
+    )
+
+    _assert_invalid_report(report, "delta_invalid")
+    assert "token_count delta differs" in report.errors[0]
+
+def test_incremental_delta_fast_rejects_witness_from_another_parent(
+    corpus: ValidationCorpus,
+) -> None:
+    old = {ref.doc_key: ref for ref in corpus.initial_refs}
+    new = {ref.doc_key: ref for ref in corpus.target_refs}
+    dirty = set(old) ^ set(new) | {
+        key
+        for key in set(old) & set(new)
+        if old[key].segment_hash != new[key].segment_hash
+    }
+    wrong_parent = replace(
+        corpus.delta_result.parent_df_witness,
+        parent_view_id=corpus.target.view_id,
+    )
+    report = validate_delta_incremental_fast(
+        corpus.delta,
+        corpus.parent,
+        corpus.target,
+        corpus.initial_generation,
+        corpus.target_generation,
+        corpus.pageindex,
+        old_refs=tuple(old[key] for key in sorted(dirty & set(old))),
+        new_refs=tuple(new[key] for key in sorted(dirty & set(new))),
+        parent_witness=wrong_parent,
+        parent_pin=_pin(corpus.parent),
+        target_pin=_pin(corpus.target),
+    )
+
+    _assert_invalid_report(report, "delta_invalid")
+    assert "witness binding differs from parent View" in report.errors[0]
 
 
 def test_delta_normal_rejects_parent_outside_trusted_pin(

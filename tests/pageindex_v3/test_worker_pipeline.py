@@ -17,6 +17,7 @@ from app.index.v3.protocol import (
     encode_result_line,
 )
 from app.index.v3.models import CompactionPolicy
+from app.index.v3.source_snapshot_cache import source_snapshot_cache_path
 from app.index.v3.view_store import load_search_view_metadata
 from app.index.v3.worker import BuildCancelled, execute_request
 
@@ -101,6 +102,7 @@ def test_bootstrap_then_no_op_returns_before_segment_ref_collection(
     monkeypatch.setattr(worker_module, "validate_generation_stream", forbidden)
     monkeypatch.setattr(worker_module, "build_segment", forbidden)
     monkeypatch.setattr(worker_module, "build_delta_view", forbidden)
+    monkeypatch.setattr(worker_module, "capture_stable_catalog", forbidden)
     no_op = execute_request(
         _request(
             content,
@@ -117,6 +119,52 @@ def test_bootstrap_then_no_op_returns_before_segment_ref_collection(
     assert no_op.metrics.postings_visited == 0
     assert no_op.metrics.bytes_written == 0
     assert no_op.metrics.normal_validation_runs == 0
+
+
+def test_corrupt_source_cache_falls_back_to_full_hash_and_repairs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    content = _corpus(tmp_path)
+    pageindex = tmp_path / "pageindex"
+    bootstrap = execute_request(
+        _request(content, pageindex, "idx_cache_seed")
+    )
+    assert bootstrap.state == "ready_to_publish"
+    assert bootstrap.generation is not None
+    cache_path = source_snapshot_cache_path(
+        pageindex,
+        content,
+        bootstrap.generation.generation,
+    )
+    assert cache_path.is_file()
+    cache_path.write_bytes(b"{")
+
+    original_capture = worker_module.capture_stable_catalog
+    captures = 0
+
+    def observed_capture(*args, **kwargs):
+        nonlocal captures
+        captures += 1
+        return original_capture(*args, **kwargs)
+
+    monkeypatch.setattr(
+        worker_module,
+        "capture_stable_catalog",
+        observed_capture,
+    )
+    result = execute_request(
+        _request(
+            content,
+            pageindex,
+            "idx_cache_fallback",
+            parent=_parent(bootstrap),
+        )
+    )
+
+    assert result.state == "no_op"
+    assert captures == 1
+    assert cache_path.read_bytes() != b"{"
 
 
 def test_edit_delete_and_explicit_optimize_have_bounded_mechanisms(

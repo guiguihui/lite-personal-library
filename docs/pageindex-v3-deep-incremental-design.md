@@ -145,7 +145,7 @@ SourceCatalog
   -> dirty StoredSegmentRef[]
   -> Generation/SearchView writer
   -> ArtifactRef(hash, bytes, records, path)
-  -> Normal Validator
+  -> Fast Artifact Validator
 ```
 
 约束：
@@ -158,9 +158,9 @@ SourceCatalog
 
 Validator 分为：
 
-- Normal：每次构建阻断执行，只验证新增/变化对象、聚合守恒、引用、排序、hash 和发布条件；禁止调用 `compile_generation()`。
+- Fast Artifact：每次增量构建阻断执行，信任当前进程产生的 summary/owner patch，只验证 lineage、replacement/stat 边界、witness 与 Delta token/DF、token-count zero crossing、canonical 编码、新增 Delta 全文件 hash 和发布条件；禁止调用 `compile_generation()`。worker 退出后，supervisor 在发布边界再次认证公开路径上的 Delta 文件，关闭 TOCTOU 窗口。
 - Sampled：确定性抽查复用对象；失败时保留旧 Generation 并升级 Deep。
-- Deep：独立短生命周期进程执行全量语义重算，用于迁移、recipe 升级、CI、手动验证和周期审计。
+- Deep：独立短生命周期进程执行全量语义重算，不与 Fast Artifact 混称，用于迁移、recipe 升级、CI、手动验证和周期审计。
 
 ## 7. P3：Base + Delta Search View
 
@@ -235,7 +235,7 @@ v2 仍是 shadow-only。当前正式路径包含后端顶层 JSON 读取，以�
 | 删除文档 P95 | < 5 s |
 | worker Peak Working Set | < 512 MiB |
 | worker Peak Private Bytes | < 512 MiB |
-| Normal Validator | 不得调用 `compile_generation()` |
+| Fast Artifact Validator | 不得调用 `compile_generation()` |
 | 查询 P95 回归 | < 10% |
 
 性能报告必须同时证明：

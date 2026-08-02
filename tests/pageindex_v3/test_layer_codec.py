@@ -618,6 +618,86 @@ def test_sparse_only_reader_defers_but_never_trusts_corrupt_documents(
         with pytest.raises(LayerCodecError, match="SHA-256"):
             reader.get_chunk_metrics((ref,))
 
+
+def test_stream_authentication_rejects_corrupt_unparsed_postings(
+    tmp_path: Path,
+) -> None:
+    receipt, _documents = _write_base(tmp_path)
+    path = receipt.root / receipt.postings.relative_path
+    payload = bytearray(path.read_bytes())
+    payload[len(payload) // 2] ^= 1
+    path.write_bytes(payload)
+
+    with PostingLayerReader(receipt, load_documents=False) as reader:
+        with pytest.raises(LayerCodecError, match="SHA-256"):
+            reader.authenticate_artifacts()
+
+
+def test_sparse_lookup_streams_without_materializing_a_complete_window(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    receipt, _documents = _write_base(tmp_path)
+
+    def forbidden(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("hot lookup materialized a complete sparse window")
+
+    monkeypatch.setattr(
+        PostingLayerReader,
+        "_decode_sparse_window",
+        forbidden,
+    )
+    with PostingLayerReader(receipt) as reader:
+        records = reader.lookup_terms(["apple", "missing"])
+    assert records["apple"] is not None
+    assert records["missing"] is None
+
+
+def test_sparse_lookup_is_canonical_by_default_with_explicit_trusted_opt_out(
+    tmp_path: Path,
+) -> None:
+    receipt, _documents = _write_base(tmp_path)
+    terms_path = receipt.root / receipt.terms.relative_path
+    lines = terms_path.read_bytes().splitlines(keepends=True)
+    first = json.loads(lines[0])
+    lines[0] = json.dumps(first, ensure_ascii=False).encode("utf-8") + b"\n"
+    payload = b"".join(lines)
+    terms_path.write_bytes(payload)
+    receipt = _rebind_artifact(receipt, "terms")
+
+    sparse_path = receipt.root / receipt.sparse_index.relative_path
+    sparse = json.loads(sparse_path.read_text("utf-8"))
+    assert len(sparse["anchors"]) == 1
+    sparse["terms_sha256"] = receipt.terms.sha256
+    sparse["terms_bytes"] = len(payload)
+    sparse["anchors"][0][2] = len(payload)
+    sparse["anchors"][0][3] = hashlib.sha256(payload).hexdigest()
+    sparse_path.write_bytes(canonical_bytes(sparse))
+    receipt = _rebind_artifact(receipt, "sparse_index")
+    token = first["token"]
+    assert isinstance(token, str)
+
+    with PostingLayerReader(receipt) as reader:
+        with pytest.raises(LayerCodecError, match="noncanonical"):
+            reader.lookup_term(token)
+    with PostingLayerReader(
+        receipt,
+        verify_term_canonical=False,
+    ) as reader:
+        assert reader.lookup_term(token) is not None
+
+
+def test_authenticated_term_stream_cannot_yield_before_full_authentication(
+    tmp_path: Path,
+) -> None:
+    receipt, _documents = _write_base(tmp_path)
+    with PostingLayerReader(receipt, load_documents=False) as reader:
+        stream = reader._iter_authenticated_terms()
+        with pytest.raises(LayerCodecError, match="full artifact authentication"):
+            next(stream)
+        reader.authenticate_artifacts()
+        assert len(tuple(reader._iter_authenticated_terms())) == receipt.term_count
+
 def test_pcv_block_hash_rejects_same_size_local_id_mutation(tmp_path: Path) -> None:
     receipt, documents = _write_base(tmp_path)
     table = json.loads((receipt.root / "layer-documents.json").read_text("utf-8"))

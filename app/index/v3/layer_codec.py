@@ -1351,6 +1351,8 @@ def _strict_json(raw: bytes | bytearray, description: str) -> object:
             if end > len(view) or view[position:end] != payload:
                 raise LayerCodecError(f"noncanonical {description} JSON")
             position = end
+    except LayerCodecError:
+        raise
     except (TypeError, ValueError) as exc:
         raise LayerCodecError(
             f"invalid {description} canonical JSON value"
@@ -1669,10 +1671,18 @@ def _iter_file_lines(
         loaded += size
 
 
-def _term_from_line(raw: bytes) -> TermRecord:
+def _term_from_line(
+    raw: bytes, *, verify_canonical: bool = True
+) -> TermRecord:
     if not raw.endswith(b"\n") or raw.endswith(b"\r\n"):
         raise LayerCodecError("terms.jsonl must use one canonical LF per line")
-    parsed = _strict_json(raw[:-1], "term record")
+    if verify_canonical:
+        parsed = _strict_json(raw[:-1], "term record")
+    else:
+        try:
+            parsed = json.loads(raw[:-1].decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise LayerCodecError("invalid term record JSON") from exc
     return TermRecord.from_dict(parsed)
 
 
@@ -1758,6 +1768,7 @@ class PostingLayerReader:
         recipe: SearchViewRecipe | None = None,
         read_observer: Callable[[str, int, int], None] | None = None,
         load_documents: bool = True,
+        verify_term_canonical: bool = True,
     ) -> None:
         if not isinstance(receipt, PostingLayerReceipt):
             raise TypeError("receipt must be a PostingLayerReceipt")
@@ -1770,8 +1781,11 @@ class PostingLayerReader:
             raise TypeError("read_observer must be callable")
         if type(load_documents) is not bool:
             raise TypeError("load_documents must be a bool")
+        if type(verify_term_canonical) is not bool:
+            raise TypeError("verify_term_canonical must be a bool")
         self.receipt = receipt
         self.read_observer = read_observer
+        self._verify_term_canonical = verify_term_canonical
         self._lookup_state = threading.local()
         self.startup_bytes_read = {
             _DOCUMENTS_NAME: 0,
@@ -1787,6 +1801,7 @@ class PostingLayerReader:
         self._documents: tuple[_DocumentRecord, ...] = ()
         self._documents_by_uid: dict[str, tuple[int, _DocumentRecord]] = {}
         self._documents_loaded = False
+        self._artifacts_authenticated = False
         self._windows: tuple[_SparseWindow, ...] = ()
         self._window_keys: tuple[bytes, ...] = ()
         try:
@@ -1968,6 +1983,28 @@ class PostingLayerReader:
         if digest.hexdigest() != expected_sha256:
             raise LayerCodecError(f"{name} local block SHA-256 mismatch")
 
+    def authenticate_artifacts(self) -> None:
+        """Stream-authenticate every artifact without decoding its records."""
+
+        self._ensure_open()
+        with self._lock:
+            for name, reference in (
+                (_DOCUMENTS_NAME, self.receipt.documents),
+                (_POSTINGS_NAME, self.receipt.postings),
+                (_CHUNKS_NAME, self.receipt.chunks),
+                (_TERMS_NAME, self.receipt.terms),
+                (_SPARSE_NAME, self.receipt.sparse_index),
+            ):
+                self._ensure_identity(name)
+                _authenticate_handle(
+                    self._handles[name],
+                    reference,
+                    name,
+                    self.read_observer,
+                )
+                self._ensure_identity(name)
+            self._artifacts_authenticated = True
+
     def _ensure_magic(self, name: str, expected: bytes) -> None:
         if name in self._magic_verified:
             return
@@ -2010,22 +2047,27 @@ class PostingLayerReader:
         self._lookup_state.scanned_lines = 0
         self._lookup_state.windows_read = 0
 
-    def _decode_sparse_window(
+    def _iter_sparse_window_records(
         self,
         index: int,
-    ) -> tuple[tuple[bytes, TermRecord], ...]:
+    ) -> Iterator[tuple[bytes, TermRecord]]:
+        """Authenticate one window while retaining only the current record."""
+
         window = self._windows[index]
         self._lookup_state.windows_read += 1
         digest = hashlib.sha256()
-        records: list[tuple[bytes, TermRecord]] = []
+        scanned = 0
         previous: bytes | None = None
         for offset, raw in self._window_lines(window.offset, window.end):
             digest.update(raw)
             self._lookup_state.scanned_lines += 1
-            scanned = len(records) + 1
+            scanned += 1
             if scanned > TERM_INDEX_STRIDE:
                 raise LayerCodecError("sparse term lookup exceeded its stride")
-            record = _term_from_line(raw)
+            record = _term_from_line(
+                raw,
+                verify_canonical=self._verify_term_canonical,
+            )
             encoded = _token_bytes(record.token)
             if previous is not None and encoded <= previous:
                 raise LayerCodecError("term window is not strictly sorted")
@@ -2033,9 +2075,9 @@ class PostingLayerReader:
                 record.token != window.first_token or offset != window.offset
             ):
                 raise LayerCodecError("term window does not match its sparse anchor")
-            records.append((encoded, record))
+            yield encoded, record
             previous = encoded
-        if len(records) != window.lines:
+        if scanned != window.lines:
             raise LayerCodecError("term window line count does not match sparse index")
         if digest.hexdigest() != window.sha256:
             raise LayerCodecError("term window SHA-256 does not match sparse index")
@@ -2045,7 +2087,26 @@ class PostingLayerReader:
             and previous >= self._window_keys[index + 1]
         ):
             raise LayerCodecError("term windows are not strictly sorted")
-        return tuple(records)
+
+    def _decode_sparse_window(
+        self,
+        index: int,
+    ) -> tuple[tuple[bytes, TermRecord], ...]:
+        """Compatibility helper for exhaustive Deep validation."""
+
+        return tuple(self._iter_sparse_window_records(index))
+
+    def _iter_authenticated_terms(self) -> Iterator[TermRecord]:
+        """Stream terms only after full-artifact authentication."""
+
+        if not self._artifacts_authenticated:
+            raise LayerCodecError(
+                "term streaming requires full artifact authentication"
+            )
+        self._reset_sparse_work()
+        for index in range(len(self._windows)):
+            for _encoded, record in self._iter_sparse_window_records(index):
+                yield record
 
     def lookup_term(self, token: str) -> TermRecord | None:
         target = _token_bytes(token)
@@ -2055,10 +2116,11 @@ class PostingLayerReader:
         index = bisect_right(self._window_keys, target) - 1
         if index < 0:
             return None
-        for encoded, record in self._decode_sparse_window(index):
+        match: TermRecord | None = None
+        for encoded, record in self._iter_sparse_window_records(index):
             if encoded == target:
-                return record
-        return None
+                match = record
+        return match
 
     def lookup_terms(
         self,
@@ -2091,7 +2153,7 @@ class PostingLayerReader:
 
         for index in sorted(targets_by_window):
             targets = targets_by_window[index]
-            for encoded, record in self._decode_sparse_window(index):
+            for encoded, record in self._iter_sparse_window_records(index):
                 token = targets.get(encoded)
                 if token is not None:
                     result[token] = record

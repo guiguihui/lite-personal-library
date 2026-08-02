@@ -4,6 +4,9 @@ from collections import Counter, defaultdict
 import gc
 import hashlib
 from pathlib import Path
+import threading
+import time
+from types import SimpleNamespace
 import weakref
 
 import pytest
@@ -217,6 +220,232 @@ def _initial_and_target(pageindex: Path):
     )
     return initial, target
 
+
+def test_parent_term_lookup_is_bounded_deterministic_and_main_thread_cancelled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lock = threading.Lock()
+    first_wave = threading.Barrier(8)
+    active = 0
+    peak = 0
+    call_number = 0
+    parallel = False
+    worker_threads: set[int] = set()
+    cancel_threads: set[int] = set()
+
+    class FakeReader:
+        def __init__(self, layer: int, **kwargs: object) -> None:
+            self.layer = layer
+            self.observer = kwargs.get("read_observer")
+            self.last_sparse_windows_read = layer + 1
+
+        def __enter__(self) -> FakeReader:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def lookup_terms(
+            self, tokens: tuple[str, ...]
+        ) -> dict[str, SimpleNamespace]:
+            nonlocal active, peak, call_number
+            with lock:
+                position = call_number
+                call_number += 1
+                active += 1
+                peak = max(peak, active)
+                worker_threads.add(threading.get_ident())
+            try:
+                if parallel and position < 8:
+                    first_wave.wait(timeout=5)
+                time.sleep((12 - self.layer) * 0.002)
+                observer = self.observer
+                if callable(observer):
+                    observer("terms.jsonl", self.layer, self.layer + 1)
+                return {
+                    token: SimpleNamespace(delta=(1, 1, 0))
+                    for token in tokens
+                }
+            finally:
+                with lock:
+                    active -= 1
+
+    monkeypatch.setattr(delta_builder_module, "PostingLayerReader", FakeReader)
+    layers = tuple(range(12))
+    base = SimpleNamespace(layer=layers[0])
+    deltas = tuple(SimpleNamespace(layer=layer) for layer in layers[1:])
+    arguments = (
+        {"token"},
+        base,
+        deltas,
+        SearchViewRecipe(),
+        12,
+        12,
+        {"token": [0, 0, 0]},
+        {"token"},
+    )
+    main_thread = threading.get_ident()
+
+    def check_cancelled() -> None:
+        cancel_threads.add(threading.get_ident())
+
+    monkeypatch.setattr(
+        delta_builder_module, "_MAX_PARENT_LOOKUP_WORKERS", 1
+    )
+    sequential = delta_builder_module._resolve_parent_terms(
+        *arguments, check_cancelled
+    )
+
+    parallel = True
+    active = 0
+    peak = 0
+    call_number = 0
+    worker_threads.clear()
+    cancel_threads.clear()
+    monkeypatch.setattr(
+        delta_builder_module, "_MAX_PARENT_LOOKUP_WORKERS", 8
+    )
+    concurrent = delta_builder_module._resolve_parent_terms(
+        *arguments, check_cancelled
+    )
+
+    assert concurrent == sequential
+    assert concurrent[2:] == (
+        sum(range(1, 13)),
+        0,
+        (delta_builder_module.TokenContribution("token", 12, 12, 0),),
+    )
+    assert peak == 8
+    assert 2 <= len(worker_threads) <= 8
+    assert main_thread not in worker_threads
+    assert cancel_threads == {main_thread}
+    assert active == 0
+
+    call_number = 0
+    cancel_threads.clear()
+    cancel_checks = 0
+
+    def cancel_during_lookup() -> None:
+        nonlocal cancel_checks
+        cancel_threads.add(threading.get_ident())
+        cancel_checks += 1
+        if cancel_checks == 2:
+            raise RuntimeError("cancel parent lookup")
+
+    with pytest.raises(RuntimeError, match="cancel parent lookup"):
+        delta_builder_module._resolve_parent_terms(
+            *arguments, cancel_during_lookup
+        )
+    assert cancel_threads == {main_thread}
+    assert active == 0
+
+
+def test_parallel_parent_lookup_propagates_task_timeout_error_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+
+    class TimeoutReader:
+        def __init__(self, _layer: int, **_kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> TimeoutReader:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def lookup_terms(self, _tokens: tuple[str, ...]) -> object:
+            nonlocal calls
+            calls += 1
+            raise TimeoutError("reader task timeout")
+
+    monkeypatch.setattr(
+        delta_builder_module,
+        "PostingLayerReader",
+        TimeoutReader,
+    )
+    with pytest.raises(TimeoutError, match="reader task timeout"):
+        delta_builder_module._resolve_parent_terms(
+            {"token"},
+            SimpleNamespace(layer=0),
+            (SimpleNamespace(layer=1),),
+            SearchViewRecipe(),
+            2,
+            2,
+            {"token": [0, 0, 0]},
+            {"token"},
+            lambda: None,
+        )
+    assert 1 <= calls <= 2
+
+
+def test_parallel_parent_lookup_cancellation_stops_active_readers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lock = threading.Lock()
+    started = threading.Event()
+    active = 0
+    cancel_threads: set[int] = set()
+
+    class BlockingReader:
+        def __init__(self, _layer: int, **kwargs: object) -> None:
+            self.observer = kwargs["read_observer"]
+            self.last_sparse_windows_read = 0
+
+        def __enter__(self) -> BlockingReader:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def lookup_terms(self, _tokens: tuple[str, ...]) -> object:
+            nonlocal active
+            with lock:
+                active += 1
+                started.set()
+            try:
+                while True:
+                    self.observer("terms.jsonl", 0, 1)
+                    time.sleep(0.002)
+            finally:
+                with lock:
+                    active -= 1
+
+    monkeypatch.setattr(
+        delta_builder_module,
+        "PostingLayerReader",
+        BlockingReader,
+    )
+    checks = 0
+    main_thread = threading.get_ident()
+
+    def cancel() -> None:
+        nonlocal checks
+        cancel_threads.add(threading.get_ident())
+        checks += 1
+        if checks >= 2:
+            assert started.wait(timeout=1)
+            raise RuntimeError("cancel active parent lookup")
+
+    began = time.perf_counter()
+    with pytest.raises(RuntimeError, match="cancel active parent lookup"):
+        delta_builder_module._resolve_parent_terms(
+            {"token"},
+            SimpleNamespace(layer=0),
+            (SimpleNamespace(layer=1),),
+            SearchViewRecipe(),
+            2,
+            2,
+            {"token": [0, 0, 0]},
+            {"token"},
+            cancel,
+        )
+    elapsed = time.perf_counter() - began
+
+    assert elapsed < 1
+    assert active == 0
+    assert cancel_threads == {main_thread}
 
 def test_delta_add_edit_delete_matches_clean_base_and_never_reads_parent_postings(
     tmp_path: Path,
@@ -702,6 +931,60 @@ def test_cancellation_after_delta_publication_leaves_only_orphan_delta(
     assert parent.root.is_dir()
     assert not tuple(pageindex.glob(".piv3-delta-build.*"))
 
+
+def test_witness_failure_happens_before_view_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pageindex = tmp_path / "pageindex"
+    initial, target = _initial_and_target(pageindex)
+    recipe = GenerationRecipe()
+    initial_generation = _generation(
+        tmp_path,
+        "generation-initial",
+        initial,
+        recipe,
+    )
+    _base, parent = build_base_view(
+        pageindex,
+        initial,
+        initial_generation,
+        recipe,
+        max_run_bytes=1,
+        merge_fan_in=2,
+    )
+    target_generation = _generation(
+        tmp_path,
+        "generation-target",
+        target,
+        recipe,
+    )
+    changes = _changes(initial, target)
+    views_before = set(parent.root.parent.iterdir())
+
+    def fail_witness(*_args: object, **_kwargs: object) -> object:
+        raise RuntimeError("injected witness failure")
+
+    monkeypatch.setattr(
+        delta_builder_module,
+        "ParentDfWitness",
+        fail_witness,
+    )
+    with pytest.raises(RuntimeError, match="injected witness failure"):
+        build_delta_view(
+            pageindex,
+            parent,
+            target_generation,
+            recipe,
+            changes,
+            _new_refs(changes, target),
+            max_run_bytes=1,
+            merge_fan_in=2,
+        )
+
+    assert set(parent.root.parent.iterdir()) == views_before
+    assert parent.root.is_dir()
+    assert not tuple(pageindex.glob(".piv3-delta-build.*"))
 
 def test_successful_view_publication_has_no_late_cancellation_checkpoint(
     tmp_path: Path,

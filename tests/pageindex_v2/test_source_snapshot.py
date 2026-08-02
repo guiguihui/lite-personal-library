@@ -124,24 +124,24 @@ def test_capture_rejects_insert_in_discovery_boundary_gap(
     monkeypatch,
 ) -> None:
     segment_hash, compiler_hash = _recipe_hashes()
-    real_discover = snapshot_module.discover_documents
+    real_rescan = snapshot_module._rescan_catalog_topology
     calls = 0
 
-    def discover_then_insert(root: Path):
+    def rescan_then_insert(root: Path):
         nonlocal calls
-        sources = real_discover(root)
+        topology = real_rescan(root)
         calls += 1
         if calls == 1:
             (sample_content / "notes" / "inserted-after-discovery.md").write_text(
                 "# Inserted after discovery\n",
                 encoding="utf-8",
             )
-        return sources
+        return topology
 
     monkeypatch.setattr(
         snapshot_module,
-        "discover_documents",
-        discover_then_insert,
+        "_rescan_catalog_topology",
+        rescan_then_insert,
     )
 
     assert (
@@ -153,7 +153,7 @@ def test_capture_rejects_insert_in_discovery_boundary_gap(
         )
         is None
     )
-    assert calls == 1
+    assert calls >= 2
 
 
 def test_capture_rejects_ancestor_symlink_escape(tmp_path: Path) -> None:

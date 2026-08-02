@@ -5,19 +5,22 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
+import threading
+import time
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from .canonical import canonical_hash, iter_canonical_json
+from .catalog import DocumentSource
 from .ids import make_doc_key, normalize_relative_path
-from .catalog import DocumentSource, discover_documents
 from .input_proof import proof_from_fingerprints, validate_input_proof
 
 
-SOURCE_HASH_WORKERS = 4
+SOURCE_HASH_WORKERS = 16
 _READ_BUFFER_BYTES = 1024 * 1024
+_CANCEL_POLL_SECONDS = 0.01
 
 _FileState = tuple[str, str, int, int, int, int, int]
 _DirectoryState = tuple[tuple[str, int, int, int, int], ...]
@@ -26,6 +29,28 @@ _Topology = tuple[tuple[str, tuple[str, ...]], ...]
 
 class _SourceChanged(RuntimeError):
     """A source changed while its already-open handle was being hashed."""
+
+
+class _CancellationPoller:
+    """Share one bounded-rate filesystem cancellation check across hash threads."""
+
+    __slots__ = ("_callback", "_lock", "_next_check")
+
+    def __init__(self, callback: Callable[[], None]) -> None:
+        self._callback = callback
+        self._lock = threading.Lock()
+        self._next_check = 0.0
+
+    def __call__(self) -> None:
+        now = time.monotonic()
+        if now < self._next_check:
+            return
+        with self._lock:
+            now = time.monotonic()
+            if now < self._next_check:
+                return
+            self._callback()
+            self._next_check = now + _CANCEL_POLL_SECONDS
 
 
 def _streaming_canonical_hash(value: object) -> str:
@@ -53,6 +78,7 @@ class StableCatalogSnapshot:
 
     content_dir: Path
     sources: tuple[DocumentSource, ...]
+    prepared_sources: tuple[_PreparedSource, ...] = field(repr=False)
     proof: dict[str, object]
     directory_state: _DirectoryState
     topology: _Topology
@@ -61,7 +87,14 @@ class StableCatalogSnapshot:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "content_dir", Path(self.content_dir).resolve())
-        object.__setattr__(self, "sources", tuple(self.sources))
+        sources = tuple(self.sources)
+        prepared = tuple(self.prepared_sources)
+        if tuple(value.doc_key for value in prepared) != tuple(
+            value.doc_key for value in sources
+        ):
+            raise ValueError("prepared source order differs from catalog sources")
+        object.__setattr__(self, "sources", sources)
+        object.__setattr__(self, "prepared_sources", prepared)
         validated_proof = validate_input_proof(self.proof)
         object.__setattr__(self, "proof", validated_proof)
         object.__setattr__(
@@ -94,7 +127,6 @@ class StableCatalogSnapshot:
             raise TypeError("check_cancel must be callable")
         check_cancel()
         try:
-            prepared_sources = _prepare_sources(self.content_dir, self.sources)
             with ThreadPoolExecutor(
                 max_workers=3,
                 thread_name_prefix="pageindex-source-verify",
@@ -107,7 +139,7 @@ class StableCatalogSnapshot:
                     _rescan_catalog_topology,
                     self.content_dir,
                 )
-                state_future = executor.submit(_file_state, prepared_sources)
+                state_future = executor.submit(_file_state, self.prepared_sources)
                 directory_state = directory_future.result()
                 topology = topology_future.result()
                 file_state = state_future.result()
@@ -253,6 +285,35 @@ def _rescan_catalog_topology(root: Path) -> _Topology:
     return tuple(sorted(result))
 
 
+def _sources_from_topology(
+    root: Path,
+    topology: _Topology,
+) -> tuple[DocumentSource, ...]:
+    sources: list[DocumentSource] = []
+    for doc_key, raw_files in topology:
+        doc_type, separator, _normalized_slug = doc_key.partition(":")
+        if not separator or doc_type not in {"book", "paper", "note"}:
+            raise ValueError(f"unsupported document key in topology: {doc_key!r}")
+        files = tuple(Path(relative) for relative in raw_files)
+        if doc_type == "note":
+            slug = files[0].stem
+        else:
+            parts = files[0].parts
+            if len(parts) < 3:
+                raise ValueError(f"invalid grouped source topology: {raw_files!r}")
+            slug = parts[1]
+        sources.append(
+            DocumentSource(
+                doc_type=doc_type,
+                slug=slug,
+                doc_key=doc_key,
+                root=root,
+                files=files,
+            )
+        )
+    return tuple(sources)
+
+
 def _assert_within_root(path: Path, root: Path, original: Path) -> Path:
     try:
         path.relative_to(root)
@@ -315,7 +376,9 @@ def _metadata_state(metadata: os.stat_result) -> tuple[int, int, int, int, int, 
     )
 
 
-def _file_state(sources: Sequence[_PreparedSource]) -> tuple[_FileState, ...]:
+def _file_state_batch(
+    sources: Sequence[_PreparedSource],
+) -> tuple[_FileState, ...]:
     result: list[_FileState] = []
     for source in sources:
         for prepared_file in source.files:
@@ -334,6 +397,24 @@ def _file_state(sources: Sequence[_PreparedSource]) -> tuple[_FileState, ...]:
                 )
             )
     return tuple(result)
+
+
+def _file_state(sources: Sequence[_PreparedSource]) -> tuple[_FileState, ...]:
+    values = tuple(sources)
+    if len(values) < 32:
+        return _file_state_batch(values)
+    workers = min(SOURCE_HASH_WORKERS, len(values))
+    batch_size = (len(values) + workers - 1) // workers
+    batches = tuple(
+        values[start : start + batch_size]
+        for start in range(0, len(values), batch_size)
+    )
+    with ThreadPoolExecutor(
+        max_workers=len(batches),
+        thread_name_prefix="pageindex-source-stat",
+    ) as executor:
+        results = tuple(executor.map(_file_state_batch, batches))
+    return tuple(state for batch in results for state in batch)
 
 
 def _hash_open_file(
@@ -414,29 +495,42 @@ def capture_stable_catalog(
         raise NotADirectoryError(root)
 
     check_cancel()
+    poll_cancel = _CancellationPoller(check_cancel)
     try:
         directory_state_before = _catalog_directory_state(root)
-        sources = discover_documents(root)
-        topology_before = _source_topology(sources)
+        topology_before = _rescan_catalog_topology(root)
+        sources = _sources_from_topology(root, topology_before)
         prepared_sources = _prepare_sources(root, sources)
 
         def fingerprint(
             source: _PreparedSource,
         ) -> tuple[str, str, tuple[_FileState, ...]]:
-            check_cancel()
+            poll_cancel()
             source_fingerprint, source_states = _fingerprint_source(
                 source,
-                check_cancel,
+                poll_cancel,
             )
             return source.doc_key, source_fingerprint, source_states
 
         if prepared_sources:
             workers = min(max_workers, len(prepared_sources))
+            batch_size = (len(prepared_sources) + workers - 1) // workers
+            batches = tuple(
+                prepared_sources[start : start + batch_size]
+                for start in range(0, len(prepared_sources), batch_size)
+            )
+
+            def fingerprint_batch(
+                batch: tuple[_PreparedSource, ...],
+            ) -> tuple[tuple[str, str, tuple[_FileState, ...]], ...]:
+                return tuple(fingerprint(source) for source in batch)
+
             with ThreadPoolExecutor(
-                max_workers=workers,
+                max_workers=len(batches),
                 thread_name_prefix="pageindex-source-hash",
             ) as executor:
-                pairs = list(executor.map(fingerprint, prepared_sources))
+                batch_results = tuple(executor.map(fingerprint_batch, batches))
+            pairs = [pair for batch in batch_results for pair in batch]
         else:
             pairs = []
         state_at_hash = tuple(
@@ -458,9 +552,11 @@ def capture_stable_catalog(
         segment_recipe_hash,
         compiler_recipe_hash,
     )
+    check_cancel()
     snapshot = StableCatalogSnapshot(
         content_dir=root,
         sources=tuple(sources),
+        prepared_sources=prepared_sources,
         proof=proof,
         directory_state=directory_state_before,
         topology=topology_before,

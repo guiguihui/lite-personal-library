@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 import hashlib
 from pathlib import Path
 from typing import Any
@@ -19,7 +19,8 @@ from .delta_store import (
 )
 from .generation import LogicalGenerationReceipt
 from .generation_stream import validate_generation_stream
-from .layer_codec import PostingLayerReader
+from .incremental_witness import ParentDfWitness
+from .layer_codec import PostingLayerReader, TokenContribution
 from .models import (
     ChunkRef,
     SearchViewRecipe,
@@ -412,6 +413,160 @@ def _validate_df(
         raise ValueError(f"{token!r} {state} DF union is invalid")
 
 
+def _scoped_refs(
+    values: Iterable[StoredSegmentRef] | None,
+    field: str,
+) -> dict[str, StoredSegmentRef]:
+    if values is None or isinstance(values, (str, bytes, bytearray)):
+        raise TypeError(f"{field} must be an iterable of StoredSegmentRef values")
+    result: dict[str, StoredSegmentRef] = {}
+    for ref in values:
+        if not isinstance(ref, StoredSegmentRef):
+            raise TypeError(f"{field} must contain StoredSegmentRef values")
+        if ref.doc_key in result:
+            raise ValueError(f"{field} contains duplicate doc_key {ref.doc_key!r}")
+        result[ref.doc_key] = ref
+    return result
+
+
+def _validate_parent_witness(
+    witness: ParentDfWitness | None,
+    parent: SearchViewReceipt,
+    recipe_hash: str,
+    total_chunks: int,
+    check_cancelled: Callable[[], None],
+) -> tuple[TokenContribution, ...]:
+    if not isinstance(witness, ParentDfWitness):
+        raise TypeError("scoped_parent_witness must be a ParentDfWitness")
+    if (
+        witness.parent_view_id != parent.view_id
+        or witness.parent_view_manifest_sha256 != parent.manifest_ref.sha256
+        or witness.search_view_recipe_hash != recipe_hash
+        or witness.parent_total_chunks != total_chunks
+    ):
+        raise ValueError("parent DF witness binding differs from parent View")
+    for position, contribution in enumerate(witness.contributions):
+        if position % 1024 == 0:
+            check_cancelled()
+        _validate_df(
+            contribution.token,
+            contribution.triple,
+            total_chunks,
+            "parent witness",
+        )
+    return witness.contributions
+
+
+def _validate_incremental_fast_transition(
+    delta: DeltaObjectReceipt,
+    parent: SearchViewReceipt,
+    parent_refs: Mapping[str, StoredSegmentRef],
+    target_refs: Mapping[str, StoredSegmentRef],
+    witness: ParentDfWitness | None,
+    recipe: SearchViewRecipe,
+    recipe_hash: str,
+    parent_statistics: CorpusTotals,
+    target_statistics: CorpusTotals,
+    generation: LogicalGenerationReceipt,
+    check_cancelled: Callable[[], None],
+) -> None:
+    """Authenticate new bytes inside the trusted incremental builder boundary."""
+
+    contributions = _validate_parent_witness(
+        witness,
+        parent,
+        recipe_hash,
+        parent_statistics.total_chunks,
+        check_cancelled,
+    )
+    if len(contributions) != delta.layer.term_count:
+        raise ValueError(
+            "parent DF witness does not exactly cover touched tokens"
+        )
+
+    for replacement in delta.replacements:
+        check_cancelled()
+        parent_ref = parent_refs.get(replacement.doc_key)
+        target_ref = target_refs.get(replacement.doc_key)
+        if replacement.doc_uid != make_doc_uid(replacement.doc_key):
+            raise ValueError("Delta replacement doc_uid differs from doc_key")
+        if replacement.old_segment_hash is None:
+            if parent_ref is not None:
+                raise ValueError("add replacement already exists in parent")
+        elif (
+            parent_ref is None
+            or replacement.old_segment_hash != parent_ref.segment_hash
+        ):
+            raise ValueError("old replacement does not match scoped parent")
+        if replacement.new_segment_hash is None:
+            if target_ref is not None:
+                raise ValueError("delete replacement remains in target Generation")
+        elif (
+            target_ref is None
+            or replacement.new_segment_hash != target_ref.segment_hash
+        ):
+            raise ValueError("new replacement differs from target Generation")
+
+    if delta.statistics_delta.apply(parent_statistics) != target_statistics:
+        raise ValueError("target View statistics do not equal parent plus Delta")
+    if target_statistics.documents != generation.document_count:
+        raise ValueError("target statistics differ from target Generation")
+
+    def observe_read(_name: str, _offset: int, _size: int) -> None:
+        check_cancelled()
+
+    token_count_delta = 0
+    observed_terms = 0
+    check_cancelled()
+    with PostingLayerReader(
+        delta.layer,
+        recipe=recipe,
+        read_observer=observe_read,
+        load_documents=False,
+    ) as reader:
+        reader.authenticate_artifacts()
+        for record in reader._iter_authenticated_terms():
+            if observed_terms % 128 == 0:
+                check_cancelled()
+            if observed_terms >= len(contributions):
+                raise ValueError(
+                    "Delta contains a term outside the parent DF witness"
+                )
+            before_contribution = contributions[observed_terms]
+            if before_contribution.token != record.token:
+                raise ValueError(
+                    "parent DF witness token differs from Delta terms"
+                )
+            before = before_contribution.triple
+            after = tuple(
+                before[position] + record.delta[position]
+                for position in range(3)
+            )
+            _validate_df(
+                record.token,
+                before,
+                parent_statistics.total_chunks,
+                "parent witness",
+            )
+            _validate_df(
+                record.token,
+                after,
+                target_statistics.total_chunks,
+                "target",
+            )
+            token_count_delta += int(after[0] > 0) - int(before[0] > 0)
+            observed_terms += 1
+    if observed_terms != len(contributions):
+        raise ValueError(
+            "parent DF witness contains a token outside Delta terms"
+        )
+    if token_count_delta != delta.statistics_delta.token_count:
+        raise ValueError(
+            "Delta token_count delta differs from parent DF witness"
+        )
+    check_cancelled()
+
+
 def _validate_delta(
     receipt: DeltaObjectReceipt,
     parent: SearchViewReceipt,
@@ -422,6 +577,10 @@ def _validate_delta(
     target_pin: ViewPin,
     pageindex_dir: Path,
     check_cancelled: Callable[[], None],
+    *,
+    scoped_old_refs: Iterable[StoredSegmentRef] | None = None,
+    scoped_new_refs: Iterable[StoredSegmentRef] | None = None,
+    scoped_parent_witness: ParentDfWitness | None = None,
 ) -> None:
     check_cancelled()
     if not isinstance(parent_generation, LogicalGenerationReceipt):
@@ -440,12 +599,37 @@ def _validate_delta(
         or target_pin.view_id != target.view_id
     ):
         raise ValueError("target View differs from trusted target pin")
-    parent_refs = _validate_generation(
-        parent_generation, pageindex_dir, check_cancelled
+    scoped_inputs = (
+        scoped_old_refs is not None,
+        scoped_new_refs is not None,
+        scoped_parent_witness is not None,
     )
-    target_refs = _validate_generation(
-        generation, pageindex_dir, check_cancelled
-    )
+    scoped = all(scoped_inputs)
+    if any(scoped_inputs) and not scoped:
+        raise TypeError(
+            "scoped old/new refs and parent DFs must be supplied together"
+        )
+    if scoped:
+        parent_refs = _scoped_refs(scoped_old_refs, "scoped_old_refs")
+        target_refs = _scoped_refs(scoped_new_refs, "scoped_new_refs")
+        dirty_keys = set(parent_refs) | set(target_refs)
+        if not dirty_keys:
+            raise ValueError("incremental Delta scope must not be empty")
+        additions = len(set(target_refs) - set(parent_refs))
+        deletions = len(set(parent_refs) - set(target_refs))
+        if generation.document_count != (
+            parent_generation.document_count + additions - deletions
+        ):
+            raise ValueError(
+                "scoped refs do not explain Generation document_count"
+            )
+    else:
+        parent_refs = _validate_generation(
+            parent_generation, pageindex_dir, check_cancelled
+        )
+        target_refs = _validate_generation(
+            generation, pageindex_dir, check_cancelled
+        )
     authenticated_parent = _authenticated_view(parent, pageindex_dir)
     authenticated_target = _authenticated_view(target, pageindex_dir)
     authenticated_delta = _authenticated_delta(receipt, pageindex_dir)
@@ -499,19 +683,30 @@ def _validate_delta(
 
     parent_statistics = load_view_statistics(authenticated_parent)
     target_statistics = load_view_statistics(authenticated_target)
-    parent_owners = load_view_documents(authenticated_parent)
-    target_owners = load_view_documents(authenticated_target)
-    if len(parent_owners) != len(parent_refs):
-        raise ValueError("parent owner count differs from parent Generation")
-    for doc_uid, owner in parent_owners.items():
-        check_cancelled()
-        ref = parent_refs.get(owner.doc_key)
-        if (
-            doc_uid != make_doc_uid(owner.doc_key)
-            or ref is None
-            or owner.segment_hash != ref.segment_hash
-        ):
-            raise ValueError("parent owner map differs from parent Generation")
+    parent_owners = (
+        None if scoped else load_view_documents(authenticated_parent)
+    )
+    target_owners = (
+        None if scoped else load_view_documents(authenticated_target)
+    )
+    if scoped:
+        if parent_statistics.documents != parent_generation.document_count:
+            raise ValueError("parent statistics differ from parent Generation")
+        if target_statistics.documents != generation.document_count:
+            raise ValueError("target statistics differ from target Generation")
+    else:
+        assert parent_owners is not None
+        if len(parent_owners) != len(parent_refs):
+            raise ValueError("parent owner count differs from parent Generation")
+        for doc_uid, owner in parent_owners.items():
+            check_cancelled()
+            ref = parent_refs.get(owner.doc_key)
+            if (
+                doc_uid != make_doc_uid(owner.doc_key)
+                or ref is None
+                or owner.segment_hash != ref.segment_hash
+            ):
+                raise ValueError("parent owner map differs from parent Generation")
 
     all_doc_keys = set(parent_refs) | set(target_refs)
     expected_dirty = {
@@ -527,6 +722,21 @@ def _validate_delta(
     replacement_keys = {item.doc_key for item in authenticated_delta.replacements}
     if replacement_keys != expected_dirty:
         raise ValueError("Delta replacements do not exactly cover changed documents")
+    if scoped:
+        _validate_incremental_fast_transition(
+            authenticated_delta,
+            authenticated_parent,
+            parent_refs,
+            target_refs,
+            scoped_parent_witness,
+            recipe,
+            recipe_hash,
+            parent_statistics,
+            target_statistics,
+            generation,
+            check_cancelled,
+        )
+        return
 
     scalars = {
         "documents": 0,
@@ -547,16 +757,22 @@ def _validate_delta(
         check_cancelled()
         parent_ref = parent_refs.get(replacement.doc_key)
         target_ref = target_refs.get(replacement.doc_key)
-        owner = parent_owners.get(replacement.doc_uid)
+        owner = (
+            None
+            if parent_owners is None
+            else parent_owners.get(replacement.doc_uid)
+        )
         if replacement.old_segment_hash is None:
             if parent_ref is not None or owner is not None:
                 raise ValueError("add replacement already exists in parent")
         else:
             if (
                 parent_ref is None
-                or owner is None
                 or replacement.old_segment_hash != parent_ref.segment_hash
-                or owner.segment_hash != parent_ref.segment_hash
+            ):
+                raise ValueError("old replacement does not match scoped parent")
+            if owner is not None and (
+                owner.segment_hash != parent_ref.segment_hash
                 or replacement.old_summary_sha256 != owner.summary_sha256
                 or replacement.old_summary_bytes != owner.summary_bytes
             ):
@@ -642,7 +858,8 @@ def _validate_delta(
     with PostingLayerReader(
         authenticated_delta.layer, recipe=recipe
     ) as reader:
-        reader.audit()
+        if not scoped:
+            reader.audit()
         check_cancelled()
         if len(reader._documents) != len(expected_new_replacements):
             raise ValueError("Delta document table differs from new replacements")
@@ -790,9 +1007,16 @@ def _validate_delta(
         raise ValueError(
             "target View statistics do not equal parent plus Delta"
         )
-    if target_statistics.documents != len(target_refs):
+    if target_statistics.documents != (
+        generation.document_count if scoped else len(target_refs)
+    ):
         raise ValueError("target statistics differ from target Generation")
 
+    if scoped:
+        check_cancelled()
+        return
+
+    assert parent_owners is not None and target_owners is not None
     for replacement in authenticated_delta.replacements:
         check_cancelled()
         if replacement.old_segment_hash is not None:
@@ -1061,6 +1285,47 @@ def validate_delta_normal(
     )
 
 
+def validate_delta_incremental_fast(
+    receipt: DeltaObjectReceipt,
+    parent: SearchViewReceipt,
+    target: SearchViewReceipt,
+    parent_generation: LogicalGenerationReceipt,
+    generation: LogicalGenerationReceipt,
+    pageindex_dir: Path,
+    *,
+    old_refs: Iterable[StoredSegmentRef],
+    new_refs: Iterable[StoredSegmentRef],
+    parent_witness: ParentDfWitness,
+    parent_pin: ViewPin,
+    target_pin: ViewPin,
+    check_cancelled: Callable[[], None] | None = None,
+) -> ValidationReport:
+    """Validate a dirty transition using its trusted in-process parent witness.
+
+    Use :func:validate_delta_normal when the caller does not trust the
+    builder that produced parent_witness.
+    """
+
+    cancel = _check_cancelled(check_cancelled)
+    return _capture(
+        "delta_invalid",
+        lambda: _validate_delta(
+            receipt,
+            parent,
+            target,
+            parent_generation,
+            generation,
+            parent_pin,
+            target_pin,
+            Path(pageindex_dir),
+            cancel,
+            scoped_old_refs=old_refs,
+            scoped_new_refs=new_refs,
+            scoped_parent_witness=parent_witness,
+        ),
+    )
+
+
 def validate_view_normal(
     receipt: SearchViewReceipt,
     generation: LogicalGenerationReceipt,
@@ -1082,6 +1347,7 @@ def validate_view_normal(
 
 __all__ = [
     "validate_base_normal",
+    "validate_delta_incremental_fast",
     "validate_delta_normal",
     "validate_generation_normal",
     "validate_view_normal",

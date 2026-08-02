@@ -8,10 +8,12 @@ Segments are projected, one at a time, into a new immutable Delta layer.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Iterator
-from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor, wait
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 import shutil
 import tempfile
+import threading
 
 from app.index.v2.canonical import canonical_hash
 from app.index.v2.object_store import StoredSegmentRef
@@ -29,6 +31,7 @@ from .generation import (
     LogicalGenerationReceipt,
     validate_logical_generation_inputs,
 )
+from .incremental_witness import ParentDfWitness
 from .layer_codec import PostingLayerReader, PostingLayerReceipt, TokenContribution
 from .layer_runs import StagedLayerBuilder
 from .models import (
@@ -64,6 +67,12 @@ _SCALAR_FIELDS = (
     "body_length_sum",
     "posting_count",
 )
+_MAX_PARENT_LOOKUP_WORKERS = 8
+_PARENT_LOOKUP_CANCEL_POLL_SECONDS = 0.05
+
+
+class _ParentLookupAborted(RuntimeError):
+    """Stop worker lookups after main-thread cancellation or failure."""
 
 
 def _u64(value: object, field: str) -> int:
@@ -146,6 +155,12 @@ class DeltaBuildResult:
     view: SearchViewReceipt
     compaction: CompactionRecommendation
     work: DeltaBuildWork
+    parent_df_witness: ParentDfWitness = field(
+        kw_only=True,
+        repr=False,
+        compare=False,
+        hash=False,
+    )
 
     def __post_init__(self) -> None:
         if not isinstance(self.delta, DeltaObjectReceipt):
@@ -156,6 +171,10 @@ class DeltaBuildResult:
             raise TypeError("compaction must be a CompactionRecommendation")
         if not isinstance(self.work, DeltaBuildWork):
             raise TypeError("work must be a DeltaBuildWork")
+        if not isinstance(self.parent_df_witness, ParentDfWitness):
+            raise TypeError("parent_df_witness must be a ParentDfWitness")
+        if len(self.parent_df_witness.contributions) != self.work.touched_tokens:
+            raise ValueError("parent DF witness must exactly cover touched tokens")
 
 
 def _validate_new_refs(
@@ -349,56 +368,136 @@ def _resolve_parent_terms(
     token_delta: dict[str, list[int]],
     new_posting_tokens: set[str],
     check_cancelled: Callable[[], None],
-) -> tuple[tuple[TokenContribution, ...], int, int, int]:
-    ordered_tokens = sorted(touched_tokens, key=lambda token: token.encode("utf-8"))
+) -> tuple[
+    tuple[TokenContribution, ...],
+    int,
+    int,
+    int,
+    tuple[TokenContribution, ...],
+]:
+    ordered_tokens = tuple(
+        sorted(touched_tokens, key=lambda token: token.encode("utf-8"))
+    )
     if not ordered_tokens:
-        return (), 0, 0, 0
-    parent_values = {token: [0, 0, 0] for token in ordered_tokens}
+        return (), 0, 0, 0, ()
+    parent_values = [[0, 0, 0] for _token in ordered_tokens]
     windows_read = 0
     posting_bytes_read = 0
-
-    def observed(name: str, _offset: int, size: int) -> None:
-        nonlocal posting_bytes_read
-        if name == "postings.piv":
-            posting_bytes_read = _checked_u64_add(
-                "base_posting_bytes_read", posting_bytes_read, size
-            )
-
     layers: tuple[PostingLayerReceipt, ...] = (
         base.layer,
         *(delta.layer for delta in deltas),
     )
-    for layer in layers:
-        check_cancelled()
+    worker_count = min(_MAX_PARENT_LOOKUP_WORKERS, len(layers))
+    parallel_lookup = worker_count > 1
+    lookup_aborted = threading.Event()
+
+    def lookup_layer(
+        layer: PostingLayerReceipt,
+    ) -> tuple[tuple[tuple[int, tuple[int, int, int]], ...], int, int]:
+        local_posting_bytes = 0
+
+        def observed(name: str, _offset: int, size: int) -> None:
+            nonlocal local_posting_bytes
+            if lookup_aborted.is_set():
+                raise _ParentLookupAborted("parent lookup aborted")
+            if not parallel_lookup:
+                check_cancelled()
+            if name == "postings.piv":
+                local_posting_bytes = _checked_u64_add(
+                    "base_posting_bytes_read",
+                    local_posting_bytes,
+                    size,
+                )
+
         with PostingLayerReader(
             layer,
             recipe=recipe,
             read_observer=observed,
             load_documents=False,
+            verify_term_canonical=False,
         ) as reader:
             records = reader.lookup_terms(ordered_tokens)
-            windows_read = _checked_u64_add(
-                "parent_term_windows_read",
-                windows_read,
-                reader.last_sparse_windows_read,
+            sparse = tuple(
+                (ordinal, record.delta)
+                for ordinal, token in enumerate(ordered_tokens)
+                if (record := records[token]) is not None
             )
-            for token in ordered_tokens:
-                record = records[token]
-                if record is None:
-                    continue
-                values = parent_values[token]
-                for position, delta in enumerate(record.delta):
-                    values[position] = _checked_signed_add(
-                        f"{token!r} parent DF",
-                        values[position],
-                        delta,
-                    )
+            return (
+                sparse,
+                reader.last_sparse_windows_read,
+                local_posting_bytes,
+            )
 
+    def merge_layer(
+        result: tuple[
+            tuple[tuple[int, tuple[int, int, int]], ...],
+            int,
+            int,
+        ],
+    ) -> None:
+        nonlocal windows_read, posting_bytes_read
+        sparse, layer_windows, layer_posting_bytes = result
+        windows_read = _checked_u64_add(
+            "parent_term_windows_read",
+            windows_read,
+            layer_windows,
+        )
+        posting_bytes_read = _checked_u64_add(
+            "base_posting_bytes_read",
+            posting_bytes_read,
+            layer_posting_bytes,
+        )
+        for ordinal, deltas_for_token in sparse:
+            token = ordered_tokens[ordinal]
+            values = parent_values[ordinal]
+            for position, delta in enumerate(deltas_for_token):
+                values[position] = _checked_signed_add(
+                    f"{token!r} parent DF",
+                    values[position],
+                    delta,
+                )
+
+    if worker_count <= 1:
+        for layer in layers:
+            check_cancelled()
+            merge_layer(lookup_layer(layer))
+    else:
+        executor = ThreadPoolExecutor(
+            max_workers=worker_count,
+            thread_name_prefix="piv3-parent-lookup",
+        )
+        try:
+            for start in range(0, len(layers), worker_count):
+                check_cancelled()
+                futures = tuple(
+                    executor.submit(lookup_layer, layer)
+                    for layer in layers[start : start + worker_count]
+                )
+                for future in futures:
+                    while not future.done():
+                        check_cancelled()
+                        wait(
+                            (future,),
+                            timeout=_PARENT_LOOKUP_CANCEL_POLL_SECONDS,
+                        )
+                    check_cancelled()
+                    result = future.result()
+                    merge_layer(result)
+        except BaseException:
+            lookup_aborted.set()
+            raise
+        finally:
+            executor.shutdown(wait=True, cancel_futures=True)
+
+    parent_dfs = tuple(
+        TokenContribution(token, *parent_values[ordinal])
+        for ordinal, token in enumerate(ordered_tokens)
+    )
     contributions: list[TokenContribution] = []
     token_count_delta = 0
-    for token in ordered_tokens:
+    for ordinal, token in enumerate(ordered_tokens):
         check_cancelled()
-        before = tuple(parent_values[token])
+        before = tuple(parent_values[ordinal])
         _validate_df_triple(token, before, parent_total_chunks, "parent")
         change = tuple(token_delta[token])
         after = tuple(before[index] + change[index] for index in range(3))
@@ -410,9 +509,13 @@ def _resolve_parent_terms(
             )
         contributions.append(TokenContribution(token, *change))
     _signed_u64(token_count_delta, "token_count_delta")
-    return tuple(contributions), token_count_delta, windows_read, posting_bytes_read
-
-
+    return (
+        tuple(contributions),
+        token_count_delta,
+        windows_read,
+        posting_bytes_read,
+        parent_dfs,
+    )
 def _layer_bytes(layer: PostingLayerReceipt) -> int:
     total = 0
     for reference in (
@@ -714,6 +817,7 @@ def build_delta_view(
                 token_count_delta,
                 parent_windows_read,
                 base_posting_bytes_read,
+                parent_dfs,
             ) = _resolve_parent_terms(
                 touched_tokens,
                 base,
@@ -811,9 +915,23 @@ def build_delta_view(
             layer_count=1 + len(all_deltas),
             segments_loaded_peak=1 if new_segments_loaded else 0,
         )
+        witness = ParentDfWitness(
+            parent_view_id=authenticated.view_id,
+            parent_view_manifest_sha256=authenticated.manifest_ref.sha256,
+            search_view_recipe_hash=authenticated.search_view_recipe_hash,
+            parent_total_chunks=parent_statistics.total_chunks,
+            contributions=parent_dfs,
+        )
+        candidate_result = DeltaBuildResult(
+            delta,
+            view_candidate,
+            compaction,
+            work,
+            parent_df_witness=witness,
+        )
         cancel()
         view = finalize_search_view(root, view_candidate)
-        return DeltaBuildResult(delta, view, compaction, work)
+        return replace(candidate_result, view=view)
     except BaseException as exc:
         primary = exc
         retain_scratch = isinstance(

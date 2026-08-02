@@ -18,6 +18,7 @@ from typing import Any
 from app.index.v2.canonical import canonical_bytes
 
 from .delta_store import DeltaObjectReceipt, load_delta_object_metadata
+from .layer_codec import PostingLayerReader
 from .protocol import (
     EXIT_BUILD_FAILED,
     EXIT_CANCELLED,
@@ -450,6 +451,13 @@ def _verify_ready_lineage(
         or delta.search_view_recipe_hash != target.view.search_view_recipe_hash
     ):
         raise WorkerProcessError("incremental Delta is not bound to the result View")
+    try:
+        with PostingLayerReader(delta.layer, load_documents=False) as reader:
+            reader.authenticate_artifacts()
+    except Exception as exc:
+        raise WorkerProcessError(
+            f"incremental Delta layer artifacts are invalid: {exc}"
+        ) from exc
 
 
 def _verify_legacy_export(

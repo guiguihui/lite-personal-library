@@ -115,6 +115,18 @@ def build_delta_view(*args: Any, **kwargs: Any) -> Any:
     return implementation(*args, **kwargs)
 
 
+def load_source_snapshot_cache(*args: Any, **kwargs: Any) -> Any:
+    from .source_snapshot_cache import load_source_snapshot_cache as implementation
+
+    return implementation(*args, **kwargs)
+
+
+def store_source_snapshot_cache(*args: Any, **kwargs: Any) -> Any:
+    from .source_snapshot_cache import store_source_snapshot_cache as implementation
+
+    return implementation(*args, **kwargs)
+
+
 def validate_base_normal(*args: Any, **kwargs: Any) -> Any:
     from .validator import validate_base_normal as implementation
 
@@ -123,6 +135,12 @@ def validate_base_normal(*args: Any, **kwargs: Any) -> Any:
 
 def validate_delta_normal(*args: Any, **kwargs: Any) -> Any:
     from .validator import validate_delta_normal as implementation
+
+    return implementation(*args, **kwargs)
+
+
+def validate_delta_incremental_fast(*args: Any, **kwargs: Any) -> Any:
+    from .validator import validate_delta_incremental_fast as implementation
 
     return implementation(*args, **kwargs)
 
@@ -372,12 +390,25 @@ def _capture_snapshot(
     generation_recipe: GenerationRecipe,
     segment_recipe: SegmentRecipe,
     check_cancelled: Callable[[], None],
-) -> StableCatalogSnapshot | None:
-    return capture_stable_catalog(
-        request.content_dir,
-        segment_recipe_hash=canonical_hash(segment_recipe.as_dict()),
-        compiler_recipe_hash=canonical_hash(generation_recipe.as_dict()),
-        check_cancel=check_cancelled,
+    parent: _ParentState | None,
+) -> tuple[StableCatalogSnapshot | None, bool]:
+    if parent is not None:
+        cached = load_source_snapshot_cache(
+            request.pageindex_dir,
+            request.content_dir,
+            parent.generation,
+            check_cancelled=check_cancelled,
+        )
+        if cached is not None:
+            return cached, True
+    return (
+        capture_stable_catalog(
+            request.content_dir,
+            segment_recipe_hash=canonical_hash(segment_recipe.as_dict()),
+            compiler_recipe_hash=canonical_hash(generation_recipe.as_dict()),
+            check_cancel=check_cancelled,
+        ),
+        False,
     )
 
 
@@ -730,8 +761,12 @@ def _execute_incremental(
     for _attempt in range(_MAX_STABILIZATION_ATTEMPTS):
         check_cancelled()
         started = time.perf_counter()
-        snapshot = _capture_snapshot(
-            request, generation_recipe, segment_recipe, check_cancelled
+        snapshot, snapshot_cache_hit = _capture_snapshot(
+            request,
+            generation_recipe,
+            segment_recipe,
+            check_cancelled,
+            parent,
         )
         metrics.source_hash_ms += _elapsed_ms(started)
         if snapshot is None:
@@ -745,6 +780,12 @@ def _execute_incremental(
                 raise RuntimeError(
                     "source returned to the parent proof after a dirty retry; "
                     "rerun the incremental request"
+                )
+            if not snapshot_cache_hit:
+                store_source_snapshot_cache(
+                    request.pageindex_dir,
+                    snapshot,
+                    parent.generation,
                 )
             metrics.compaction_recommended = _parent_compaction_recommended(
                 request.pageindex_dir, parent.view
@@ -803,12 +844,10 @@ def _execute_incremental(
     assert snapshot is not None and changes is not None
     metrics.segments_rebuilt = len(new_refs)
     metrics.segments_deleted = len(changes.deleted)
-    new_ref_count = len(new_refs)
     new_segment_bytes = sum(ref.byte_size for ref in new_refs)
     refs = _target_refs(changes, new_refs)
     target_ref_count = len(refs)
     proof = snapshot.validated_proof()
-    del snapshot
     parent_refs = None
 
     generation_candidate = job_dir / "generation-candidate"
@@ -823,7 +862,17 @@ def _execute_incremental(
     generation, published = _finalize_generation(
         request.pageindex_dir, candidate, job_dir
     )
-    del proof
+    cache_path = store_source_snapshot_cache(
+        request.pageindex_dir,
+        snapshot,
+        generation,
+    )
+    if cache_path is not None:
+        try:
+            metrics.bytes_written += cache_path.stat().st_size
+        except OSError:
+            pass
+    del proof, snapshot
     metrics.generation_ms += _elapsed_ms(started)
     if published:
         metrics.bytes_written += (
@@ -875,6 +924,15 @@ def _execute_incremental(
         )
         metrics.compaction_recommended = delta_result.compaction.recommended
     metrics.delta_ms += _elapsed_ms(started)
+    if parent is None:
+        validation_old_refs: tuple[StoredSegmentRef, ...] = ()
+        validation_new_refs: tuple[StoredSegmentRef, ...] = ()
+    else:
+        validation_old_refs = tuple(
+            changes.base_by_doc[doc_key]
+            for doc_key in (*changes.changed, *changes.deleted)
+        )
+        validation_new_refs = new_refs
     del refs, new_refs, changes
     check_cancelled()
 
@@ -903,28 +961,23 @@ def _execute_incremental(
     else:
         assert delta_result is not None
         _require_valid(
-            validate_delta_normal(
+            validate_delta_incremental_fast(
                 delta_result.delta,
                 parent.view,
                 view,
                 parent.generation,
                 generation,
                 request.pageindex_dir,
+                old_refs=validation_old_refs,
+                new_refs=validation_new_refs,
+                parent_witness=delta_result.parent_df_witness,
                 parent_pin=ViewPin(
                     parent.generation.generation_id, parent.view.view_id
                 ),
                 target_pin=ViewPin(generation.generation_id, view.view_id),
                 check_cancelled=check_cancelled,
             ),
-            "Delta Normal validation",
-        )
-        metrics.segments_loaded += new_ref_count
-        metrics.segments_loaded_peak = max(
-            metrics.segments_loaded_peak, min(1, new_ref_count)
-        )
-        metrics.postings_visited += delta_result.work.projected_postings
-        metrics.postings_visited += 2 * (
-            delta_result.delta.layer.postings.records or 0
+            "Delta fast validation",
         )
     metrics.normal_validation_ms += _elapsed_ms(started)
     metrics.normal_validation_runs = 1

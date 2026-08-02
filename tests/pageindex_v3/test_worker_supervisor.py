@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from app.index.v3.delta_store import load_delta_object_metadata
 from app.index.v3.protocol import (
     PROTOCOL_NAME,
     PROTOCOL_VERSION,
@@ -26,6 +27,7 @@ from app.index.v3.supervisor import (
     verify_worker_completion,
     worker_command,
 )
+from app.index.v3.view_store import load_search_view_metadata
 from app.index.v3.worker import execute_request, run_worker
 
 
@@ -280,6 +282,54 @@ def test_control_artifact_hashes_are_verified(
     with pytest.raises(WorkerProcessError, match=message):
         run_build(content, tmp_path / "pageindex", "incremental")
 
+
+def test_supervisor_rejects_new_delta_layer_modified_after_worker_exit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pageindex = tmp_path / "pageindex"
+    content = _corpus(tmp_path)
+    bootstrap = run_build(content, pageindex, "incremental")
+    parent = _parent(bootstrap)
+    _write(
+        content / "notes" / "welcome.md",
+        "# Welcome\nchanged after bootstrap\n",
+    )
+
+    def fake_run(command: list[str], **_kwargs: object):
+        request_path = Path(command[-1])
+        assert run_worker(request_path) == 0
+        request = decode_request_line(request_path.read_bytes())
+        result = decode_result_line(
+            (request_path.parent / "result.json").read_bytes(),
+            request=request,
+        )
+        assert result.view is not None
+        view = load_search_view_metadata(
+            request.pageindex_dir,
+            result.view.view_id,
+        )
+        delta = load_delta_object_metadata(
+            request.pageindex_dir,
+            view.delta_ids[-1],
+        )
+        postings = delta.root / delta.layer.postings.relative_path
+        payload = bytearray(postings.read_bytes())
+        payload[-1] ^= 1
+        postings.write_bytes(payload)
+        return _completed(command, 0)
+
+    monkeypatch.setattr(
+        "app.index.v3.supervisor.subprocess.run",
+        fake_run,
+    )
+    with pytest.raises(WorkerProcessError, match="Delta layer artifacts"):
+        run_build(
+            content,
+            pageindex,
+            "incremental",
+            parent=parent,
+        )
 
 def test_forged_generation_manifest_hash_fails_closed(
     tmp_path: Path,
