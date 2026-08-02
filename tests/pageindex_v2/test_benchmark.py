@@ -238,3 +238,150 @@ def test_worker_launch_exception_is_not_masked_by_metrics(
                 seed=1,
             ),
         )
+
+
+def test_capacity_benchmark_runs_dirty_delete_and_recompile_scenarios(
+    tmp_path: Path,
+) -> None:
+    content = tmp_path / "content"
+    pageindex = tmp_path / "pageindex"
+
+    report = run_capacity_benchmark(
+        content,
+        pageindex,
+        full_runs=1,
+        incremental_runs=1,
+        edit_runs=2,
+        delete_runs=2,
+        recompile_runs=1,
+        synthetic=SyntheticCorpusSpec(
+            documents=3,
+            sections_per_document=2,
+            words_per_section=8,
+            vocabulary_size=5,
+            seed=19,
+            expected_chunks=6,
+        ),
+    )
+
+    rounds = report["rounds"]
+    assert [item["scenario"] for item in rounds] == [
+        "full",
+        "unchanged",
+        "edit",
+        "edit",
+        "delete",
+        "delete",
+        "recompile",
+    ]
+    assert [item["mode"] for item in rounds] == [
+        "full",
+        "incremental",
+        "incremental",
+        "incremental",
+        "incremental",
+        "incremental",
+        "recompile",
+    ]
+    assert [item["outcome"] for item in rounds] == [
+        "built",
+        "no_change",
+        "built",
+        "built",
+        "built",
+        "built",
+        "built",
+    ]
+    assert [item["worker_stats"]["chunks"] for item in rounds] == [
+        6,
+        6,
+        6,
+        6,
+        4,
+        2,
+        2,
+    ]
+    assert len({item["worker_pid"] for item in rounds}) == len(rounds)
+    assert rounds[0]["base_generation"] is None
+    for previous, current in zip(rounds, rounds[1:]):
+        assert current["base_generation"] == previous["generation"]
+
+    unchanged = rounds[1]["worker_stats"]
+    for key in (
+        "segments_loaded",
+        "segments_loaded_peak",
+        "run_buffer_peak_bytes",
+        "postings_visited",
+        "generation_bytes_written",
+        "full_compile_runs",
+        "normal_validation_runs",
+        "deep_validation_runs",
+    ):
+        assert unchanged[key] == 0
+
+    for item in (rounds[0], *rounds[2:]):
+        stats = item["worker_stats"]
+        assert stats["full_compile_runs"] == 1
+        assert stats["normal_validation_runs"] == 1
+        assert stats["deep_validation_runs"] == 0
+        assert stats["segments_loaded_peak"] <= 1
+
+    edits = rounds[2:4]
+    assert all(item["worker_stats"]["segments_rebuilt"] == 1 for item in edits)
+    assert all(
+        item["mutation"]["kind"] == "one_document_edit" for item in edits
+    )
+    assert all(
+        item["mutation"]["before_sha256"]
+        != item["mutation"]["after_sha256"]
+        for item in edits
+    )
+
+    deletes = rounds[4:6]
+    assert all(item["worker_stats"]["segments_deleted"] == 1 for item in deletes)
+    assert len({item["mutation"]["relative_path"] for item in deletes}) == 2
+    assert all(
+        item["mutation"]["kind"] == "one_document_delete" for item in deletes
+    )
+
+    recompile = rounds[-1]
+    assert recompile["mutation"] == {"kind": "none"}
+    assert recompile["generation"] == recompile["base_generation"]
+    assert report["configuration"]["edit_runs"] == 2
+    assert report["configuration"]["delete_runs"] == 2
+    assert report["configuration"]["recompile_runs"] == 1
+    assert report["corpus"]["observed_chunks"] == 6
+    assert report["corpus"]["final_observed_chunks"] == 2
+    scenarios = report["summary"]["scenarios"]
+    assert scenarios["unchanged"]["outcomes"] == {"no_change": 1}
+    assert scenarios["edit"]["runs"] == 2
+    assert scenarios["delete"]["runs"] == 2
+    assert scenarios["recompile"]["runs"] == 1
+
+
+def test_dirty_scenarios_refuse_foreign_markdown_without_modifying_it(
+    tmp_path: Path,
+) -> None:
+    content = tmp_path / "content"
+    spec = SyntheticCorpusSpec(
+        documents=2,
+        sections_per_document=1,
+        words_per_section=4,
+        vocabulary_size=3,
+        seed=5,
+    )
+    generate_synthetic_corpus(content, spec)
+    foreign = content / "notes" / "foreign.md"
+    foreign.write_text("must stay", encoding="utf-8")
+
+    with pytest.raises(BenchmarkError, match="unexpected Markdown"):
+        run_capacity_benchmark(
+            content,
+            tmp_path / "pageindex",
+            full_runs=1,
+            incremental_runs=0,
+            edit_runs=1,
+            synthetic=spec,
+        )
+
+    assert foreign.read_text(encoding="utf-8") == "must stay"

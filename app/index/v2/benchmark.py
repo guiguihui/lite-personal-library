@@ -12,6 +12,7 @@ import hashlib
 import math
 import os
 import random
+import re
 import statistics
 import subprocess
 import sys
@@ -47,6 +48,7 @@ _LEGACY_CORE_FILES = (
 )
 _LEGACY_TREE_FOLDERS = ("books", "papers", "notes")
 _EXACT_50K_SHAPE = (1000, 50, 48, 4096, 42, 50000)
+_EDITABLE_TOKEN_RE = re.compile(rb"(?:term[0-9]{5}|mut[0-9a-f]{6})")
 
 
 def _positive_int(name: str, value: int) -> None:
@@ -270,6 +272,155 @@ def generate_synthetic_corpus(
     }
 
 
+@dataclass(slots=True)
+class _SyntheticMutationState:
+    """Track and mutate only files attested by one synthetic marker."""
+
+    root: Path
+    spec: SyntheticCorpusSpec
+    active_hashes: dict[str, str]
+
+    @classmethod
+    def capture(
+        cls,
+        content_dir: Path,
+        spec: SyntheticCorpusSpec,
+    ) -> "_SyntheticMutationState":
+        root = Path(content_dir).resolve()
+        state = cls(root=root, spec=spec, active_hashes={})
+        expected = {
+            f"notes/synthetic-{index:05d}.md"
+            for index in range(spec.documents)
+        }
+        state._verify_marker()
+        actual = state._markdown_paths()
+        if actual != expected:
+            raise BenchmarkError(
+                "synthetic corpus file set changed before mutation"
+            )
+        for relative in sorted(expected):
+            target = state._owned_file(relative)
+            state.active_hashes[relative] = hashlib.sha256(
+                target.read_bytes()
+            ).hexdigest()
+        state.verify()
+        return state
+
+    def _verify_marker(self) -> None:
+        expected = {
+            "schema_version": 2,
+            "generator": "pageindex-v2-synthetic-v2",
+            "spec": self.spec.as_dict(),
+        }
+        marker = self.root / _SYNTHETIC_MARKER
+        try:
+            actual = read_json_object(marker)
+        except Exception as exc:
+            raise BenchmarkError(
+                "synthetic marker is unavailable during mutation"
+            ) from exc
+        if actual != expected:
+            raise BenchmarkError(
+                "synthetic marker changed during benchmark"
+            )
+
+    def _markdown_paths(self) -> set[str]:
+        return {
+            path.relative_to(self.root).as_posix()
+            for path in self.root.rglob("*.md")
+            if path.is_file()
+        }
+
+    def _owned_file(self, relative: str) -> Path:
+        target = self.root / Path(relative)
+        if target.is_symlink():
+            raise BenchmarkError(
+                f"synthetic mutation target must not be a symlink: {relative}"
+            )
+        try:
+            resolved = target.resolve(strict=True)
+            resolved.relative_to(self.root)
+        except (FileNotFoundError, OSError, RuntimeError, ValueError) as exc:
+            raise BenchmarkError(
+                f"synthetic mutation target is unsafe: {relative}"
+            ) from exc
+        return target
+
+    def verify(self) -> None:
+        """Reject external additions, deletions, and edits before touching a file."""
+
+        self._verify_marker()
+        if self._markdown_paths() != set(self.active_hashes):
+            raise BenchmarkError(
+                "synthetic corpus file set changed during benchmark"
+            )
+        for relative, expected_hash in sorted(self.active_hashes.items()):
+            actual_hash = hashlib.sha256(
+                self._owned_file(relative).read_bytes()
+            ).hexdigest()
+            if actual_hash != expected_hash:
+                raise BenchmarkError(
+                    f"synthetic corpus file changed outside benchmark: {relative}"
+                )
+
+    def edit_one(self, ordinal: int) -> dict[str, object]:
+        self.verify()
+        paths = sorted(self.active_hashes)
+        if not paths:
+            raise BenchmarkError("cannot edit an empty synthetic corpus")
+        relative = paths[(ordinal - 1) % len(paths)]
+        target = self._owned_file(relative)
+        payload = target.read_bytes()
+        match = _EDITABLE_TOKEN_RE.search(payload)
+        if match is None:
+            raise BenchmarkError(
+                f"synthetic document has no editable body token: {relative}"
+            )
+        salt = 0
+        while True:
+            digest = hashlib.sha256(
+                f"{self.spec.seed}:{ordinal}:{relative}:{salt}".encode("utf-8")
+            ).hexdigest()[:6]
+            replacement = f"mut{digest}".encode("ascii")
+            if replacement != match.group(0):
+                break
+            salt += 1
+        mutated = payload[:match.start()] + replacement + payload[match.end():]
+        before_hash = self.active_hashes[relative]
+        after_hash = hashlib.sha256(mutated).hexdigest()
+        _write_bytes_atomic(target, mutated)
+        self.active_hashes[relative] = after_hash
+        self.verify()
+        return {
+            "kind": "one_document_edit",
+            "ordinal": ordinal,
+            "relative_path": relative,
+            "before_sha256": before_hash,
+            "after_sha256": after_hash,
+            "expected_chunk_delta": 0,
+        }
+
+    def delete_one(self, ordinal: int) -> dict[str, object]:
+        self.verify()
+        paths = sorted(self.active_hashes)
+        if not paths:
+            raise BenchmarkError("cannot delete from an empty synthetic corpus")
+        relative = paths[0]
+        target = self._owned_file(relative)
+        before_hash = self.active_hashes[relative]
+        target.unlink()
+        del self.active_hashes[relative]
+        self.verify()
+        return {
+            "kind": "one_document_delete",
+            "ordinal": ordinal,
+            "relative_path": relative,
+            "before_sha256": before_hash,
+            "after_sha256": None,
+            "expected_chunk_delta": -self.spec.sections_per_document,
+        }
+
+
 def _legacy_snapshot(pageindex_dir: Path) -> dict[str, dict[str, object]]:
     root = Path(pageindex_dir)
     paths = [root / name for name in _LEGACY_CORE_FILES]
@@ -388,6 +539,9 @@ def _run_round(
     base_generation: str | None,
     ordinal: int,
     mode_ordinal: int,
+    scenario: str,
+    scenario_ordinal: int,
+    mutation: Mapping[str, object],
     sample_interval_ms: int,
     require_os_metrics: bool,
 ) -> dict[str, object]:
@@ -492,6 +646,9 @@ def _run_round(
         "ordinal": ordinal,
         "mode_ordinal": mode_ordinal,
         "mode": mode,
+        "scenario": scenario,
+        "scenario_ordinal": scenario_ordinal,
+        "mutation": dict(mutation),
         "outcome": result.get("outcome"),
         "base_generation": result.get("base_generation"),
         "generation": generation,
@@ -524,8 +681,10 @@ def _distribution(values: Sequence[float]) -> dict[str, float] | None:
 def _mode_summary(
     rounds: Sequence[Mapping[str, object]],
     mode: str,
+    *,
+    field: str = "mode",
 ) -> dict[str, object]:
-    selected = [item for item in rounds if item.get("mode") == mode]
+    selected = [item for item in rounds if item.get(field) == mode]
     if not selected:
         return {
             "runs": 0,
@@ -619,25 +778,171 @@ def _initial_pageindex_state(pageindex_dir: Path) -> dict[str, object]:
     }
 
 
+def _generation_chunk_count(
+    pageindex_dir: Path,
+    generation: str | None,
+) -> int | None:
+    if generation is None:
+        return None
+    manifest = read_json_object(
+        Path(pageindex_dir) / "generations" / generation / "manifest.json"
+    )
+    stats = manifest.get("stats")
+    value = stats.get("chunks") if isinstance(stats, Mapping) else None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise BenchmarkError(
+            f"base generation {generation} has no valid chunk count"
+        )
+    return value
+
+
+def _worker_stat(
+    round_result: Mapping[str, object],
+    name: str,
+) -> int:
+    stats = round_result.get("worker_stats")
+    value = stats.get(name) if isinstance(stats, Mapping) else None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise BenchmarkError(
+            f"{round_result.get('scenario')} round has no valid {name}"
+        )
+    return value
+
+
+def _validate_scenario_round(
+    round_result: Mapping[str, object],
+    scenario: str,
+    *,
+    previous_chunks: int | None,
+    synthetic: SyntheticCorpusSpec | None,
+) -> int:
+    """Validate outcome, mechanism counters, and scenario-specific chunk facts."""
+
+    outcome = round_result.get("outcome")
+    base_generation = round_result.get("base_generation")
+    if scenario == "unchanged" and base_generation is None:
+        expected_outcome = "built"
+    elif scenario == "unchanged":
+        expected_outcome = "no_change"
+    else:
+        expected_outcome = "built"
+    if outcome != expected_outcome:
+        raise BenchmarkError(
+            f"{scenario} round expected {expected_outcome}, observed {outcome}"
+        )
+
+    if outcome == "no_change":
+        for name in (
+            "segments_loaded",
+            "segments_loaded_peak",
+            "run_buffer_peak_bytes",
+            "postings_visited",
+            "generation_bytes_written",
+            "full_compile_runs",
+            "normal_validation_runs",
+            "deep_validation_runs",
+        ):
+            if _worker_stat(round_result, name) != 0:
+                raise BenchmarkError(
+                    f"unchanged no-op round reported non-zero {name}"
+                )
+    else:
+        if _worker_stat(round_result, "full_compile_runs") != 1:
+            raise BenchmarkError(
+                f"{scenario} build did not compile exactly once"
+            )
+        if _worker_stat(round_result, "normal_validation_runs") != 1:
+            raise BenchmarkError(
+                f"{scenario} build did not run Normal validation exactly once"
+            )
+        if _worker_stat(round_result, "deep_validation_runs") != 0:
+            raise BenchmarkError(
+                f"{scenario} build unexpectedly ran Deep validation"
+            )
+        if _worker_stat(round_result, "segments_loaded_peak") > 1:
+            raise BenchmarkError(
+                f"{scenario} build loaded more than one Segment at once"
+            )
+
+    if scenario == "edit":
+        if _worker_stat(round_result, "segments_rebuilt") != 1:
+            raise BenchmarkError("edit round did not rebuild exactly one Segment")
+        if _worker_stat(round_result, "segments_deleted") != 0:
+            raise BenchmarkError("edit round unexpectedly deleted a Segment")
+    elif scenario == "delete":
+        if _worker_stat(round_result, "segments_deleted") != 1:
+            raise BenchmarkError("delete round did not delete exactly one Segment")
+        if _worker_stat(round_result, "segments_rebuilt") != 0:
+            raise BenchmarkError("delete round unexpectedly rebuilt a Segment")
+    elif scenario == "recompile":
+        if _worker_stat(round_result, "segments_rebuilt") != 0:
+            raise BenchmarkError("recompile round rebuilt a Segment")
+        if round_result.get("generation") != base_generation:
+            raise BenchmarkError(
+                "recompile round changed Generation without changing inputs"
+            )
+
+    chunks = _worker_stat(round_result, "chunks")
+    if scenario == "full":
+        expected_chunks = (
+            synthetic.expected_chunks if synthetic is not None else None
+        )
+    elif scenario == "delete" and previous_chunks is not None:
+        expected_chunks = previous_chunks - (
+            synthetic.sections_per_document if synthetic is not None else 0
+        )
+    else:
+        expected_chunks = previous_chunks
+    if expected_chunks is not None and chunks != expected_chunks:
+        raise BenchmarkError(
+            f"{scenario} round expected {expected_chunks} chunks, observed {chunks}"
+        )
+    return chunks
+
+
 def run_capacity_benchmark(
     content_dir: Path,
     pageindex_dir: Path,
     *,
     full_runs: int = 1,
     incremental_runs: int = 3,
+    edit_runs: int = 0,
+    delete_runs: int = 0,
+    recompile_runs: int = 0,
     synthetic: SyntheticCorpusSpec | None = None,
     sample_interval_ms: int = 10,
     require_os_metrics: bool = False,
 ) -> dict[str, object]:
-    """Run isolated full and incremental worker rounds."""
+    """Run isolated full, unchanged, dirty, delete, and recompile rounds."""
 
     _nonnegative_runs("full_runs", full_runs)
     _nonnegative_runs("incremental_runs", incremental_runs)
+    _nonnegative_runs("edit_runs", edit_runs)
+    _nonnegative_runs("delete_runs", delete_runs)
+    _nonnegative_runs("recompile_runs", recompile_runs)
     _positive_int("sample_interval_ms", sample_interval_ms)
     if not isinstance(require_os_metrics, bool):
         raise ValueError("require_os_metrics must be a boolean")
-    if full_runs + incremental_runs == 0:
+    if (
+        full_runs
+        + incremental_runs
+        + edit_runs
+        + delete_runs
+        + recompile_runs
+        == 0
+    ):
         raise ValueError("at least one benchmark round is required")
+    if (edit_runs > 0 or delete_runs > 0) and synthetic is None:
+        raise ValueError(
+            "edit/delete benchmark rounds require a synthetic marker-owned corpus"
+        )
+    if (
+        synthetic is not None
+        and delete_runs > synthetic.documents
+    ):
+        raise ValueError(
+            "delete_runs cannot exceed synthetic document count"
+        )
 
     content = Path(content_dir).resolve()
     pageindex = Path(pageindex_dir).resolve()
@@ -667,61 +972,86 @@ def run_capacity_benchmark(
     legacy_before = _legacy_snapshot(pageindex)
     rounds: list[dict[str, object]] = []
     base_generation = _latest_generation(pageindex) if full_runs == 0 else None
+    previous_chunks = _generation_chunk_count(pageindex, base_generation)
+    baseline_chunks = (
+        synthetic.expected_chunks
+        if synthetic is not None and synthetic.expected_chunks is not None
+        else previous_chunks
+    )
+    mutation_state = (
+        _SyntheticMutationState.capture(content, synthetic)
+        if synthetic is not None
+        else None
+    )
+    mode_ordinals = {"full": 0, "incremental": 0, "recompile": 0}
     try:
-        for mode, count in (
-            ("full", full_runs),
-            ("incremental", incremental_runs),
+        for scenario, mode, count in (
+            ("full", "full", full_runs),
+            ("unchanged", "incremental", incremental_runs),
+            ("edit", "incremental", edit_runs),
+            ("delete", "incremental", delete_runs),
+            ("recompile", "recompile", recompile_runs),
         ):
-            for mode_ordinal in range(1, count + 1):
+            for scenario_ordinal in range(1, count + 1):
+                if scenario in {"edit", "delete", "recompile"} and base_generation is None:
+                    raise BenchmarkError(
+                        f"{scenario} benchmark requires a base Generation"
+                    )
+                mutation: Mapping[str, object] = {"kind": "none"}
+                if mutation_state is not None:
+                    if scenario == "edit":
+                        mutation = mutation_state.edit_one(scenario_ordinal)
+                    elif scenario == "delete":
+                        mutation = mutation_state.delete_one(scenario_ordinal)
+                    else:
+                        mutation_state.verify()
+                mode_ordinals[mode] += 1
                 round_result = _run_round(
                     content,
                     pageindex,
                     mode,
                     base_generation=(
-                        base_generation if mode == "incremental" else None
+                        None if mode == "full" else base_generation
                     ),
                     ordinal=len(rounds) + 1,
-                    mode_ordinal=mode_ordinal,
+                    mode_ordinal=mode_ordinals[mode],
+                    scenario=scenario,
+                    scenario_ordinal=scenario_ordinal,
+                    mutation=mutation,
                     sample_interval_ms=sample_interval_ms,
                     require_os_metrics=require_os_metrics,
                 )
                 if (
                     synthetic is not None
                     and synthetic.profile == "exact-50k"
-                    and mode == "incremental"
+                    and scenario == "unchanged"
                     and round_result.get("outcome") != "no_change"
                 ):
                     raise BenchmarkError(
                         "exact-50k incremental round did not take the no-change path"
                     )
-                if synthetic is not None and corpus is not None:
-                    worker_stats = round_result.get("worker_stats")
-                    observed = (
-                        worker_stats.get("chunks")
-                        if isinstance(worker_stats, Mapping)
-                        else None
-                    )
-                    if isinstance(observed, bool) or not isinstance(observed, int):
-                        raise BenchmarkError(
-                            f"{mode} round {mode_ordinal} has no integer chunk count"
-                        )
-                    previous_observed = corpus.get("observed_chunks")
-                    if previous_observed is not None and previous_observed != observed:
-                        raise BenchmarkError(
-                            "synthetic chunk count changed between benchmark rounds"
-                        )
-                    corpus["observed_chunks"] = observed
+                observed = _validate_scenario_round(
+                    round_result,
+                    scenario,
+                    previous_chunks=previous_chunks,
+                    synthetic=synthetic,
+                )
+                if mutation_state is not None:
+                    mutation_state.verify()
+                if corpus is not None:
+                    if baseline_chunks is None:
+                        baseline_chunks = observed
+                    corpus["observed_chunks"] = baseline_chunks
+                    corpus["final_observed_chunks"] = observed
                     expected = synthetic.expected_chunks
                     corpus["exact_chunk_count"] = (
-                        observed == expected if expected is not None else None
+                        baseline_chunks == expected
+                        if expected is not None
+                        else None
                     )
-                    if expected is not None and observed != expected:
-                        profile = synthetic.profile or "synthetic corpus"
-                        raise BenchmarkError(
-                            f"{profile} expected {expected} chunks, observed {observed}"
-                        )
                 rounds.append(round_result)
                 base_generation = str(round_result["generation"])
+                previous_chunks = observed
     except BaseException as exc:
         legacy_after_failure = _legacy_snapshot(pageindex)
         if legacy_after_failure != legacy_before:
@@ -748,6 +1078,9 @@ def run_capacity_benchmark(
             "pageindex_dir": str(pageindex),
             "full_runs": full_runs,
             "incremental_runs": incremental_runs,
+            "edit_runs": edit_runs,
+            "delete_runs": delete_runs,
+            "recompile_runs": recompile_runs,
             "synthetic": synthetic.as_dict() if synthetic is not None else None,
             "worker_execution": "fresh_subprocess_per_round",
             "process_sample_interval_ms": sample_interval_ms,
@@ -760,6 +1093,21 @@ def run_capacity_benchmark(
         "summary": {
             "full": _mode_summary(rounds, "full"),
             "incremental": _mode_summary(rounds, "incremental"),
+            "recompile": _mode_summary(rounds, "recompile"),
+            "scenarios": {
+                scenario: _mode_summary(
+                    rounds,
+                    scenario,
+                    field="scenario",
+                )
+                for scenario in (
+                    "full",
+                    "unchanged",
+                    "edit",
+                    "delete",
+                    "recompile",
+                )
+            },
         },
         "legacy_active_files": {
             "checked": len(legacy_before),
@@ -793,6 +1141,24 @@ def _parser() -> argparse.ArgumentParser:
         "--incremental-runs",
         type=_integer_at_least(0),
         default=3,
+    )
+    parser.add_argument(
+        "--edit-runs",
+        type=_integer_at_least(0),
+        default=0,
+        help="Run this many deterministic one-document edit rounds.",
+    )
+    parser.add_argument(
+        "--delete-runs",
+        type=_integer_at_least(0),
+        default=0,
+        help="Run this many deterministic one-document delete rounds.",
+    )
+    parser.add_argument(
+        "--recompile-runs",
+        type=_integer_at_least(0),
+        default=0,
+        help="Recompile the current Generation without changing source files.",
     )
     synthetic_group = parser.add_mutually_exclusive_group()
     synthetic_group.add_argument(
@@ -857,6 +1223,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             arguments.pageindex,
             full_runs=arguments.full_runs,
             incremental_runs=arguments.incremental_runs,
+            edit_runs=arguments.edit_runs,
+            delete_runs=arguments.delete_runs,
+            recompile_runs=arguments.recompile_runs,
             synthetic=synthetic,
             sample_interval_ms=arguments.process_sample_interval_ms,
             require_os_metrics=arguments.require_os_metrics,
