@@ -31,6 +31,8 @@ from .models import (
 from .object_store import load_segment
 from .streaming_json import (
     BoundedJsonError,
+    CanonicalJsonStream,
+    iter_canonical_array_items,
     load_bounded_canonical_json,
     stream_file_digest,
 )
@@ -46,6 +48,15 @@ __all__ = [
 
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_DOCUMENT_TYPE_ORDER = {"book": 0, "paper": 1, "note": 2}
+_DOCUMENT_TREE_FOLDERS = {"book": "books", "paper": "papers", "note": "notes"}
+_REQUIRED_RUNTIME_ARTIFACTS = {
+    "global-index.json",
+    "node-index.json",
+    "chunks.json",
+    "inverted-index.json",
+    INPUT_PROOF_PATH,
+}
 
 
 class ValidationMode(str, Enum):
@@ -724,6 +735,520 @@ def _validate_segment_ref_bindings(
             _add(errors, "segment_object_size_mismatch", doc_key)
 
 
+class _RuntimeArtifactError(ValueError):
+    __slots__ = ("code", "detail")
+
+    def __init__(self, code: str, detail: str) -> None:
+        super().__init__(detail)
+        self.code = code
+        self.detail = detail
+
+
+def _runtime_fail(code: str, detail: str) -> None:
+    raise _RuntimeArtifactError(code, detail)
+
+
+def _runtime_mapping(value: object, label: str) -> Mapping[str, Any]:
+    mapping = _mapping(value)
+    if mapping is None:
+        _runtime_fail("runtime_schema_invalid", f"{label} must be an object")
+    return mapping
+
+
+def _runtime_string(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value:
+        _runtime_fail("runtime_schema_invalid", f"{label} must be a non-empty string")
+    return value
+
+
+def _runtime_text(value: object, label: str) -> str:
+    if not isinstance(value, str):
+        _runtime_fail("runtime_schema_invalid", f"{label} must be a string")
+    return value
+
+
+def _runtime_string_list(value: object, label: str) -> list[str]:
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        _runtime_fail(
+            "runtime_schema_invalid",
+            f"{label} must be an array of strings",
+        )
+    return value
+
+
+def _runtime_exact_keys(
+    value: Mapping[str, object],
+    expected: set[str],
+    label: str,
+) -> None:
+    if set(value) != expected:
+        _runtime_fail(
+            "runtime_schema_invalid",
+            f"{label} fields differ from schema",
+        )
+
+def _runtime_nonnegative_int(value: object, label: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        _runtime_fail(
+            "runtime_schema_invalid",
+            f"{label} must be a non-negative integer",
+        )
+    return value
+
+
+def _required_artifact_paths(
+    documents: Mapping[str, object],
+    errors: list[str],
+) -> set[str]:
+    required = set(_REQUIRED_RUNTIME_ARTIFACTS)
+    for doc_key in documents:
+        doc_type, separator, slug = doc_key.partition(":")
+        folder = _DOCUMENT_TREE_FOLDERS.get(doc_type)
+        if (
+            separator != ":"
+            or folder is None
+            or not slug
+            or "/" in slug
+            or "\\" in slug
+            or slug in {".", ".."}
+        ):
+            _add(errors, "segment_reference_invalid", f"unsafe doc key {doc_key!r}")
+            continue
+        relative = f"{folder}/{slug}.json"
+        try:
+            _safe_relative_path(relative)
+        except ValueError:
+            _add(errors, "segment_reference_invalid", f"unsafe doc key {doc_key!r}")
+            continue
+        required.add(relative)
+    return required
+
+
+def _iter_runtime_array(
+    candidate: Path,
+    relative: str,
+    object_key: str,
+) -> Any:
+    try:
+        yield from iter_canonical_array_items(
+            candidate / _safe_relative_path(relative),
+            object_key=object_key,
+        )
+    except BoundedJsonError as exc:
+        raise _RuntimeArtifactError(
+            "file_not_canonical",
+            f"{relative}: {exc}",
+        ) from exc
+    except OSError as exc:
+        raise _RuntimeArtifactError(
+            "file_read_failed",
+            f"{relative}: {exc}",
+        ) from exc
+
+
+def _scan_inverted_index(
+    path: Path,
+    *,
+    chunks_count: int,
+) -> tuple[int, int, int]:
+    try:
+        with CanonicalJsonStream(path) as reader:
+            reader.expect(b'{"num_chunks":')
+            num_chunks = _runtime_nonnegative_int(
+                reader.read_value(max_bytes=64),
+                "inverted-index.num_chunks",
+            )
+            reader.expect(b',"postings":{')
+            tokens_count = 0
+            postings_count = 0
+            previous_token: str | None = None
+            first_empty_token: str | None = None
+            first_token = True
+            while reader.peek_byte() != ord("}"):
+                if not first_token:
+                    reader.expect(b",")
+                first_token = False
+                token = _runtime_string(
+                    reader.read_value(max_bytes=1024 * 1024),
+                    "inverted-index token",
+                )
+                if previous_token is not None and token <= previous_token:
+                    _runtime_fail(
+                        "file_not_canonical",
+                        "inverted-index.json: posting tokens are not strictly increasing",
+                    )
+                previous_token = token
+                tokens_count += 1
+                reader.expect(b":[")
+                first_posting = True
+                previous_chunk = 0
+                token_postings = 0
+                while reader.peek_byte() != ord("]"):
+                    if not first_posting:
+                        reader.expect(b",")
+                    first_posting = False
+                    chunk_id, tf = reader.read_nonnegative_int_pair(max_bytes=256)
+                    if chunk_id < 1 or chunk_id > chunks_count:
+                        _runtime_fail(
+                            "posting_unknown_chunk",
+                            f"{token!r}:{chunk_id}",
+                        )
+                    if chunk_id <= previous_chunk:
+                        _runtime_fail(
+                            "posting_order_invalid",
+                            f"{token!r} chunk ids must be strictly increasing",
+                        )
+                    if tf <= 0:
+                        _runtime_fail("posting_invalid_tf", f"{token!r}:{chunk_id}")
+                    previous_chunk = chunk_id
+                    token_postings += 1
+                    postings_count += 1
+                reader.expect(b"]")
+                if token_postings == 0 and first_empty_token is None:
+                    first_empty_token = token
+            reader.expect(b"}}")
+            reader.finish()
+            if first_empty_token is not None:
+                _runtime_fail(
+                    "posting_invalid",
+                    f"{first_empty_token!r} posting list must not be empty",
+                )
+    except BoundedJsonError as exc:
+        raise _RuntimeArtifactError(
+            "file_not_canonical",
+            f"inverted-index.json: {exc}",
+        ) from exc
+    except OSError as exc:
+        raise _RuntimeArtifactError(
+            "file_read_failed",
+            f"inverted-index.json: {exc}",
+        ) from exc
+
+    if num_chunks != chunks_count:
+        _runtime_fail(
+            "chunk_count_mismatch",
+            "inverted num_chunks differs from streamed chunks count",
+        )
+    return num_chunks, tokens_count, postings_count
+
+
+def _validate_tree_artifacts(
+    candidate: Path,
+    artifacts: Mapping[str, ArtifactRef],
+    unsafe: set[str],
+    documents: Mapping[str, object],
+    errors: list[str],
+) -> None:
+    for doc_key in sorted(documents):
+        doc_type, _, slug = doc_key.partition(":")
+        folder = _DOCUMENT_TREE_FOLDERS.get(doc_type)
+        if folder is None or not slug:
+            continue
+        relative = f"{folder}/{slug}.json"
+        if relative not in artifacts or relative in unsafe:
+            continue
+        try:
+            value = load_bounded_canonical_json(
+                candidate / _safe_relative_path(relative)
+            )
+        except FileNotFoundError:
+            _add(errors, "file_missing", relative)
+            continue
+        except BoundedJsonError as exc:
+            code = (
+                "file_not_canonical"
+                if "not canonical" in str(exc)
+                else "json_invalid"
+            )
+            _add(errors, code, f"{relative}: {exc}")
+            continue
+        except OSError as exc:
+            _add(errors, "file_read_failed", f"{relative}: {exc}")
+            continue
+        tree = _mapping(value)
+        if tree is None:
+            _add(errors, "tree_schema_invalid", f"{relative}: expected object")
+            continue
+        if "doc_name" in tree and tree.get("doc_name") != slug:
+            _add(errors, "tree_document_mismatch", f"{relative}: doc_name")
+        if "type" in tree and tree.get("type") != doc_type:
+            _add(errors, "tree_document_mismatch", f"{relative}: type")
+
+def _validate_runtime_artifacts(
+    candidate: Path,
+    artifacts: Mapping[str, ArtifactRef],
+    unsafe: set[str],
+    documents: Mapping[str, object],
+    stats: Mapping[str, object] | None,
+    pruning: Mapping[str, object] | None,
+    compiler_recipe: Mapping[str, object] | None,
+    errors: list[str],
+) -> None:
+    _validate_tree_artifacts(candidate, artifacts, unsafe, documents, errors)
+    runtime_paths = {
+        "global-index.json",
+        "node-index.json",
+        "chunks.json",
+        "inverted-index.json",
+    }
+    if not runtime_paths.issubset(artifacts) or runtime_paths & unsafe:
+        return
+
+    try:
+        document_keys: set[str] = set()
+        document_keys_by_slug: dict[str, set[str]] = {}
+        previous_document_order: tuple[int, str, str] | None = None
+        documents_count = 0
+        for value in _iter_runtime_array(candidate, "global-index.json", "docs"):
+            doc = _runtime_mapping(value, "global-index.docs[]")
+            doc_type = _runtime_string(doc.get("type"), "document.type")
+            slug = _runtime_string(doc.get("id"), "document.id")
+            if doc_type not in _DOCUMENT_TYPE_ORDER:
+                _runtime_fail("document_invalid", f"unsupported type {doc_type!r}")
+            document_fields = {
+                "author",
+                "description",
+                "id",
+                "path",
+                "tags",
+                "title",
+                "type",
+                "url",
+            }
+            if doc_type == "paper":
+                document_fields.add("year")
+            elif doc_type == "note":
+                document_fields.update({"date", "source_title", "source_type"})
+            _runtime_exact_keys(doc, document_fields, "global-index.docs[]")
+            for field in ("author", "description", "path", "title", "url"):
+                _runtime_text(doc.get(field), f"document.{field}")
+            if not isinstance(doc.get("tags"), list):
+                _runtime_fail(
+                    "runtime_schema_invalid",
+                    "document.tags must be an array",
+                )
+            if doc_type == "note":
+                for field in ("date", "source_title", "source_type"):
+                    _runtime_text(doc.get(field), f"document.{field}")
+            doc_key = f"{doc_type}:{slug}"
+            order = (_DOCUMENT_TYPE_ORDER[doc_type], slug, doc_key)
+            if previous_document_order is not None and order <= previous_document_order:
+                _runtime_fail(
+                    "document_order_invalid",
+                    "global documents are not strictly ordered",
+                )
+            previous_document_order = order
+            if doc_key in document_keys:
+                _runtime_fail("document_duplicate", doc_key)
+            document_keys.add(doc_key)
+            document_keys_by_slug.setdefault(slug, set()).add(doc_key)
+            documents_count += 1
+        if document_keys != set(documents):
+            _runtime_fail(
+                "runtime_document_mismatch",
+                "global documents differ from manifest documents",
+            )
+
+        ambiguous_slugs = {
+            slug
+            for slug, keys in document_keys_by_slug.items()
+            if len(keys) > 1
+        }
+        node_refs: set[tuple[str, str]] = set()
+        previous_node_order: tuple[object, ...] | None = None
+        nodes_count = 0
+        for value in _iter_runtime_array(candidate, "node-index.json", "nodes"):
+            node = _runtime_mapping(value, "node-index.nodes[]")
+            _runtime_exact_keys(
+                node,
+                {
+                    "breadcrumb",
+                    "doc_id",
+                    "line_num",
+                    "node_id",
+                    "summary",
+                    "terms",
+                    "title",
+                    "url",
+                },
+                "node-index.nodes[]",
+            )
+            doc_id = _runtime_string(node.get("doc_id"), "node.doc_id")
+            node_id = _runtime_string(node.get("node_id"), "node.node_id")
+            for field in ("summary", "title"):
+                _runtime_text(node.get(field), f"node.{field}")
+            _runtime_string(node.get("url"), "node.url")
+            _runtime_string_list(node.get("breadcrumb"), "node.breadcrumb")
+            _runtime_string_list(node.get("terms"), "node.terms")
+            _runtime_nonnegative_int(node.get("line_num"), "node.line_num")
+            matching_doc_keys = document_keys_by_slug.get(doc_id)
+            if not matching_doc_keys:
+                _runtime_fail("node_unknown_document", f"{doc_id}:{node_id}")
+            reference = (doc_id, node_id)
+            if reference in node_refs and doc_id not in ambiguous_slugs:
+                _runtime_fail("node_duplicate", f"{doc_id}:{node_id}")
+            node_refs.add(reference)
+            if not ambiguous_slugs:
+                (matching_doc_key,) = matching_doc_keys
+                doc_type, _, slug = matching_doc_key.partition(":")
+                if node_id.isdigit():
+                    legacy_order: tuple[object, ...] = (0, int(node_id), node_id)
+                else:
+                    legacy_order = (1, node_id, node_id)
+                order = (
+                    _DOCUMENT_TYPE_ORDER[doc_type],
+                    slug,
+                    matching_doc_key,
+                    *legacy_order,
+                )
+                if previous_node_order is not None and order <= previous_node_order:
+                    _runtime_fail(
+                        "node_order_invalid",
+                        "global nodes are not in legacy document/node order",
+                    )
+                previous_node_order = order
+            nodes_count += 1
+
+        chunks_count = 0
+        for value in _iter_runtime_array(candidate, "chunks.json", "chunks"):
+            chunk = _runtime_mapping(value, "chunks.chunks[]")
+            _runtime_exact_keys(
+                chunk,
+                {
+                    "body",
+                    "breadcrumb",
+                    "chunk_id",
+                    "doc_id",
+                    "line_num",
+                    "node_id",
+                    "source_md",
+                    "title",
+                },
+                "chunks.chunks[]",
+            )
+            chunks_count += 1
+            chunk_id = _runtime_string(chunk.get("chunk_id"), "chunk.chunk_id")
+            expected_chunk_id = f"c{chunks_count:06d}"
+            if chunk_id != expected_chunk_id:
+                _runtime_fail(
+                    "chunk_order_invalid",
+                    f"expected {expected_chunk_id}, got {chunk_id!r}",
+                )
+            doc_id = _runtime_string(chunk.get("doc_id"), "chunk.doc_id")
+            node_id = _runtime_string(chunk.get("node_id"), "chunk.node_id")
+            for field in ("body", "source_md", "title"):
+                _runtime_text(chunk.get(field), f"chunk.{field}")
+            _runtime_string_list(chunk.get("breadcrumb"), "chunk.breadcrumb")
+            _runtime_nonnegative_int(chunk.get("line_num"), "chunk.line_num")
+            if (doc_id, node_id) not in node_refs:
+                _runtime_fail("chunk_unknown_node", f"{doc_id}:{node_id}")
+
+        _, tokens_count, postings_count = _scan_inverted_index(
+            candidate / "inverted-index.json",
+            chunks_count=chunks_count,
+        )
+    except _RuntimeArtifactError as exc:
+        _add(errors, exc.code, exc.detail)
+        return
+
+    counts = {
+        "global-index.json": documents_count,
+        "node-index.json": nodes_count,
+        "chunks.json": chunks_count,
+        "inverted-index.json": tokens_count,
+    }
+    for relative, actual in counts.items():
+        if artifacts[relative].records != actual:
+            _add(errors, "aggregate_mismatch", f"{relative} records")
+    proof_reference = artifacts.get(INPUT_PROOF_PATH)
+    if proof_reference is not None and proof_reference.records != len(documents):
+        _add(errors, "aggregate_mismatch", "input proof records")
+
+    actual_stats = {
+        "documents": documents_count,
+        "nodes": nodes_count,
+        "chunks": chunks_count,
+        "tokens": tokens_count,
+        "postings": postings_count,
+    }
+    if stats is None:
+        _add(errors, "manifest_invalid", "stats must be an object")
+    else:
+        for key, actual in actual_stats.items():
+            value = stats.get(key)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value < 0
+                or value != actual
+            ):
+                _add(errors, "aggregate_mismatch", f"stats.{key}")
+
+    if pruning is None:
+        _add(errors, "manifest_invalid", "pruning must be an object")
+        return
+    expected_pruning_fields = {
+        "body_min_coverage",
+        "body_min_df",
+        "body_postings_pruned",
+        "body_tf_pruned",
+        "body_tokens_pruned",
+        "estimated_bytes_saved",
+        "postings_after",
+        "postings_before",
+        "tokens_after",
+        "tokens_before",
+    }
+    if set(pruning) != expected_pruning_fields:
+        _add(errors, "pruning_invalid", "fields differ from schema")
+    pruning_values: dict[str, int] = {}
+    for key in (
+        "tokens_before",
+        "tokens_after",
+        "postings_before",
+        "postings_after",
+        "body_tokens_pruned",
+        "body_postings_pruned",
+        "body_tf_pruned",
+        "estimated_bytes_saved",
+    ):
+        value = pruning.get(key)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            _add(errors, "pruning_invalid", key)
+            continue
+        pruning_values[key] = value
+    body_min_df = pruning.get("body_min_df")
+    if isinstance(body_min_df, bool) or not isinstance(body_min_df, int) or body_min_df < 1:
+        _add(errors, "pruning_invalid", "body_min_df")
+    body_min_coverage = pruning.get("body_min_coverage")
+    if (
+        isinstance(body_min_coverage, bool)
+        or not isinstance(body_min_coverage, (int, float))
+        or not 0.0 <= float(body_min_coverage) <= 1.0
+    ):
+        _add(errors, "pruning_invalid", "body_min_coverage")
+    if compiler_recipe is None:
+        _add(errors, "pruning_invalid", "compiler recipe unavailable")
+    else:
+        if body_min_df != compiler_recipe.get("body_df_min"):
+            _add(errors, "pruning_recipe_mismatch", "body_min_df")
+        if body_min_coverage != compiler_recipe.get("body_df_ratio"):
+            _add(errors, "pruning_recipe_mismatch", "body_min_coverage")
+    if len(pruning_values) != 8:
+        return
+    if pruning_values["tokens_before"] < pruning_values["tokens_after"]:
+        _add(errors, "pruning_invalid", "tokens_before < tokens_after")
+    if pruning_values["postings_before"] < pruning_values["postings_after"]:
+        _add(errors, "pruning_invalid", "postings_before < postings_after")
+    if pruning_values["body_tokens_pruned"] > pruning_values["tokens_before"]:
+        _add(errors, "pruning_invalid", "body_tokens_pruned > tokens_before")
+    if pruning_values["body_postings_pruned"] > pruning_values["postings_before"]:
+        _add(errors, "pruning_invalid", "body_postings_pruned > postings_before")
+    if pruning_values["tokens_after"] != tokens_count:
+        _add(errors, "aggregate_mismatch", "pruning.tokens_after")
+    if pruning_values["postings_after"] != postings_count:
+        _add(errors, "aggregate_mismatch", "pruning.postings_after")
+
 def validate_candidate_normal(
     receipt: CandidateReceipt,
     pageindex_dir: Path,
@@ -856,6 +1381,11 @@ def validate_candidate_normal(
         if receipt.generation_id != revision[:20]:
             _add(errors, "generation_id_mismatch", "receipt core manifest")
 
+    required_artifacts = _required_artifact_paths(documents, errors)
+    for missing in sorted(required_artifacts - set(artifacts)):
+        _add(errors, "required_artifact_missing", missing)
+    for extra in sorted(set(artifacts) - required_artifacts):
+        _add(errors, "unexpected_artifact", extra)
     manifest_files = _mapping(manifest.get("files"))
     if manifest_files is None:
         _add(errors, "manifest_invalid", "files must be an object")
@@ -923,29 +1453,17 @@ def validate_candidate_normal(
     )
 
     stats = _mapping(manifest.get("stats"))
-    if stats is None:
-        _add(errors, "manifest_invalid", "stats must be an object")
-    else:
-        if stats.get("documents") != len(documents):
-            _add(errors, "aggregate_mismatch", "document count")
-        record_bindings = {
-            "global-index.json": "documents",
-            "node-index.json": "nodes",
-            "chunks.json": "chunks",
-            "inverted-index.json": "tokens",
-        }
-        for relative, stat_name in record_bindings.items():
-            reference = artifacts.get(relative)
-            if (
-                reference is not None
-                and reference.records is not None
-                and stats.get(stat_name) != reference.records
-            ):
-                _add(errors, "aggregate_mismatch", f"{relative} records")
-    if INPUT_PROOF_PATH in artifacts:
-        proof_records = artifacts[INPUT_PROOF_PATH].records
-        if proof_records is not None and proof_records != len(documents):
-            _add(errors, "aggregate_mismatch", "input proof records")
+    pruning = _mapping(manifest.get("pruning"))
+    _validate_runtime_artifacts(
+        candidate,
+        artifacts,
+        unsafe,
+        documents,
+        stats,
+        pruning,
+        recipe_value,
+        errors,
+    )
 
     for key in ("stats", "pruning"):
         if key in receipt.invariants and receipt.invariants[key] != manifest.get(key):
