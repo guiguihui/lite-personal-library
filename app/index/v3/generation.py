@@ -64,6 +64,34 @@ class _ValidatedRef:
     segment_hash: str
     content_hash: str
     segment_recipe_hash: str
+    source: StoredSegmentRef | None = None
+
+
+class _DigestCounter:
+    """AtomicHashingSink-compatible digest target without filesystem output."""
+
+    __slots__ = ("_byte_size", "_digest")
+
+    def __init__(self) -> None:
+        self._byte_size = 0
+        self._digest = hashlib.sha256()
+
+    @property
+    def byte_size(self) -> int:
+        return self._byte_size
+
+    @property
+    def sha256(self) -> str:
+        return self._digest.hexdigest()
+
+    def write(self, payload: bytes | bytearray | memoryview) -> int:
+        data = bytes(payload)
+        self._digest.update(data)
+        self._byte_size += len(data)
+        return len(data)
+
+    def write_text(self, payload: str) -> int:
+        return self.write(payload.encode("utf-8"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,7 +145,9 @@ def _has_adjacent_duplicate(values: list[str]) -> bool:
         for position in range(1, len(values))
     )
 
-def _write_json_value(sink: AtomicHashingSink, value: object) -> None:
+def _write_json_value(
+    sink: AtomicHashingSink | _DigestCounter, value: object
+) -> None:
     for fragment in iter_canonical_json(value):
         sink.write_text(fragment)
 
@@ -133,7 +163,7 @@ def _canonical_digest(value: object) -> str:
     return digest.hexdigest()
 
 
-def _write_key(sink: AtomicHashingSink, key: str) -> None:
+def _write_key(sink: AtomicHashingSink | _DigestCounter, key: str) -> None:
     _write_json_value(sink, key)
     sink.write(b":")
 
@@ -191,6 +221,7 @@ def _validate_refs(
                 segment_hash=segment_hash,
                 content_hash=content_hash,
                 segment_recipe_hash=segment_recipe_hash,
+                source=ref,
             )
         )
     result.sort(key=lambda item: item.doc_key)
@@ -202,12 +233,18 @@ def _validate_refs(
     return result
 
 
-def _generation_id(refs: list[_ValidatedRef], recipe_hash: str) -> str:
+def _generation_id(
+    refs: list[_ValidatedRef],
+    recipe_hash: str,
+    check_cancelled: Callable[[], None] | None = None,
+) -> str:
     """Hash the canonical identity core without constructing it in memory."""
 
     digest = hashlib.sha256()
     digest.update(b'{"artifact_kind":"logical_generation","documents":{')
     for position, ref in enumerate(refs):
+        if check_cancelled is not None:
+            check_cancelled()
         if position:
             digest.update(b",")
         _update_json_value(digest, ref.doc_key)
@@ -654,6 +691,224 @@ def _write_manifest(
     )
 
 
+def _expected_input_proof_ref(
+    refs: list[_ValidatedRef],
+    recipe_hash: str,
+    check_cancelled: Callable[[], None],
+) -> ArtifactRef:
+    sink = _DigestCounter()
+    sink.write(b'{"compiler_recipe_hash":')
+    _write_json_value(sink, recipe_hash)
+    sink.write(b',"documents":{')
+    for position, ref in enumerate(refs):
+        check_cancelled()
+        if position:
+            sink.write(b",")
+        _write_key(sink, ref.doc_key)
+        sink.write(b'{"content_hash":')
+        _write_json_value(sink, ref.content_hash)
+        sink.write(b',"segment_recipe_hash":')
+        _write_json_value(sink, ref.segment_recipe_hash)
+        sink.write(b"}")
+    sink.write(b'},"schema_version":')
+    sink.write(str(INPUT_PROOF_SCHEMA_VERSION).encode("ascii"))
+    sink.write(b"}")
+    return ArtifactRef(
+        relative_path=INPUT_PROOF_PATH,
+        sha256=sink.sha256,
+        byte_size=sink.byte_size,
+        records=len(refs),
+    )
+
+
+def _expected_manifest_ref(
+    refs: list[_ValidatedRef],
+    recipe: GenerationRecipe,
+    recipe_hash: str,
+    generation_id: str,
+    input_proof_ref: ArtifactRef,
+    check_cancelled: Callable[[], None],
+) -> ArtifactRef:
+    sink = _DigestCounter()
+    sink.write(b'{"artifact_kind":"logical_generation","document_count":')
+    sink.write(str(len(refs)).encode("ascii"))
+    sink.write(b',"documents":{')
+    for position, ref in enumerate(refs):
+        check_cancelled()
+        if position:
+            sink.write(b",")
+        _write_key(sink, ref.doc_key)
+        _write_json_value(sink, ref.segment_hash)
+    sink.write(b'},"generation":')
+    _write_json_value(sink, generation_id)
+    sink.write(b',"generation_recipe":')
+    _write_json_value(sink, recipe.as_dict())
+    sink.write(b',"generation_recipe_hash":')
+    _write_json_value(sink, recipe_hash)
+    sink.write(b',"input_proof":')
+    _write_json_value(sink, _artifact_dict(input_proof_ref))
+    sink.write(b',"schema_version":')
+    sink.write(str(LOGICAL_GENERATION_SCHEMA_VERSION).encode("ascii"))
+    sink.write(b"}")
+    return ArtifactRef(
+        relative_path=MANIFEST_PATH,
+        sha256=sink.sha256,
+        byte_size=sink.byte_size,
+        records=len(refs),
+    )
+
+
+def _generation_file_identity(stream: Any) -> tuple[int, int, int, int, int]:
+    metadata = os.fstat(stream.fileno())
+    return (
+        metadata.st_dev,
+        metadata.st_ino,
+        metadata.st_size,
+        metadata.st_mtime_ns,
+        metadata.st_ctime_ns,
+    )
+
+
+def _authenticate_generation_artifact(
+    root: Path,
+    reference: ArtifactRef,
+    check_cancelled: Callable[[], None],
+) -> None:
+    path = root / reference.relative_path
+    try:
+        if _path_is_link(path) or path.resolve(strict=True).parent != root.resolve(
+            strict=True
+        ):
+            raise LogicalGenerationError(
+                f"unsafe logical Generation artifact: {reference.relative_path}"
+            )
+        stream = path.open("rb", buffering=0)
+    except OSError as exc:
+        raise LogicalGenerationError(
+            f"cannot open logical Generation artifact: {reference.relative_path}"
+        ) from exc
+    with stream:
+        before = _generation_file_identity(stream)
+        if before[2] != reference.byte_size:
+            raise LogicalGenerationError(
+                f"logical Generation artifact size mismatch: "
+                f"{reference.relative_path}"
+            )
+        digest = hashlib.sha256()
+        remaining = reference.byte_size
+        while remaining:
+            check_cancelled()
+            payload = stream.read(min(1024 * 1024, remaining))
+            if not payload:
+                raise LogicalGenerationError(
+                    f"truncated logical Generation artifact: "
+                    f"{reference.relative_path}"
+                )
+            digest.update(payload)
+            remaining -= len(payload)
+        after = _generation_file_identity(stream)
+        if before != after:
+            raise LogicalGenerationError(
+                f"logical Generation artifact changed while hashing: "
+                f"{reference.relative_path}"
+            )
+        if digest.hexdigest() != reference.sha256:
+            raise LogicalGenerationError(
+                f"logical Generation artifact SHA-256 mismatch: "
+                f"{reference.relative_path}"
+            )
+
+
+def _validate_generation_file_set(root: Path) -> None:
+    if _path_is_link(root) or not root.is_dir():
+        raise LogicalGenerationError(
+            "logical Generation receipt root must be a plain directory"
+        )
+    try:
+        with os.scandir(root) as entries:
+            observed = {
+                entry.name
+                for entry in entries
+                if entry.is_file(follow_symlinks=False)
+            }
+            with os.scandir(root) as entries:
+                all_names = {entry.name for entry in entries}
+    except OSError as exc:
+        raise LogicalGenerationError(
+            "cannot enumerate logical Generation receipt root"
+        ) from exc
+    expected = {MANIFEST_PATH, INPUT_PROOF_PATH}
+    if observed != expected or all_names != expected:
+        raise LogicalGenerationError(
+            "logical Generation receipt root has an invalid file set"
+        )
+
+
+def validate_logical_generation_inputs(
+    refs: Iterable[StoredSegmentRef],
+    receipt: LogicalGenerationReceipt,
+    recipe: GenerationRecipe,
+    check_cancelled: Callable[[], None] | None = None,
+) -> tuple[StoredSegmentRef, ...]:
+    """Stream-authenticate a compact receipt and bind it to exact Segment refs."""
+
+    if not isinstance(receipt, LogicalGenerationReceipt):
+        raise TypeError("receipt must be a LogicalGenerationReceipt")
+    if not isinstance(recipe, GenerationRecipe):
+        raise TypeError("recipe must be a GenerationRecipe")
+    if check_cancelled is None:
+        check_cancelled = lambda: None
+    if not callable(check_cancelled):
+        raise TypeError("check_cancelled must be callable")
+
+    check_cancelled()
+    validated = _validate_refs(refs, check_cancelled)
+    recipe_hash = _canonical_digest(recipe.as_dict())
+    generation_id = _generation_id(validated, recipe_hash, check_cancelled)
+    if receipt.generation_recipe_hash != recipe_hash:
+        raise LogicalGenerationError(
+            "logical Generation receipt recipe does not match requested recipe"
+        )
+    if receipt.generation_id != generation_id:
+        raise LogicalGenerationError(
+            "logical Generation receipt identity does not match Segment refs"
+        )
+    if receipt.document_count != len(validated):
+        raise LogicalGenerationError(
+            "logical Generation receipt document_count does not match Segment refs"
+        )
+
+    expected_proof = _expected_input_proof_ref(
+        validated, recipe_hash, check_cancelled
+    )
+    if receipt.input_proof_ref != expected_proof:
+        raise LogicalGenerationError(
+            "input-proof receipt does not match canonical Segment attestations"
+        )
+    expected_manifest = _expected_manifest_ref(
+        validated,
+        recipe,
+        recipe_hash,
+        generation_id,
+        expected_proof,
+        check_cancelled,
+    )
+    if receipt.manifest_ref != expected_manifest:
+        raise LogicalGenerationError(
+            "manifest receipt does not match canonical logical Generation"
+        )
+
+    root = receipt.candidate_dir
+    _validate_generation_file_set(root)
+    _authenticate_generation_artifact(root, receipt.input_proof_ref, check_cancelled)
+    _authenticate_generation_artifact(root, receipt.manifest_ref, check_cancelled)
+    sources: list[StoredSegmentRef] = []
+    for ref in validated:
+        if ref.source is None:
+            raise AssertionError("validated Segment ref lost its source value")
+        sources.append(ref.source)
+    return tuple(sources)
+
 def validate_logical_generation_manifest(value: object) -> None:
     """Fail closed on a decoded P3 manifest, including schema-2/3 artifacts."""
 
@@ -757,7 +1012,7 @@ def build_logical_generation(
     check_cancelled()
     validated_refs = _validate_refs(refs, check_cancelled)
     recipe_hash = _canonical_digest(recipe.as_dict())
-    generation_id = _generation_id(validated_refs, recipe_hash)
+    generation_id = _generation_id(validated_refs, recipe_hash, check_cancelled)
     check_cancelled()
 
     candidate, owned = _prepare_candidate(Path(candidate_dir))
@@ -815,5 +1070,6 @@ __all__ = [
     "LogicalGenerationError",
     "LogicalGenerationReceipt",
     "build_logical_generation",
+    "validate_logical_generation_inputs",
     "validate_logical_generation_manifest",
 ]

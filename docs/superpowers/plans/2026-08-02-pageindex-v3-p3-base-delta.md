@@ -424,20 +424,24 @@ git commit -m "feat(pageindex): add logical generations and search statistics"
 ### Task 6: Build immutable full base Search Views
 
 **Files:**
+- Modify: `app/index/v3/__init__.py`
+- Modify: `app/index/v3/generation.py`
 - Create: `app/index/v3/base_builder.py`
 - Create: `app/index/v3/view_store.py`
+- Modify: `tests/pageindex_v3/test_generation.py`
 - Create: `tests/pageindex_v3/test_base_builder.py`
 - Create: `tests/pageindex_v3/test_view_store.py`
+- Modify: `docs/superpowers/plans/2026-08-02-pageindex-v3-p3-base-delta.md`
 
 **Interfaces:**
 - Consumes: ordered refs, Task 3 projections/sidecars, Task 4 layer builder, Task 5 Generation/totals, and Task 1 physical recipe.
 - Produces: `BaseObjectReceipt`, `SearchViewReceipt`, `build_base_view(...)`, and strict content-addressed finalize/load functions.
 
-- [ ] **Step 1: Write a full-base oracle test**
+- [x] **Step 1: Write a full-base oracle test**
 
 Build a rich three-document base twice with reversed refs and forced multi-level runs. Assert exact 64-hex base/View IDs, artifact bytes, raw field postings, token triples, scalar totals, owner map, PCV metrics, and stable ChunkRefs.
 
-- [ ] **Step 2: Freeze base and View artifacts/manifests**
+- [x] **Step 2: Freeze base and View artifacts/manifests**
 
 A base lives at `objects/search/bases/<base_id>/` and contains `layer-documents.json`, `postings.piv`, `chunks.pcv`, `terms.jsonl`, `terms.sidx.json`, and `manifest.json`. Its core binds the target Generation ID and manifest SHA-256, Search View recipe hash, every layer receipt, and scalar statistics. `base_id = canonical_hash(base_core)`.
 
@@ -458,23 +462,28 @@ view_core = {
 view_id = canonical_hash(view_core)
 ```
 
-- [ ] **Step 3: Implement a one-Segment-at-a-time full base build**
+- [x] **Step 3: Implement a one-Segment-at-a-time full base build**
 
 For each ref, call `StagedLayerBuilder.begin_document()` to assign the ordinal, call `project_to_sink()` exactly once with `ticket.add_posting` as its sink, persist/reuse the summary and retain only its `StoredSummaryRef`, then `ticket.commit(summary.chunk_count, metrics)` to append PCV facts. Update scalar totals/document owners with the trusted summary SHA/size and release the summary, metrics, and all Segment-derived containers before the next ref. The external merge emits base-positive term contributions and token_count. Do not call compatibility `build_sorted_layer()`, reload a Segment for metrics, or write a legacy export.
 
-- [ ] **Step 4: Implement content-addressed finalization**
+Before projection, `validate_logical_generation_inputs()` consumes the Segment refs once, recomputes the logical Generation/proof/manifest attestations incrementally, authenticates the exact two Generation files, and returns only the original lean refs in canonical `doc_key` order. The builder then reorders that one lean list by `doc_uid`; it never materializes an O(N) decoded Generation document map.
+
+- [x] **Step 4: Implement content-addressed finalization**
 
 Existing base/View objects are accepted only when their canonical manifest and every attested artifact digest/size/count match. Concurrent identical finalization reuses the object; a mismatch retains the candidate and fails. Candidate ownership and Windows handle closure follow the P2 receipt finalizer.
 
-- [ ] **Step 5: Run base/View tests and bounded-ownership assertions**
+Every pre-existing destination ancestor is `lstat`-checked and POSIX symlinks/Windows reparse points are rejected; missing parents are created one level at a time and the final parent identity is rechecked immediately before atomic no-replace publication. As in Task 5, a hostile same-user process replacing a directory in the gap between individual syscalls is outside the local-store threat boundary; any observed identity drift fails closed.
+
+- [x] **Step 5: Run base/View tests and bounded-ownership assertions**
 
 Run: `python -m pytest tests/pageindex_v3/test_base_builder.py tests/pageindex_v3/test_view_store.py -q`
 Expected: deterministic output, `segments_loaded_peak <= 1`, bounded run/fan-in use, full owner-map agreement with the logical Generation, and no schema-3 artifact names.
+Result: `23 passed, 1 skipped`; the complete repository regression is `858 passed, 6 skipped`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
-git add app/index/v3/base_builder.py app/index/v3/view_store.py tests/pageindex_v3/test_base_builder.py tests/pageindex_v3/test_view_store.py
+git add app/index/v3/__init__.py app/index/v3/generation.py app/index/v3/base_builder.py app/index/v3/view_store.py tests/pageindex_v3/test_generation.py tests/pageindex_v3/test_base_builder.py tests/pageindex_v3/test_view_store.py docs/superpowers/plans/2026-08-02-pageindex-v3-p3-base-delta.md
 git commit -m "feat(pageindex): build immutable base search views"
 ```
 

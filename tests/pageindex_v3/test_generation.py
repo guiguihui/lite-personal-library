@@ -18,6 +18,7 @@ from app.index.v3.generation import (
     LogicalGenerationError,
     LogicalGenerationReceipt,
     build_logical_generation,
+    validate_logical_generation_inputs,
     validate_logical_generation_manifest,
 )
 from app.index.v3.models import MAX_U64, GenerationRecipe, logical_generation_id
@@ -395,6 +396,100 @@ def test_refs_and_proof_mappings_are_consumed_once(tmp_path: Path) -> None:
     assert documents.iterations == 1
     assert all(entry.iterations == 1 for entry in wrapped_entries.values())
 
+
+def test_streaming_input_validation_binds_receipt_files_recipe_and_refs(
+    tmp_path: Path,
+) -> None:
+    refs = (_ref("note:z"), _ref("book:a"), _ref("note:m"))
+    recipe = GenerationRecipe(body_df_min=17)
+    receipt = build_logical_generation(
+        refs, _proof(refs, recipe), recipe, tmp_path / "candidate"
+    )
+
+    validated = validate_logical_generation_inputs(
+        reversed(refs), receipt, recipe
+    )
+
+    assert tuple(ref.doc_key for ref in validated) == tuple(
+        sorted(ref.doc_key for ref in refs)
+    )
+
+    with pytest.raises(LogicalGenerationError, match="identity does not match"):
+        validate_logical_generation_inputs(
+            (replace(refs[0], segment_hash=_digest("wrong")), *refs[1:]),
+            receipt,
+            recipe,
+        )
+    with pytest.raises(LogicalGenerationError, match="recipe does not match"):
+        validate_logical_generation_inputs(
+            refs,
+            receipt,
+            GenerationRecipe(body_df_min=18),
+        )
+
+
+def test_streaming_input_validation_cancels_during_generation_identity(
+    tmp_path: Path,
+) -> None:
+    refs = tuple(_ref(f"note:doc-{position}") for position in range(8))
+    recipe = GenerationRecipe()
+    receipt = build_logical_generation(
+        refs, _proof(refs, recipe), recipe, tmp_path / "candidate"
+    )
+    calls = 0
+
+    def check_cancelled() -> None:
+        nonlocal calls
+        calls += 1
+        if calls == len(refs) + 2:
+            raise _Cancelled("identity cancelled")
+
+    with pytest.raises(_Cancelled, match="identity cancelled"):
+        validate_logical_generation_inputs(
+            refs, receipt, recipe, check_cancelled
+        )
+
+    assert calls == len(refs) + 2
+
+def test_streaming_input_validation_rejects_rebound_or_tampered_artifacts(
+    tmp_path: Path,
+) -> None:
+    refs = (_ref("note:a"),)
+    recipe = GenerationRecipe()
+    receipt = build_logical_generation(
+        refs, _proof(refs, recipe), recipe, tmp_path / "candidate"
+    )
+    manifest_path = receipt.candidate_dir / "manifest.json"
+    payload = bytearray(manifest_path.read_bytes())
+    payload[0] ^= 1
+    manifest_path.write_bytes(payload)
+
+    with pytest.raises(LogicalGenerationError, match="SHA-256 mismatch"):
+        validate_logical_generation_inputs(refs, receipt, recipe)
+
+    rebound_ref = replace(
+        receipt.manifest_ref,
+        sha256=hashlib.sha256(payload).hexdigest(),
+    )
+    rebound = replace(receipt, manifest_ref=rebound_ref)
+    with pytest.raises(LogicalGenerationError, match="manifest receipt does not match"):
+        validate_logical_generation_inputs(refs, rebound, recipe)
+
+
+def test_streaming_input_validation_rejects_extra_generation_files(
+    tmp_path: Path,
+) -> None:
+    refs = (_ref("note:a"),)
+    recipe = GenerationRecipe()
+    receipt = build_logical_generation(
+        refs, _proof(refs, recipe), recipe, tmp_path / "candidate"
+    )
+    (receipt.candidate_dir / "unexpected.json").write_text(
+        "{}", encoding="utf-8"
+    )
+
+    with pytest.raises(LogicalGenerationError, match="invalid file set"):
+        validate_logical_generation_inputs(refs, receipt, recipe)
 
 def test_large_identity_never_materializes_the_core_as_one_json_value(
     tmp_path: Path,
