@@ -42,7 +42,7 @@ This plan ends with a shadow-capable pinned reader, query adapter, P3 worker, ex
 - Consumes: `app.index.v2.canonical.canonical_hash`, `app.index.v2.ids.make_doc_key`, and structurally validated v2 `StoredSegmentRef` values.
 - Produces: strict `validate_doc_key()`/`validate_sha256()`, `make_doc_uid()`, `logical_generation_core()`, `logical_generation_id()`, `GenerationRecipe`, `SearchViewRecipe`, `CompactionPolicy`, `LegacyExportRecipe`, `ViewPin`, `ChunkRef`, logical `SearchPosting`, physical `LayerPosting`, `TokenSummary`, and `SegmentSummary`.
 
-- [ ] **Step 1: Write failing identity, recipe, and value-object tests**
+- [x] **Step 1: Write failing identity, recipe, and value-object tests**
 
 Cover exact recipe dictionaries, canonical serializability, frozen/slotted records, detached `as_dict()` results, unsupported schema/artifact/codec versions, bool counts, non-finite/out-of-range policy values, malformed/non-NFC document keys, malformed/uppercase/short hashes, same slug across types, and all integer boundaries through `2**64 - 1`.
 
@@ -62,12 +62,12 @@ def test_doc_uid_is_type_namespaced_and_portable():
     assert make_doc_uid("note:a") == hashlib.sha256(b"note:a").hexdigest()
 ```
 
-- [ ] **Step 2: Run the tests and confirm imports fail**
+- [x] **Step 2: Run the tests and confirm imports fail**
 
 Run: `python -m pytest tests/pageindex_v3/test_models.py -q`
 Expected: collection fails because `app.index.v3.models` does not exist.
 
-- [ ] **Step 3: Implement strict frozen recipes and keep policy out of physical identity**
+- [x] **Step 3: Implement strict frozen recipes and keep policy out of physical identity**
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -99,15 +99,15 @@ class CompactionPolicy:
     max_delta_bytes_denominator: int = 5
 ```
 
-`CompactionPolicy` only determines `compaction_recommended`; it is never included in Generation, base, delta, or View identity. `LegacyExportRecipe` copies the supported legacy format/order/layout constants rather than embedding a mutable `CompilerRecipe`.
+`CompactionPolicy` only determines `compaction_recommended`; it is never included in Generation, base, delta, or View identity. `LegacyExportRecipe` copies the supported legacy format/order/layout constants rather than embedding a mutable `CompilerRecipe`. All rational thresholds are reduced by GCD before equality, serialization, or hashing so equivalent fractions have one identity.
 
-- [ ] **Step 4: Implement stable identities and posting/summary records**
+- [x] **Step 4: Implement stable identities and posting/summary records**
 
-`logical_generation_core()` validates every manually constructible `StoredSegmentRef` without stat/loading: canonical doc identity, matching `doc_type/slug`, lowercase SHA-256 fields, non-bool non-negative byte size, and unique doc keys. Identity projects only sorted `doc_key -> segment_hash`; path, byte size, source content hash, source recipe hash, source proof, task metadata, Search View recipe, compaction policy, and legacy recipe are excluded.
+`logical_generation_core()` validates every manually constructible `StoredSegmentRef` without stat/loading: canonical doc identity, matching `doc_type/slug`, lowercase SHA-256 fields, non-bool non-negative byte size, and unique doc keys/segment hashes. Identity projects only sorted `doc_key -> segment_hash`; path, byte size, source content hash, source recipe hash, source proof, task metadata, Search View recipe, compaction policy, and legacy recipe are excluded.
 
 `SearchPosting` carries `ChunkRef(doc_uid, segment_hash, local_id)`; `LayerPosting` carries layer-local `doc_ordinal/local_id`. Both retain raw title/breadcrumb/body TF and reject zero-total rows. `TokenSummary` stores `df_any/df_nonbody/df_body` and enforces `max(df_nonbody, df_body) <= df_any <= df_nonbody + df_body`. `SegmentSummary` stores immutable sorted token tuples, scalar field-length/posting totals, complete Segment attestation, and validates `posting_count == sum(df_any)`.
 
-- [ ] **Step 5: Run focused and compatibility tests**
+- [x] **Step 5: Run focused and compatibility tests**
 
 Run:
 
@@ -118,12 +118,13 @@ python -m pytest tests/pageindex_v2/test_canonical_ids.py tests/pageindex_v2/tes
 
 Expected: all pass; changing Generation body/IDF policy changes logical identity, while changing physical, compaction, or legacy recipes cannot enter that API.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add app/index/v3/__init__.py app/index/v3/models.py tests/pageindex_v3/test_models.py
 git commit -m "refactor(pageindex): separate logical and physical identities"
-``n
+```
+
 ### Task 2: Capture one stable catalog snapshot and derive an explicit change set
 
 **Files:**
@@ -341,7 +342,8 @@ Expected: deterministic bytes independent of input order; observed readers, run 
 ```powershell
 git add app/index/v3/varint.py app/index/v3/layer_codec.py app/index/v3/layer_runs.py tests/pageindex_v3/test_layer_codec.py tests/pageindex_v3/test_layer_runs.py
 git commit -m "feat(pageindex): add seekable posting layers"
-``n
+```
+
 ### Task 5: Build logical Generations, scalar totals, and reversible token contributions
 
 **Files:**
@@ -404,7 +406,8 @@ Expected: all tests pass; clean/patched scalar totals match exactly, and one-doc
 ```powershell
 git add app/index/v3/generation.py app/index/v3/statistics.py tests/pageindex_v3/test_generation.py tests/pageindex_v3/test_statistics.py
 git commit -m "feat(pageindex): add logical generations and search statistics"
-``n
+```
+
 ### Task 6: Build immutable full base Search Views
 
 **Files:**
@@ -460,7 +463,8 @@ Expected: deterministic output, `segments_loaded_peak <= 1`, bounded run/fan-in 
 ```powershell
 git add app/index/v3/base_builder.py app/index/v3/view_store.py tests/pageindex_v3/test_base_builder.py tests/pageindex_v3/test_view_store.py
 git commit -m "feat(pageindex): build immutable base search views"
-``n
+```
+
 ### Task 7: Write document-replacement deltas without touching base postings
 
 **Files:**
@@ -508,7 +512,8 @@ Expected: every incremental View has the same logical Generation, owners, scalar
 ```powershell
 git add app/index/v3/delta_builder.py tests/pageindex_v3/test_delta_builder.py
 git commit -m "feat(pageindex): build document replacement deltas"
-``n
+```
+
 ### Task 8: Add independent bounded Normal validation for P3 objects
 
 **Files:**
@@ -554,7 +559,8 @@ Expected: deterministic error ordering, bounded touched-token reads, zero base-p
 ```powershell
 git add app/index/v3/validator.py tests/pageindex_v3/test_validator.py
 git commit -m "feat(pageindex): validate base and delta views independently"
-``n
+```
+
 ### Task 9: Implement a generation/view-pinned owner-map reader
 
 **Files:**
@@ -616,7 +622,8 @@ Expected: incremental and clean-base raw/effective postings, token triples, metr
 ```powershell
 git add app/index/v3/reader.py tests/pageindex_v3/test_reader.py
 git commit -m "feat(pageindex): read pinned base and delta views"
-``n
+```
+
 ### Task 10: Add a P3 scorer and shadow query-equivalence adapter
 
 **Files:**
