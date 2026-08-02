@@ -5,15 +5,29 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Iterator
 from pathlib import Path
 import tempfile
 
 __all__ = [
     "canonical_bytes",
     "canonical_hash",
+    "iter_canonical_json",
     "sha256_bytes",
     "write_json_atomic",
 ]
+
+
+def iter_canonical_json(value: object) -> Iterator[str]:
+    """Yield canonical JSON text fragments without joining the full payload."""
+
+    encoder = json.JSONEncoder(
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    yield from encoder.iterencode(value)
 
 
 def canonical_bytes(value: object) -> bytes:
