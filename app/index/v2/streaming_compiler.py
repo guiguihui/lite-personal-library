@@ -16,7 +16,7 @@ from .artifacts import (
     CandidateReceipt,
     write_canonical_object,
 )
-from .canonical import canonical_bytes, canonical_hash, iter_canonical_json
+from .canonical import canonical_bytes, canonical_hash
 from .compiler import (
     _DOC_TYPE_ORDER,
     _global_document,
@@ -39,6 +39,8 @@ from .posting_runs import (
     merge_posting_runs,
 )
 
+_INVERTED_WRITE_BUFFER_BYTES = 1024 * 1024
+
 
 @dataclass(frozen=True, slots=True)
 class _TokenGroup:
@@ -46,11 +48,72 @@ class _TokenGroup:
     start: object
     rows: int
     body_df: int
+    body_tf: int
+    nonbody_rows: int
+    unpruned_bytes: int
+
+
+class _BoundedSinkBuffer:
+    """Coalesce exact output bytes under a fixed in-memory bound."""
+
+    __slots__ = ("_buffer", "_limit", "_peak_bytes", "_sink")
+
+    def __init__(
+        self,
+        sink: AtomicHashingSink,
+        *,
+        limit: int,
+    ) -> None:
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+            raise ValueError("buffer limit must be a positive integer")
+        self._sink = sink
+        self._limit = limit
+        self._buffer = bytearray()
+        self._peak_bytes = 0
+
+    @property
+    def peak_bytes(self) -> int:
+        return self._peak_bytes
+
+    def write(self, payload: bytes | bytearray | memoryview) -> None:
+        if not isinstance(payload, (bytes, bytearray, memoryview)):
+            raise TypeError("buffered output payload must be bytes-like")
+        size = len(payload)
+        if size == 0:
+            return
+        if size > self._limit:
+            self.flush()
+            view = memoryview(payload)
+            try:
+                for offset in range(0, size, self._limit):
+                    self._sink.write(view[offset : offset + self._limit])
+            finally:
+                view.release()
+            return
+        if self._buffer and len(self._buffer) + size > self._limit:
+            self.flush()
+        self._buffer.extend(payload)
+        self._peak_bytes = max(self._peak_bytes, len(self._buffer))
+
+    def write_posting_row(
+        self,
+        chunk_id: int,
+        total_tf: int,
+        *,
+        separated: bool,
+    ) -> None:
+        prefix = "," if separated else ""
+        self.write(f"{prefix}[{chunk_id},{total_tf}]".encode("ascii"))
+
+    def flush(self) -> None:
+        if not self._buffer:
+            return
+        self._sink.write(self._buffer)
+        self._buffer.clear()
 
 
 def _write_value(sink: AtomicHashingSink, value: object) -> None:
-    for fragment in iter_canonical_json(value):
-        sink.write_text(fragment)
+    sink.write(canonical_bytes(value))
 
 
 def _artifact(
@@ -159,8 +222,20 @@ def _token_groups(reader: PostingRunReader) -> Iterator[_TokenGroup]:
             pending = None
 
         token = first.token
+        first_total_tf = (
+            first.title_tf + first.breadcrumb_tf + first.body_tf
+        )
         rows = 1
         body_df = int(first.body_tf > 0)
+        body_tf = first.body_tf
+        nonbody_rows = int(first.title_tf + first.breadcrumb_tf > 0)
+        unpruned_bytes = (
+            len(canonical_bytes(token))
+            + 3
+            + 3
+            + len(str(first.chunk_id))
+            + len(str(first_total_tf))
+        )
         while True:
             next_start = reader.mark()
             try:
@@ -170,26 +245,32 @@ def _token_groups(reader: PostingRunReader) -> Iterator[_TokenGroup]:
             if record.token != token:
                 pending = (record, next_start)
                 break
+            total_tf = (
+                record.title_tf
+                + record.breadcrumb_tf
+                + record.body_tf
+            )
             rows += 1
             body_df += int(record.body_tf > 0)
-        yield _TokenGroup(token, start, rows, body_df)
-
-
-def _unpruned_group_bytes(
-    token: str,
-    reader: PostingRunReader,
-    start: object,
-    rows: int,
-) -> int:
-    reader.rewind(start)
-    size = len(canonical_bytes(token)) + 1 + 2
-    for index in range(rows):
-        record = next(reader)
-        total_tf = record.title_tf + record.breadcrumb_tf + record.body_tf
-        if index:
-            size += 1
-        size += 3 + len(str(record.chunk_id)) + len(str(total_tf))
-    return size
+            body_tf += record.body_tf
+            nonbody_rows += int(
+                record.title_tf + record.breadcrumb_tf > 0
+            )
+            unpruned_bytes += (
+                1
+                + 3
+                + len(str(record.chunk_id))
+                + len(str(total_tf))
+            )
+        yield _TokenGroup(
+            token=token,
+            start=start,
+            rows=rows,
+            body_df=body_df,
+            body_tf=body_tf,
+            nonbody_rows=nonbody_rows,
+            unpruned_bytes=unpruned_bytes,
+        )
 
 
 def _write_inverted_index(
@@ -197,7 +278,7 @@ def _write_inverted_index(
     merged_run: Path,
     total_chunks: int,
     recipe: CompilerRecipe,
-) -> tuple[ArtifactRef, dict[str, object]]:
+) -> tuple[ArtifactRef, dict[str, object], int]:
     sink = AtomicHashingSink(path)
     tokens_before = 0
     tokens_after = 0
@@ -216,21 +297,20 @@ def _write_inverted_index(
     with PostingRunReader(merged_run) as scanner, PostingRunReader(
         merged_run
     ) as replay, sink:
-        sink.write(b'{"num_chunks":')
-        sink.write_text(str(total_chunks))
-        sink.write(b',"postings":{')
+        output = _BoundedSinkBuffer(
+            sink,
+            limit=_INVERTED_WRITE_BUFFER_BYTES,
+        )
+        output.write(b'{"num_chunks":')
+        output.write(str(total_chunks).encode("ascii"))
+        output.write(b',"postings":{')
         first_token = True
         for group in _token_groups(scanner):
             tokens_before += 1
             postings_before += group.rows
             if tokens_before > 1:
                 unpruned_bytes += 1
-            unpruned_bytes += _unpruned_group_bytes(
-                group.token,
-                replay,
-                group.start,
-                group.rows,
-            )
+            unpruned_bytes += group.unpruned_bytes
 
             prune_body = should_prune_body(
                 group.body_df,
@@ -240,27 +320,20 @@ def _write_inverted_index(
             )
             if prune_body:
                 body_tokens_pruned += 1
+                body_postings_pruned += group.body_df
+                body_tf_pruned += group.body_tf
+                expected_exported = group.nonbody_rows
+            else:
+                expected_exported = group.rows
 
-            replay.rewind(group.start)
-            exported = 0
-            for _ in range(group.rows):
-                record = next(replay)
-                if prune_body and record.body_tf:
-                    body_postings_pruned += 1
-                    body_tf_pruned += record.body_tf
-                total_tf = record.title_tf + record.breadcrumb_tf + (
-                    0 if prune_body else record.body_tf
-                )
-                if total_tf > 0:
-                    exported += 1
-
-            if exported == 0:
+            if expected_exported == 0:
                 continue
             if not first_token:
-                sink.write(b",")
+                output.write(b",")
             first_token = False
-            _write_value(sink, group.token)
-            sink.write(b":[")
+            output.write(canonical_bytes(group.token))
+            output.write(b":[")
+
             replay.rewind(group.start)
             emitted = 0
             for _ in range(group.rows):
@@ -270,18 +343,23 @@ def _write_inverted_index(
                 )
                 if total_tf == 0:
                     continue
-                if emitted:
-                    sink.write(b",")
-                sink.write(b"[")
-                sink.write_text(str(record.chunk_id))
-                sink.write(b",")
-                sink.write_text(str(total_tf))
-                sink.write(b"]")
+                output.write_posting_row(
+                    record.chunk_id,
+                    total_tf,
+                    separated=bool(emitted),
+                )
                 emitted += 1
-            sink.write(b"]")
+            if emitted != expected_exported:
+                raise RuntimeError(
+                    f"posting replay count changed for {group.token!r}: "
+                    f"expected {expected_exported}, got {emitted}"
+                )
+            output.write(b"]")
             tokens_after += 1
             postings_after += emitted
-        sink.write(b"}}")
+        output.write(b"}}")
+        output.flush()
+        buffer_peak_bytes = output.peak_bytes
 
     reference = _artifact(
         "inverted-index.json",
@@ -300,7 +378,7 @@ def _write_inverted_index(
         "body_tf_pruned": body_tf_pruned,
         "estimated_bytes_saved": max(0, unpruned_bytes - reference.byte_size),
     }
-    return reference, pruning
+    return reference, pruning, buffer_peak_bytes
 
 
 def _emit_one_segment(
@@ -581,7 +659,11 @@ def _compile_generation_to_candidate(
             scratch / "postings.pir",
             fan_in=merge_fan_in,
         )
-        inverted_ref, pruning = _write_inverted_index(
+        (
+            inverted_ref,
+            pruning,
+            inverted_write_buffer_peak_bytes,
+        ) = _write_inverted_index(
             candidate / "inverted-index.json",
             merged.path,
             chunks_count,
@@ -636,6 +718,7 @@ def _compile_generation_to_candidate(
         "segments_loaded": len(ordered_refs),
         "segments_loaded_peak": int(bool(ordered_refs)),
         "run_buffer_peak_bytes": built_runs.run_buffer_peak_bytes,
+        "inverted_write_buffer_peak_bytes": inverted_write_buffer_peak_bytes,
         "largest_posting_record_bytes": built_runs.largest_record_bytes,
         "posting_merge_passes": merged.passes,
         "posting_merge_peak_open_inputs": merged.peak_open_inputs,

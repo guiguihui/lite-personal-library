@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import gc
 import hashlib
 import json
@@ -12,9 +13,8 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 import pytest
+
 import app.index.v2.streaming_compiler as streaming_compiler_module
-
-
 from app.index.v2.canonical import canonical_bytes, canonical_hash
 from app.index.v2.compiler import CompiledGeneration, compile_generation
 from app.index.v2.models import CompilerRecipe, SegmentRecipe
@@ -588,3 +588,191 @@ def test_streaming_receipt_passes_normal_validation(
 
     assert report.ok, report.errors
 
+
+def test_small_runtime_value_is_written_as_one_canonical_chunk() -> None:
+    writes: list[bytes] = []
+
+    class RecordingSink:
+        def write(self, payload: bytes) -> int:
+            encoded = bytes(payload)
+            writes.append(encoded)
+            return len(encoded)
+
+    value = {
+        "body": "Unicode 中文",
+        "breadcrumb": ["A", "B"],
+        "chunk_id": "c000001",
+    }
+    streaming_compiler_module._write_value(RecordingSink(), value)
+
+    assert writes == [canonical_bytes(value)]
+
+
+@pytest.mark.skipif(
+    compile_generation_to_candidate is None,
+    reason="compile_generation_to_candidate is introduced by P2 Task 5",
+)
+def test_inverted_compiler_reads_each_posting_at_most_twice(
+    tmp_path: Path,
+    streaming_oracle_case: StreamingOracleCase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pageindex = tmp_path / "pageindex"
+    refs = [
+        put_segment(pageindex, segment)
+        for segment in streaming_oracle_case.segments
+    ]
+    records_read = 0
+    reader_type = streaming_compiler_module.PostingRunReader
+
+    class CountingReader(reader_type):
+        def __next__(self):
+            nonlocal records_read
+            record = super().__next__()
+            records_read += 1
+            return record
+
+    monkeypatch.setattr(
+        streaming_compiler_module,
+        "PostingRunReader",
+        CountingReader,
+    )
+
+    assert compile_generation_to_candidate is not None
+    receipt = compile_generation_to_candidate(
+        refs,
+        pageindex,
+        tmp_path / "candidate",
+        streaming_oracle_case.recipe,
+        max_run_bytes=256,
+        merge_fan_in=2,
+    )
+
+    postings = receipt.invariants["postings_visited"]
+    assert isinstance(postings, int)
+    assert records_read == postings * 2
+
+
+@pytest.mark.skipif(
+    compile_generation_to_candidate is None,
+    reason="compile_generation_to_candidate is introduced by P2 Task 5",
+)
+def test_inverted_output_buffer_is_bounded_and_byte_exact(
+    tmp_path: Path,
+    streaming_oracle_case: StreamingOracleCase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    buffer_limit = 64
+    monkeypatch.setattr(
+        streaming_compiler_module,
+        "_INVERTED_WRITE_BUFFER_BYTES",
+        buffer_limit,
+        raising=False,
+    )
+    sink_write = streaming_compiler_module.AtomicHashingSink.write
+    inverted_write_sizes: list[int] = []
+
+    def recording_write(self, payload):
+        if self.target.name == "inverted-index.json":
+            inverted_write_sizes.append(len(payload))
+        return sink_write(self, payload)
+
+    monkeypatch.setattr(
+        streaming_compiler_module.AtomicHashingSink,
+        "write",
+        recording_write,
+    )
+    pageindex = tmp_path / "pageindex"
+    refs = [
+        put_segment(pageindex, segment)
+        for segment in streaming_oracle_case.segments
+    ]
+    oracle = _materialize_oracle(
+        tmp_path / "oracle",
+        streaming_oracle_case.segments,
+        streaming_oracle_case.recipe,
+    )
+
+    assert compile_generation_to_candidate is not None
+    receipt = compile_generation_to_candidate(
+        refs,
+        pageindex,
+        tmp_path / "candidate",
+        streaming_oracle_case.recipe,
+        max_run_bytes=256,
+        merge_fan_in=2,
+    )
+
+    assert_candidate_matches_oracle(receipt.candidate_dir, oracle)
+    peak = receipt.invariants["inverted_write_buffer_peak_bytes"]
+    assert isinstance(peak, int)
+    assert 0 < peak <= buffer_limit
+    assert len(inverted_write_sizes) > 1
+    assert max(inverted_write_sizes) <= buffer_limit
+
+
+def _with_fully_pruned_body_token(
+    segments: Sequence[Mapping[str, object]],
+    token: str,
+) -> tuple[dict[str, object], ...]:
+    copied = copy.deepcopy(tuple(segments))
+    result: list[dict[str, object]] = []
+    for raw_segment in copied:
+        assert isinstance(raw_segment, dict)
+        chunks = raw_segment["chunks"]
+        postings = raw_segment["postings"]
+        assert isinstance(chunks, list)
+        assert isinstance(postings, dict)
+        rows: list[list[int]] = []
+        for chunk in chunks:
+            assert isinstance(chunk, dict)
+            local_id = chunk["local_id"]
+            lengths = chunk["lengths"]
+            assert isinstance(local_id, int)
+            assert isinstance(lengths, dict)
+            chunk["body"] = f"{chunk['body']} {token}"
+            lengths["body"] = int(lengths["body"]) + 1
+            rows.append([local_id, 0, 0, 1])
+        postings[token] = rows
+        result.append(raw_segment)
+    return tuple(result)
+
+
+@pytest.mark.skipif(
+    compile_generation_to_candidate is None,
+    reason="compile_generation_to_candidate is introduced by P2 Task 5",
+)
+def test_fully_body_pruned_token_emits_no_empty_posting_list(
+    tmp_path: Path,
+    streaming_oracle_case: StreamingOracleCase,
+) -> None:
+    token = "fullyprunedbodytoken"
+    segments = _with_fully_pruned_body_token(
+        streaming_oracle_case.segments,
+        token,
+    )
+    recipe = CompilerRecipe(body_df_min=6, body_df_ratio=1.0)
+    oracle = _materialize_oracle(tmp_path / "oracle", segments, recipe)
+    pageindex = tmp_path / "pageindex"
+    refs = [put_segment(pageindex, segment) for segment in segments]
+
+    assert compile_generation_to_candidate is not None
+    receipt = compile_generation_to_candidate(
+        refs,
+        pageindex,
+        tmp_path / "candidate",
+        recipe,
+        max_run_bytes=256,
+        merge_fan_in=2,
+    )
+
+    assert_candidate_matches_oracle(receipt.candidate_dir, oracle)
+    inverted = json.loads(
+        (receipt.candidate_dir / "inverted-index.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert token not in inverted["postings"]
+    assert receipt.invariants["pruning"]["body_tokens_pruned"] == 2
+    assert receipt.invariants["pruning"]["body_postings_pruned"] == 12
+    assert receipt.invariants["pruning"]["body_tf_pruned"] == 12
