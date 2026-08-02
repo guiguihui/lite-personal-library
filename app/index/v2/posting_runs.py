@@ -27,6 +27,15 @@ class PostingRunError(ValueError):
     """Raised when a posting run is invalid or cannot be merged safely."""
 
 
+@dataclass(frozen=True, slots=True, repr=False)
+class _PostingRunMark:
+    """Opaque position tied to one unchanged posting run."""
+
+    file_identity: tuple[int, int, int, int, int]
+    offset: int
+    last_key: tuple[str, int] | None
+
+
 @dataclass(frozen=True, slots=True)
 class PostingRecord:
     """One field-aware posting before compatibility-field aggregation."""
@@ -80,6 +89,14 @@ class PostingMergeResult:
     peak_open_inputs: int
 
 
+@dataclass(frozen=True, slots=True)
+class _MergeRun:
+    """One merge input and its known record count, when available."""
+
+    path: Path
+    records: int | None
+
+
 def _read_exact(stream: BinaryIO, size: int, description: str) -> bytes:
     payload = stream.read(size)
     if len(payload) != size:
@@ -110,6 +127,7 @@ class PostingRunReader(Iterator[PostingRecord]):
         self.path = Path(path)
         self._stream: BinaryIO | None = None
         self._last_key: tuple[str, int] | None = None
+        self._file_identity: tuple[int, int, int, int, int] | None = None
 
     def __enter__(self) -> PostingRunReader:
         if self._stream is not None:
@@ -118,10 +136,20 @@ class PostingRunReader(Iterator[PostingRecord]):
         try:
             if _read_exact(stream, len(_MAGIC), "header") != _MAGIC:
                 raise PostingRunError(f"invalid posting run header: {self.path}")
+            stat = os.fstat(stream.fileno())
+            file_identity = (
+                stat.st_dev,
+                stat.st_ino,
+                stat.st_size,
+                stat.st_mtime_ns,
+                stat.st_ctime_ns,
+            )
         except BaseException:
             stream.close()
             raise
         self._stream = stream
+        self._file_identity = file_identity
+        self._last_key = None
         return self
 
     def __exit__(self, *_exc: object) -> None:
@@ -129,11 +157,43 @@ class PostingRunReader(Iterator[PostingRecord]):
 
     def close(self) -> None:
         if self._stream is not None:
-            self._stream.close()
+            stream = self._stream
             self._stream = None
+            self._file_identity = None
+            self._last_key = None
+            stream.close()
 
     def __iter__(self) -> PostingRunReader:
         return self
+
+    def mark(self) -> object:
+        """Return an opaque, validated boundary in this unchanged run.
+
+        A scanner may hand the mark to another reader for the same open file,
+        allowing a token group to be scanned and replayed without retaining
+        its postings or exposing a forgeable byte offset.
+        """
+
+        if self._stream is None or self._file_identity is None:
+            raise RuntimeError("posting run reader is not open")
+        return _PostingRunMark(
+            self._file_identity,
+            self._stream.tell(),
+            self._last_key,
+        )
+
+    def rewind(self, mark: object) -> None:
+        """Restore an opaque mark from a reader of this unchanged run."""
+
+        if self._stream is None or self._file_identity is None:
+            raise RuntimeError("posting run reader is not open")
+        if (
+            not isinstance(mark, _PostingRunMark)
+            or mark.file_identity != self._file_identity
+        ):
+            raise ValueError("posting run mark must belong to the same unchanged file")
+        self._stream.seek(mark.offset)
+        self._last_key = mark.last_key
 
     def __next__(self) -> PostingRecord:
         stream = self._stream
@@ -183,6 +243,110 @@ def _atomic_run_path(destination: Path) -> tuple[int, Path]:
     return descriptor, Path(name)
 
 
+def _append_exception_note(error: BaseException, message: str) -> None:
+    add_note = getattr(error, "add_note", None)
+    if callable(add_note):
+        add_note(message)
+        return
+    notes = list(getattr(error, "__notes__", ()))
+    notes.append(message)
+    try:
+        setattr(error, "__notes__", notes)
+    except (AttributeError, TypeError):
+        pass
+
+
+def _note_cleanup_failure(
+    primary: BaseException,
+    action: str,
+    cleanup_error: OSError,
+) -> None:
+    _append_exception_note(
+        primary,
+        f"{action} failed during cleanup: {cleanup_error}",
+    )
+
+
+def _unlink_preserving(path: Path, primary: BaseException) -> None:
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
+    except OSError as cleanup_error:
+        _note_cleanup_failure(primary, f"unlink {path}", cleanup_error)
+
+
+def _close_descriptor_preserving(descriptor: int, primary: BaseException) -> None:
+    try:
+        os.close(descriptor)
+    except OSError as cleanup_error:
+        _note_cleanup_failure(primary, "close posting run descriptor", cleanup_error)
+
+
+def _close_readers(
+    readers: list[PostingRunReader],
+    primary: BaseException | None = None,
+) -> None:
+    errors: list[OSError] = []
+    for reader in readers:
+        try:
+            reader.close()
+        except OSError as cleanup_error:
+            errors.append(cleanup_error)
+    readers.clear()
+    if not errors:
+        return
+    if primary is not None:
+        for cleanup_error in errors:
+            _note_cleanup_failure(primary, "close posting run reader", cleanup_error)
+        return
+    first = errors[0]
+    for cleanup_error in errors[1:]:
+        _append_exception_note(first, f"additional reader close failure: {cleanup_error}")
+    raise first
+
+
+def _cleanup_scratch_directory(
+    directory: Path,
+    primary: BaseException | None,
+) -> None:
+    failures: list[tuple[str, OSError]] = []
+    try:
+        children = tuple(directory.iterdir())
+    except FileNotFoundError:
+        return
+    except OSError as cleanup_error:
+        failures.append((f"list merge scratch directory {directory}", cleanup_error))
+        children = ()
+    for child in children:
+        try:
+            child.unlink()
+        except FileNotFoundError:
+            pass
+        except OSError as cleanup_error:
+            failures.append((f"unlink merge scratch file {child}", cleanup_error))
+    try:
+        directory.rmdir()
+    except FileNotFoundError:
+        pass
+    except OSError as cleanup_error:
+        failures.append((f"remove merge scratch directory {directory}", cleanup_error))
+    if not failures:
+        return
+    if primary is not None:
+        for action, cleanup_error in failures:
+            _note_cleanup_failure(primary, action, cleanup_error)
+        return
+    action, first = failures[0]
+    _append_exception_note(first, f"{action} failed during cleanup")
+    for action, cleanup_error in failures[1:]:
+        _append_exception_note(
+            first,
+            f"{action} also failed during cleanup: {cleanup_error}",
+        )
+    raise first
+
+
 def _write_sorted_run(path: Path, records: Iterable[PostingRecord]) -> int:
     descriptor, temporary = _atomic_run_path(path)
     count = 0
@@ -202,16 +366,10 @@ def _write_sorted_run(path: Path, records: Iterable[PostingRecord]) -> int:
             os.fsync(stream.fileno())
         os.replace(temporary, path)
         return count
-    except BaseException:
+    except BaseException as error:
         if descriptor >= 0:
-            try:
-                os.close(descriptor)
-            except OSError:
-                pass
-        try:
-            temporary.unlink()
-        except FileNotFoundError:
-            pass
+            _close_descriptor_preserving(descriptor, error)
+        _unlink_preserving(temporary, error)
         raise
 
 
@@ -251,9 +409,9 @@ class PostingRunBuilder:
     def _flush(self) -> None:
         if not self._buffer:
             return
-        records = sorted(self._buffer, key=lambda item: item.key)
+        self._buffer.sort(key=lambda item: item.key)
         path = self.directory / f"run-{len(self._paths):08d}.pir"
-        _write_sorted_run(path, records)
+        _write_sorted_run(path, self._buffer)
         self._paths.append(path)
         self._buffer.clear()
         self._buffer_bytes = 0
@@ -316,27 +474,33 @@ def _merge_group(
                 heapq.heappush(heap, (following.key, index, following))
             output.flush()
             os.fsync(output.fileno())
-        for reader in readers:
-            reader.close()
-        readers.clear()
+        _close_readers(readers)
         os.replace(temporary, destination)
         temporary = None
         return count
-    except BaseException:
+    except BaseException as error:
         if descriptor >= 0:
-            try:
-                os.close(descriptor)
-            except OSError:
-                pass
-        raise
-    finally:
-        for reader in readers:
-            reader.close()
+            _close_descriptor_preserving(descriptor, error)
+        _close_readers(readers, error)
         if temporary is not None:
+            _unlink_preserving(temporary, error)
+        raise
+
+
+def _count_run(
+    path: Path,
+    check_cancelled: Callable[[], None] | None,
+) -> int:
+    count = 0
+    with PostingRunReader(path) as reader:
+        while True:
+            if check_cancelled is not None and count % 8192 == 0:
+                check_cancelled()
             try:
-                temporary.unlink()
-            except FileNotFoundError:
-                pass
+                next(reader)
+            except StopIteration:
+                return count
+            count += 1
 
 
 def merge_posting_runs(
@@ -358,56 +522,68 @@ def merge_posting_runs(
         raise ValueError("fan_in must be at least two")
     output = Path(destination)
     output.parent.mkdir(parents=True, exist_ok=True)
-    current = [Path(path) for path in paths]
+    current = [_MergeRun(Path(path), None) for path in paths]
     passes = 0
     peak_open = 0
-    total_records = 0
 
     if not current:
         total_records = _write_sorted_run(output, ())
         return PostingMergeResult(output, total_records, 0, 0)
 
-    scratch_outputs: set[Path] = set()
+    if len(current) == 1:
+        final = current[0]
+        total_records = _count_run(final.path, check_cancelled)
+        if final.path != output:
+            os.replace(final.path, output)
+        return PostingMergeResult(output, total_records, 0, 1)
+
+    scratch_directory = Path(
+        tempfile.mkdtemp(
+            dir=output.parent,
+            prefix=f".{output.name}.merge.",
+        )
+    )
+    primary_error: BaseException | None = None
     try:
         while len(current) > 1:
             passes += 1
-            following: list[Path] = []
+            following: list[_MergeRun] = []
             for group_number, start in enumerate(range(0, len(current), fan_in)):
                 group = current[start : start + fan_in]
+                if len(group) == 1:
+                    following.append(group[0])
+                    continue
                 peak_open = max(peak_open, len(group))
-                merged = output.parent / (
-                    f"merge-{passes:04d}-{group_number:08d}.pir"
+                merged = scratch_directory / (
+                    f"pass-{passes:04d}-{group_number:08d}.pir"
                 )
-                _merge_group(
-                    group,
+                merged_records = _merge_group(
+                    [run.path for run in group],
                     merged,
                     check_cancelled=check_cancelled,
                 )
-                scratch_outputs.add(merged)
-                following.append(merged)
-                for path in group:
-                    if path != merged:
-                        try:
-                            path.unlink()
-                        except FileNotFoundError:
-                            pass
-                        scratch_outputs.discard(path)
+                following.append(_MergeRun(merged, merged_records))
+                for run in group:
+                    try:
+                        run.path.unlink()
+                    except FileNotFoundError:
+                        pass
             current = following
 
         final = current[0]
-        if final != output:
-            os.replace(final, output)
-            scratch_outputs.discard(final)
-        with PostingRunReader(output) as reader:
-            total_records = sum(1 for _ in reader)
+        if final.records is None:
+            total_records = _count_run(final.path, check_cancelled)
+            peak_open = max(peak_open, 1)
+        else:
+            total_records = final.records
+        if final.path != output:
+            os.replace(final.path, output)
         return PostingMergeResult(output, total_records, passes, peak_open)
-    except BaseException:
-        for path in scratch_outputs:
-            try:
-                path.unlink()
-            except FileNotFoundError:
-                pass
+    except BaseException as error:
+        primary_error = error
         raise
+    finally:
+        _cleanup_scratch_directory(scratch_directory, primary_error)
 
 
 __all__ = [
