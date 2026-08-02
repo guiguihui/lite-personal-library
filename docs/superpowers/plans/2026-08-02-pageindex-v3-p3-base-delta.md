@@ -687,24 +687,29 @@ git commit -m "feat(pageindex): build document replacement deltas"
 ### Task 8: Add independent bounded Normal validation for P3 objects
 
 **Files:**
+- Modify: `app/index/v2/streaming_json.py`
+- Create: `app/index/v3/generation_stream.py`
 - Create: `app/index/v3/validator.py`
-- Create: `tests/pageindex_v3/test_validator.py`
+- Modify: `app/index/v3/__init__.py`
+- Create: `tests/pageindex_v2/test_streaming_json.py`
+- Create: `tests/pageindex_v3/test_generation_stream.py`
+- Create: `tests/pageindex_v3/test_v3_validator.py`
 
 **Interfaces:**
 - Consumes: logical Generation/Base/Delta/View receipts, Task 4 readers, Task 3 summaries, and exact parent/target manifests.
 - Produces: `validate_generation_normal()`, `validate_base_normal()`, `validate_delta_normal()`, and `validate_view_normal()` using the existing `ValidationReport` shape.
 
-- [ ] **Step 1: Write malicious re-bound receipt tests**
+- [x] **Step 1: Write malicious re-bound receipt tests**
 
 Rewrite artifacts and consistently rebind receipt/manifest hashes. Normal must still reject wrong artifact kind/schema/identity, unsafe or symlink paths, noncanonical files, sparse-term/PIV/PCV offset mismatches, invalid ordinals/local IDs, postings outside new replacements, malformed add/edit/delete states, wrong parent/target hash, token/scalar arithmetic errors, owner-map drift, delta reordering, and cyclic chains.
 
-- [ ] **Step 2: Prove dirty Normal never scans base postings or vocabulary**
+- [x] **Step 2: Prove dirty Normal never scans base postings or vocabulary**
 
 Monkeypatch base `postings.piv` open/read, full `terms.jsonl` iteration, and both v2 compilers to raise. A correct one-document delta must validate using only target Generation, parent/new small manifests, parent owner map/scalars, changed summaries, touched-token sparse windows, and the new delta/View artifacts.
 
-- [ ] **Step 3: Implement validation by trust boundary**
+- [x] **Step 3: Implement validation by trust boundary**
 
-Generation validation independently derives logical identity and binds exact proof/ref attestations. Full-base validation streams its own document table, PIV, PCV, term records, sparse index, and scalar totals once.
+Generation validation zips canonical `manifest.json` and `input-proof.json` streams, derives identity incrementally, hashes and counts bytes in those same read passes, checks safe Segment paths without decoding Segment bodies, and retains no document-ref map for the standalone public entry point. The current interface proves internal self-consistency; Task 11 must supply the trusted source-capture anchor so a wholly replaced but self-consistent Generation cannot be rebound. Full-base validation remains an explicit optimize/bootstrap deep path: it audits the immutable layer and independently recomputes document, PCV, term, posting, and scalar totals; dirty and no-op orchestration never enters it.
 
 Dirty delta validation independently checks:
 
@@ -717,17 +722,21 @@ Dirty delta validation independently checks:
 7. new scalar totals and token_count equal parent plus delta;
 8. new owner map equals parent owners plus replacements and every owner segment equals the target Generation.
 
-It does not trust a re-bound receipt as semantic evidence and does not load unrelated Segments.
+It does not trust a re-bound receipt as semantic evidence and does not load unrelated Segments. Every live new replacement is decoded exactly once through `SegmentProjector.project_to_sink()`; the independently derived summary, exact per-chunk PCV metrics, and full seven-field posting digest/row count must match the stored Delta.
 
-- [ ] **Step 4: Run focused validation tests**
+View validation authenticates the ordered manifest chain, materializes only the zero-Delta and final owner/statistics endpoints, replays all replacement old/new sides and statistics deltas, and compares the final state to the target Generation. This is `O(N + C)` rather than `O(N*D + C)`. Schema-v1 whole-file owner hashes cannot also revalidate every intermediate owner artifact within that bound; preserving both properties requires the patch/Merkle owner schema-v2 decision after the exact-50k gate.
 
-Run: `python -m pytest tests/pageindex_v3/test_validator.py -q`
-Expected: deterministic error ordering, bounded touched-token reads, zero base-posting reads on dirty Normal, and independent full-base verification only when a base is explicitly created.
+- [x] **Step 4: Run focused validation tests**
 
-- [ ] **Step 5: Commit**
+Run: `python -m pytest tests/pageindex_v2/test_streaming_json.py tests/pageindex_v3/test_generation_stream.py tests/pageindex_v3/test_v3_validator.py -q`
+Expected: deterministic error ordering, one-pass Generation hashes, cancellation identity preservation, bounded touched-token reads, zero base-posting reads on dirty Normal, endpoint-only View data reads, and independent full-base verification only when a base is explicitly created.
+
+Result: focused validation `47 passed`; full PageIndex v3 regression `454 passed, 5 skipped`; full repository `935 passed, 7 skipped`.
+
+- [x] **Step 5: Commit**
 
 ```powershell
-git add app/index/v3/validator.py tests/pageindex_v3/test_validator.py
+git add app/index/v2/streaming_json.py app/index/v3/__init__.py app/index/v3/generation_stream.py app/index/v3/validator.py tests/pageindex_v2/test_streaming_json.py tests/pageindex_v3/test_generation_stream.py tests/pageindex_v3/test_v3_validator.py docs/superpowers/plans/2026-08-02-pageindex-v3-p3-base-delta.md
 git commit -m "feat(pageindex): validate base and delta views independently"
 ```
 

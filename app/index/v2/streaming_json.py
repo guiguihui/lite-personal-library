@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO
@@ -57,16 +57,27 @@ class CanonicalJsonStream:
     by reading their punctuation separately and consuming one item at a time.
     """
 
-    __slots__ = ("_buffer", "_chunk_size", "_position", "_stream", "path")
+    __slots__ = (
+        "_buffer",
+        "_chunk_size",
+        "_position",
+        "_read_observer",
+        "_stream",
+        "path",
+    )
 
     def __init__(
         self,
         path: Path,
         *,
         chunk_size: int = DEFAULT_CHUNK_SIZE,
+        read_observer: Callable[[bytes], None] | None = None,
     ) -> None:
         self.path = Path(path)
         self._chunk_size = _positive_int(chunk_size, "chunk_size")
+        if read_observer is not None and not callable(read_observer):
+            raise TypeError("read_observer must be callable")
+        self._read_observer = read_observer
         self._stream: BinaryIO | None = None
         self._buffer = b""
         self._position = 0
@@ -100,6 +111,8 @@ class CanonicalJsonStream:
             return False
         self._buffer = chunk
         self._position = 0
+        if self._read_observer is not None:
+            self._read_observer(chunk)
         return True
 
     def peek_byte(self) -> int | None:

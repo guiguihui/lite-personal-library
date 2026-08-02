@@ -76,6 +76,12 @@ from .delta_builder import (
     DeltaBuildWork,
     build_delta_view,
 )
+from .validator import (
+    validate_base_normal,
+    validate_delta_normal,
+    validate_generation_normal,
+    validate_view_normal,
+)
 
 __all__ = [
     "ChunkMetric",
@@ -147,4 +153,8 @@ __all__ = [
     "load_delta_object_metadata",
     "load_search_view_metadata",
     "write_delta_candidate",
+    "validate_base_normal",
+    "validate_delta_normal",
+    "validate_generation_normal",
+    "validate_view_normal",
 ]
