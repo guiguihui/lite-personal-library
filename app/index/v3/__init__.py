@@ -17,6 +17,7 @@ from .models import (
     validate_doc_key,
     validate_sha256,
 )
+from .source_diff import SegmentChangeSet, diff_segment_inputs
 
 __all__ = [
     "ChunkRef",
@@ -26,6 +27,7 @@ __all__ = [
     "LegacyExportRecipe",
     "SearchPosting",
     "SearchViewRecipe",
+    "SegmentChangeSet",
     "SegmentSummary",
     "TokenSummary",
     "ViewPin",
@@ -33,5 +35,6 @@ __all__ = [
     "logical_generation_id",
     "make_doc_uid",
     "validate_doc_key",
+    "diff_segment_inputs",
     "validate_sha256",
 ]

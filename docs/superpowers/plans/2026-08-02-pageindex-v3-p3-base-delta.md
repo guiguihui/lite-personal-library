@@ -131,32 +131,33 @@ git commit -m "refactor(pageindex): separate logical and physical identities"
 - Modify: `app/index/v2/source_snapshot.py`
 - Create: `app/index/v3/source_diff.py`
 - Create: `tests/pageindex_v3/test_source_diff.py`
-- Modify: `tests/pageindex_v2/test_source_snapshot.py`
+- Verify: `tests/pageindex_v2/test_source_snapshot.py`
 
 **Interfaces:**
 - Consumes: v2 `DocumentSource`, input-proof format, base `StoredSegmentRef` mapping, cancellation callback.
 - Produces: `StableCatalogSnapshot(proof, sources, file_state, topology, directory_state)`, `capture_stable_catalog(...)`, `StableCatalogSnapshot.verify_unchanged()`, and `SegmentChangeSet(base_by_doc, current_fingerprints, added, changed, deleted, unchanged)`.
 
-- [ ] **Step 1: Add tests proving dirty capture hashes every source once and rereads only the dirty document body**
+- [x] **Step 1: Add tests proving capture hashes every source once and exposes only dirty keys for later body rereads**
 
 ```python
 def test_change_set_reuses_snapshot_without_second_full_content_hash(monkeypatch, corpus):
     reads = Counter()
-    snapshot = capture_stable_catalog(corpus.root, ..., on_hashed=lambda p: reads.update([p]))
+    monkeypatch.setattr(snapshot_module, "_hash_open_file", counting_hash(reads))
+    snapshot = capture_stable_catalog(corpus.root, ...)
     changes = diff_segment_inputs(snapshot, corpus.base_refs)
     assert changes.changed == ("note:changed",)
-    assert max(reads.values()) == 1
+    assert set(reads.values()) == {1}
     assert snapshot.verify_unchanged()
 ```
 
 Cover add, edit, delete, ABA metadata changes, topology changes, ancestor junction/symlink escape, final-file symlink, cancellation, and deterministic doc ordering.
 
-- [ ] **Step 2: Run focused tests and confirm the new API is absent**
+- [x] **Step 2: Run focused tests and confirm the new API is absent**
 
 Run: `python -m pytest tests/pageindex_v3/test_source_diff.py tests/pageindex_v2/test_source_snapshot.py -q`
 Expected: P3 tests fail on missing `capture_stable_catalog`.
 
-- [ ] **Step 3: Refactor the existing proof capture into a reusable snapshot**
+- [x] **Step 3: Refactor the existing proof capture into a reusable snapshot**
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -179,16 +180,16 @@ class StableCatalogSnapshot:
 
 Keep `capture_stable_input_proof()` as a compatibility wrapper returning `snapshot.proof`. Verification must compare stat/topology envelopes and must not hash file contents again.
 
-- [ ] **Step 4: Implement `SegmentChangeSet` without loading Segments**
+- [x] **Step 4: Implement `SegmentChangeSet` without loading Segments**
 
 `diff_segment_inputs()` compares snapshot `content_hash` values with base ref attestations. It returns sorted document-key tuples and rejects duplicate/missing proof entries. It does not call `load_segment()`.
 
-- [ ] **Step 5: Run v2 and P3 snapshot tests**
+- [x] **Step 5: Run v2 and P3 snapshot tests**
 
 Run: `python -m pytest tests/pageindex_v2/test_source_snapshot.py tests/pageindex_v2/test_no_change.py tests/pageindex_v3/test_source_diff.py -q`
 Expected: all tests pass and the v2 no-op proof bytes are unchanged.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add app/index/v2/source_snapshot.py app/index/v3/source_diff.py tests/pageindex_v2/test_source_snapshot.py tests/pageindex_v3/test_source_diff.py

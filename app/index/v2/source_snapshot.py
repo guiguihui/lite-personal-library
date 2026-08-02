@@ -7,13 +7,13 @@ import os
 import stat
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .canonical import canonical_hash
 from .ids import make_doc_key, normalize_relative_path
 from .catalog import DocumentSource, discover_documents
-from .input_proof import proof_from_fingerprints
+from .input_proof import proof_from_fingerprints, validate_input_proof
 
 
 SOURCE_HASH_WORKERS = 4
@@ -38,6 +38,72 @@ class _PreparedFile:
 class _PreparedSource:
     doc_key: str
     files: tuple[_PreparedFile, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class StableCatalogSnapshot:
+    """One content-hashed catalog plus a reusable metadata stability envelope."""
+
+    content_dir: Path
+    sources: tuple[DocumentSource, ...]
+    proof: dict[str, object]
+    directory_state: _DirectoryState
+    topology: _Topology
+    file_state: tuple[_FileState, ...]
+    _proof_sha256: str = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "content_dir", Path(self.content_dir).resolve())
+        object.__setattr__(self, "sources", tuple(self.sources))
+        validated_proof = validate_input_proof(self.proof)
+        object.__setattr__(self, "proof", validated_proof)
+        object.__setattr__(self, "_proof_sha256", canonical_hash(validated_proof))
+        object.__setattr__(self, "directory_state", tuple(self.directory_state))
+        object.__setattr__(self, "topology", tuple(self.topology))
+        object.__setattr__(self, "file_state", tuple(self.file_state))
+
+    def validated_proof(self) -> dict[str, object]:
+        """Return a detached proof and reject mutation after capture."""
+
+        if canonical_hash(self.proof) != self._proof_sha256:
+            raise RuntimeError("stable catalog snapshot proof was mutated")
+        return validate_input_proof(self.proof)
+
+    def verify_unchanged(
+        self,
+        check_cancel: Callable[[], None] = lambda: None,
+    ) -> bool:
+        """Check topology and file identity without hashing source contents."""
+
+        if not callable(check_cancel):
+            raise TypeError("check_cancel must be callable")
+        check_cancel()
+        try:
+            prepared_sources = _prepare_sources(self.content_dir, self.sources)
+            with ThreadPoolExecutor(
+                max_workers=3,
+                thread_name_prefix="pageindex-source-verify",
+            ) as executor:
+                directory_future = executor.submit(
+                    _catalog_directory_state,
+                    self.content_dir,
+                )
+                topology_future = executor.submit(
+                    _rescan_catalog_topology,
+                    self.content_dir,
+                )
+                state_future = executor.submit(_file_state, prepared_sources)
+                directory_state = directory_future.result()
+                topology = topology_future.result()
+                file_state = state_future.result()
+        except (FileNotFoundError, NotADirectoryError, _SourceChanged):
+            return False
+        check_cancel()
+        return (
+            directory_state == self.directory_state
+            and topology == self.topology
+            and file_state == self.file_state
+        )
 
 
 def _catalog_directory_state(root: Path) -> _DirectoryState:
@@ -306,19 +372,18 @@ def _fingerprint_source(
     return canonical_hash(records), tuple(states)
 
 
-def capture_stable_input_proof(
+def capture_stable_catalog(
     content_dir: Path,
     *,
     segment_recipe_hash: str,
     compiler_recipe_hash: str,
     check_cancel: Callable[[], None],
     max_workers: int = SOURCE_HASH_WORKERS,
-) -> dict[str, object] | None:
-    """Hash each source once inside a before/after filesystem-state envelope.
+) -> StableCatalogSnapshot | None:
+    """Hash every source once and return its reusable stability envelope.
 
-    ``None`` means that source topology or file identity changed during capture.
-    The content proof itself remains SHA-256 based; bounded parallelism only
-    overlaps independent file reads and never retains complete source files.
+    A None result means source topology or file identity changed during
+    capture. Later verification compares only stat and topology facts.
     """
 
     if (
@@ -327,6 +392,8 @@ def capture_stable_input_proof(
         or max_workers < 1
     ):
         raise ValueError("max_workers must be an integer >= 1")
+    if not callable(check_cancel):
+        raise TypeError("check_cancel must be callable")
     root = Path(content_dir).resolve()
     if not root.is_dir():
         raise NotADirectoryError(root)
@@ -362,38 +429,55 @@ def capture_stable_input_proof(
             for _doc_key, _fingerprint, source_states in pairs
             for state in source_states
         )
-
-        check_cancel()
-        with ThreadPoolExecutor(
-            max_workers=3,
-            thread_name_prefix="pageindex-source-verify",
-        ) as executor:
-            directory_future = executor.submit(_catalog_directory_state, root)
-            topology_future = executor.submit(_rescan_catalog_topology, root)
-            state_future = executor.submit(_file_state, prepared_sources)
-            directory_state_after = directory_future.result()
-            topology_after = topology_future.result()
-            state_after = state_future.result()
-        if directory_state_after != directory_state_before:
-            return None
-        if topology_after != topology_before:
-            return None
-        if state_after != state_at_hash:
-            return None
     except (FileNotFoundError, NotADirectoryError, _SourceChanged):
         return None
 
     fingerprints = {
-        doc_key: fingerprint
-        for doc_key, fingerprint, _source_states in pairs
+        doc_key: fingerprint_value
+        for doc_key, fingerprint_value, _source_states in pairs
     }
     if len(fingerprints) != len(pairs):
         raise ValueError("duplicate document key during source proof capture")
-    return proof_from_fingerprints(
+    proof = proof_from_fingerprints(
         fingerprints,
         segment_recipe_hash,
         compiler_recipe_hash,
     )
+    snapshot = StableCatalogSnapshot(
+        content_dir=root,
+        sources=tuple(sources),
+        proof=proof,
+        directory_state=directory_state_before,
+        topology=topology_before,
+        file_state=state_at_hash,
+    )
+    if not snapshot.verify_unchanged(check_cancel):
+        return None
+    return snapshot
 
 
-__all__ = ["SOURCE_HASH_WORKERS", "capture_stable_input_proof"]
+def capture_stable_input_proof(
+    content_dir: Path,
+    *,
+    segment_recipe_hash: str,
+    compiler_recipe_hash: str,
+    check_cancel: Callable[[], None],
+    max_workers: int = SOURCE_HASH_WORKERS,
+) -> dict[str, object] | None:
+    """Compatibility wrapper returning the unchanged v2 proof payload."""
+
+    snapshot = capture_stable_catalog(
+        content_dir,
+        segment_recipe_hash=segment_recipe_hash,
+        compiler_recipe_hash=compiler_recipe_hash,
+        check_cancel=check_cancel,
+        max_workers=max_workers,
+    )
+    return None if snapshot is None else snapshot.validated_proof()
+
+__all__ = [
+    "SOURCE_HASH_WORKERS",
+    "StableCatalogSnapshot",
+    "capture_stable_catalog",
+    "capture_stable_input_proof",
+]
