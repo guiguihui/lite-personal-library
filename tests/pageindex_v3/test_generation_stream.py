@@ -97,15 +97,20 @@ def test_validate_generation_stream_collects_at_most_one_ref_map(
         pageindex,
         check_cancelled=lambda: None,
     ) == {}
+    recipes: list[GenerationRecipe] = []
     collected = validate_generation_stream(
         receipt,
         pageindex,
         check_cancelled=lambda: None,
         collect_refs=True,
+        recipe_observer=recipes.append,
     )
 
     assert tuple(collected) == tuple(sorted(ref.doc_key for ref in refs))
-    assert collected == {ref.doc_key: ref for ref in sorted(refs, key=lambda ref: ref.doc_key)}
+    assert collected == {
+        ref.doc_key: ref for ref in sorted(refs, key=lambda ref: ref.doc_key)
+    }
+    assert recipes == [GenerationRecipe(body_df_min=17)]
 
 
 def test_validate_generation_stream_does_not_call_whole_document_helpers(

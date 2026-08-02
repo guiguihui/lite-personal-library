@@ -2219,18 +2219,35 @@ class PostingLayerReader:
         self,
         token: str,
         include_body: bool = True,
+        *,
+        active_document_predicate: Callable[[int], bool] | None = None,
     ) -> Iterator[SearchPosting]:
         if not isinstance(include_body, bool):
             raise TypeError("include_body must be a bool")
+        if active_document_predicate is not None and not callable(
+            active_document_predicate
+        ):
+            raise TypeError("active_document_predicate must be callable")
         record = self.lookup_term(token)
         if record is None or not record.has_postings:
             return iter(())
         self._ensure_documents_loaded()
         if not include_body:
-            return self._iter_nonbody_only(record)
-        return self._iter_complete(record)
+            return self._iter_nonbody_only(
+                record,
+                active_document_predicate=active_document_predicate,
+            )
+        return self._iter_complete(
+            record,
+            active_document_predicate=active_document_predicate,
+        )
 
-    def _iter_nonbody_only(self, record: TermRecord) -> Iterator[SearchPosting]:
+    def _iter_nonbody_only(
+        self,
+        record: TermRecord,
+        *,
+        active_document_predicate: Callable[[int], bool] | None = None,
+    ) -> Iterator[SearchPosting]:
         (
             nonbody_start,
             nonbody_end,
@@ -2244,6 +2261,11 @@ class PostingLayerReader:
         for key, title_tf, breadcrumb_tf in self._nonbody_rows(
             cursor, nonbody_count
         ):
+            if (
+                active_document_predicate is not None
+                and not active_document_predicate(key[0])
+            ):
+                continue
             yield self._search_posting(
                 record.token, key, title_tf, breadcrumb_tf, 0
             )
@@ -2252,7 +2274,12 @@ class PostingLayerReader:
         # Deliberately do not read body-row bytes.  The locally authenticated
         # prefix already binds body_count; the caller pruned the body field.
 
-    def _iter_complete(self, record: TermRecord) -> Iterator[SearchPosting]:
+    def _iter_complete(
+        self,
+        record: TermRecord,
+        *,
+        active_document_predicate: Callable[[int], bool] | None = None,
+    ) -> Iterator[SearchPosting]:
         (
             nonbody_start,
             nonbody_end,
@@ -2287,20 +2314,34 @@ class PostingLayerReader:
             if right is None or (left is not None and left[0] < right[0]):
                 assert left is not None
                 key, title_tf, breadcrumb_tf = left
-                yield self._search_posting(
-                    record.token, key, title_tf, breadcrumb_tf, 0
-                )
+                if (
+                    active_document_predicate is None
+                    or active_document_predicate(key[0])
+                ):
+                    yield self._search_posting(
+                        record.token, key, title_tf, breadcrumb_tf, 0
+                    )
                 left = next(nonbody, None)
             elif left is None or right[0] < left[0]:
                 key, body_tf = right
-                yield self._search_posting(record.token, key, 0, 0, body_tf)
+                if (
+                    active_document_predicate is None
+                    or active_document_predicate(key[0])
+                ):
+                    yield self._search_posting(
+                        record.token, key, 0, 0, body_tf
+                    )
                 right = next(body, None)
             else:
                 key, title_tf, breadcrumb_tf = left
                 _, body_tf = right
-                yield self._search_posting(
-                    record.token, key, title_tf, breadcrumb_tf, body_tf
-                )
+                if (
+                    active_document_predicate is None
+                    or active_document_predicate(key[0])
+                ):
+                    yield self._search_posting(
+                        record.token, key, title_tf, breadcrumb_tf, body_tf
+                    )
                 left = next(nonbody, None)
                 right = next(body, None)
         if nonbody_cursor.remaining != 0 or body_cursor.remaining != 0:

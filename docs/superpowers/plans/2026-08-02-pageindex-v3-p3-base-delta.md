@@ -745,16 +745,22 @@ git commit -m "feat(pageindex): validate base and delta views independently"
 **Files:**
 - Create: `app/index/v3/reader.py`
 - Create: `tests/pageindex_v3/test_reader.py`
+- Create: `tests/pageindex_v3/test_reader_adversarial.py`
+- Create: `tests/pageindex_v3/test_reader_allocation.py`
+- Modify: `app/index/v3/layer_codec.py`
+- Modify: `app/index/v3/generation_stream.py`
+- Modify: `app/index/v3/__init__.py`
+- Modify: `tests/pageindex_v3/test_generation_stream.py`
 
 **Interfaces:**
 - Consumes: explicit `ViewPin(generation, view_id)`, Generation/View manifests, owner map, layer readers, PCV metrics, and Segments.
 - Produces: `PinnedSearchView.open(...)`, `iter_raw_postings(token)`, `iter_effective_postings(token)`, `token_stats(tokens)`, `get_chunk_metrics(refs)`, `get_chunks(refs)`, `corpus_stats()`, and `documents()`.
 
-- [ ] **Step 1: Write owner-map/newest-wins oracle tests**
+- [x] **Step 1: Write owner-map/newest-wins oracle tests**
 
 Cover edit with an old token disappearing, add, delete without new rows, multiple replacements A->B->C->delete, same slug/different type, missing parent, explicit stale/mismatched pin, and a concurrently changed external pointer that cannot affect an already-open reader. Compare every result with a clean base.
 
-- [ ] **Step 2: Open one immutable pin and construct ownership independent of tokens**
+- [x] **Step 2: Open one immutable pin and construct ownership independent of tokens**
 
 `open()` requires complete 64-hex Generation and View IDs, verifies the View-bound Generation manifest digest, exact ordered delta chain, owner map, and recipes, and then keeps that immutable state. It never reads `current.json`, checks mtimes, or chooses a latest fallback.
 
@@ -772,7 +778,7 @@ accept = (
 
 Token presence is never used to determine ownership, so disappearance/deletion cannot leak stale rows.
 
-- [ ] **Step 3: Resolve token statistics and field policy on demand**
+- [x] **Step 3: Resolve token statistics and field policy on demand**
 
 For each requested token, sparse-seek its base contribution and every ordered delta contribution, sum `df_any/df_nonbody/df_body`, and validate the pinned result. Compute:
 
@@ -787,19 +793,21 @@ effective_df = df_nonbody if prune_body else df_any
 
 Read non-body partitions from newest delta to base. Read body partitions only when not pruned, merge fields by complete `ChunkRef`, apply the owner predicate, drop all-zero rows, and return deterministic `(doc_uid, segment_hash, local_id)` order. Title/breadcrumb TF are never suppressed.
 
-- [ ] **Step 4: Load only candidate metrics and chunks**
+- [x] **Step 4: Load only candidate metrics and chunks**
 
 Group candidate refs by owner layer/document to seek only required PCV blocks. After ranking, group stable refs by `(doc_uid, segment_hash)`, call `SegmentProjector.load_chunks()` for requested local IDs, and use a byte-bounded thread-safe LRU keyed by segment hash. Never materialize all View chunks/postings/terms.
 
-- [ ] **Step 5: Run reader tests and read-amplification assertions**
+- [x] **Step 5: Run reader tests and read-amplification assertions**
 
 Run: `python -m pytest tests/pageindex_v3/test_reader.py -q`
 Expected: incremental and clean-base raw/effective postings, token triples, metrics, and chunks match exactly; one-token reads are bounded by one sparse window and at most one addressed partition per layer.
 
-- [ ] **Step 6: Commit**
+Result: focused Generation/layer/reader suites `62 passed`; full PageIndex v3 `477 passed, 5 skipped`; full repository `958 passed, 7 skipped`. The reader is bound to an externally trusted immutable pin, rejects reordered chains and static artifact drift, ignores mutable `current.json`, survives caller cwd changes, and closes every partially opened layer without masking the primary failure. Per-token work sparse-seeks each layer; extreme-high-DF body partitions are not read, while title/breadcrumb remain. Active ordinals are fixed at open so stale history is filtered before `SearchPosting` allocation. Candidate PCV/Segment reads are addressed only, cache additions size only new chunks, returned chunks are isolated copies, and close detaches O(N) state for long-lived processes.
+
+- [x] **Step 6: Commit**
 
 ```powershell
-git add app/index/v3/reader.py tests/pageindex_v3/test_reader.py
+git add app/index/v3/__init__.py app/index/v3/generation_stream.py app/index/v3/layer_codec.py app/index/v3/reader.py tests/pageindex_v3/test_generation_stream.py tests/pageindex_v3/test_reader.py tests/pageindex_v3/test_reader_adversarial.py tests/pageindex_v3/test_reader_allocation.py docs/superpowers/plans/2026-08-02-pageindex-v3-p3-base-delta.md
 git commit -m "feat(pageindex): read pinned base and delta views"
 ```
 

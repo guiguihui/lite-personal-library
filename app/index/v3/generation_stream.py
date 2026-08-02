@@ -324,6 +324,7 @@ def validate_generation_stream(
     *,
     check_cancelled: Callable[[], None],
     collect_refs: bool = False,
+    recipe_observer: Callable[[GenerationRecipe], None] | None = None,
 ) -> dict[str, StoredSegmentRef]:
     """Validate one Generation in one bounded parse pass per control file.
 
@@ -339,6 +340,8 @@ def validate_generation_stream(
         raise TypeError("check_cancelled must be callable")
     if type(collect_refs) is not bool:
         raise TypeError("collect_refs must be a bool")
+    if recipe_observer is not None and not callable(recipe_observer):
+        raise TypeError("recipe_observer must be callable")
 
     check_cancelled()
     root = Path(receipt.candidate_dir).absolute()
@@ -618,6 +621,8 @@ def validate_generation_stream(
     generation_id = generation_digest.hexdigest()
     if generation_id != manifest_generation or generation_id != receipt.generation_id:
         raise LogicalGenerationError("logical Generation identity mismatch")
+    if recipe_observer is not None:
+        recipe_observer(recipe)
     return refs
 
 

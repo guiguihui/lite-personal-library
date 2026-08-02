@@ -82,6 +82,11 @@ from .validator import (
     validate_generation_normal,
     validate_view_normal,
 )
+from .reader import (
+    DEFAULT_CHUNK_CACHE_BYTES,
+    PinnedSearchView,
+    PinnedSearchViewError,
+)
 
 __all__ = [
     "ChunkMetric",
@@ -157,4 +162,7 @@ __all__ = [
     "validate_delta_normal",
     "validate_generation_normal",
     "validate_view_normal",
+    "DEFAULT_CHUNK_CACHE_BYTES",
+    "PinnedSearchView",
+    "PinnedSearchViewError",
 ]
