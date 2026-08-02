@@ -20,6 +20,7 @@ from app.http.routes_content import router as content_router
 from app.http.routes_index import router as index_router
 from app.http.routes_ingest import router as ingest_router
 from app.http.routes_llm_proxy import router as llm_proxy_router
+from app.http.routes_links import router as links_router
 from app.http.routes_pageindex import router as pageindex_router
 from app.http.routes_raw import router as raw_router
 from app.http.routes_settings import router as settings_router
@@ -103,6 +104,7 @@ def create_app(cfg: AppConfig) -> FastAPI:
     app.include_router(search_router)
     app.include_router(index_router)
     app.include_router(llm_proxy_router)
+    app.include_router(links_router)
     app.include_router(ingest_router)
 
     # 静态资源:前端 frontend/ 目录(WebView 加载 index.html/chat/katex)

@@ -235,6 +235,13 @@
     }
     outlineSection.appendChild(tree);
     container.appendChild(outlineSection);
+
+    var tabState = tab && tab.state ? tab.state : {};
+    var kind = String(tabState.type || doc.type || '').replace(/s$/, '');
+    var slug = tabState.slug || doc.doc_name || doc.id;
+    if (window.LqdKnowledge && kind && slug) {
+      window.LqdKnowledge.renderOverview(container, kind + ':' + slug);
+    }
   }
 
   // ── Manage 场景 ──────────────────────────────────────────────────────────

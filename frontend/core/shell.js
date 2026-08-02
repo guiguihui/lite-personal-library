@@ -130,6 +130,24 @@
     syncPanelsForActivity(activity);
   }
 
+  function reflectActiveTab(tab) {
+    if (!tab || ACTIVITIES.indexOf(tab.type) === -1) return;
+    var activity = tab.type;
+    var current = window.LqdStore ? window.LqdStore.get('activity') : 'chat';
+    if (activity !== current) {
+      window.LqdStore.set('activity', activity);
+      var icons = state.els.activityBar.querySelectorAll('.lqd-activity-icon[data-activity]');
+      icons.forEach(function (icon) {
+        icon.classList.toggle('active', icon.getAttribute('data-activity') === activity);
+      });
+      window.LqdEvents.emit('activity:changed', { activity: activity, previous: current });
+    }
+    var component = window.LqdTabs ? window.LqdTabs.getComponent(tab.type) : null;
+    var sidebarActions = component && typeof component.getSidebarActions === 'function' ? component.getSidebarActions() : [];
+    if (window.LqdSidebar) window.LqdSidebar.renderHeader(ACTIVITY_LABELS[activity], sidebarActions);
+    if (window.LqdOverview) window.LqdOverview.renderHeader(ACTIVITY_LABELS[activity]);
+    syncPanelsForActivity(activity);
+  }
   function toggleSidebar() {
     state.sidebarCollapsed = !state.sidebarCollapsed;
     if (state.els.shell) {
@@ -220,6 +238,11 @@
     // 设置初始 Sidebar/Overview 标题,并根据初始 activity 同步两侧面板显隐
     var initialActivity = window.LqdStore ? window.LqdStore.get('activity') : 'chat';
     var initialTab = window.LqdTabs ? window.LqdTabs.active() : null;
+    if (initialTab && ACTIVITIES.indexOf(initialTab.type) !== -1 && initialActivity !== initialTab.type) {
+      initialActivity = initialTab.type;
+      if (window.LqdStore) window.LqdStore.set('activity', initialActivity);
+      renderActivityBar();
+    }
     var initialComponent = initialTab ? window.LqdTabs.getComponent(initialTab.type) : null;
     var initialActions = [];
     if (initialComponent && typeof initialComponent.getSidebarActions === 'function') {
@@ -238,15 +261,8 @@
 
     // 监听标签切换,让 activity 与活动标签保持一致(用户点击 tab 时也能更新侧栏)
     if (window.LqdEvents) {
-      function syncActivityFromTab(tab) {
-        if (!tab || !tab.type) return;
-        var currentActivity = window.LqdStore ? window.LqdStore.get('activity') : 'chat';
-        if (tab.type !== currentActivity && ACTIVITIES.indexOf(tab.type) !== -1) {
-          setActivity(tab.type);
-        }
-      }
-      window.LqdEvents.on('tab:activated', function (payload) { syncActivityFromTab(payload && payload.tab); });
-      window.LqdEvents.on('tab:opened', function (payload) { syncActivityFromTab(payload && payload.tab); });
+      window.LqdEvents.on('tab:activated', function (payload) { reflectActiveTab(payload && payload.tab); });
+      window.LqdEvents.on('tab:opened', function (payload) { reflectActiveTab(payload && payload.tab); });
     }
 
     state.initialized = true;
@@ -256,6 +272,7 @@
   window.LqdShell = {
     init: init,
     setActivity: setActivity,
+    reflectActiveTab: reflectActiveTab,
     toggleSidebar: toggleSidebar,
     toggleOverview: toggleOverviewPanel,
     getActivity: function () { return window.LqdStore ? window.LqdStore.get('activity') : 'chat'; },
