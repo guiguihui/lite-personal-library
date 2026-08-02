@@ -142,7 +142,8 @@
     //  marked 内部 tokenizer 或 _preprocess 的 callout 正则对边界片段的处理)。
     // 兜底降级到转义文本,保证消息可见;打印堆栈 + 输入片段便于定位上游。
     try {
-      var preprocessed = _preprocess(text);
+      var linked = window.LqdWikilinks && (!window.LQD_FEATURES || window.LQD_FEATURES.wikilinks_enabled) ? window.LqdWikilinks.preprocess(text) : text;
+      var preprocessed = _preprocess(linked);
       var html = marked.parse(preprocessed);
       if (html == null) {
         console.warn('[YuuRender] marked.parse returned', typeof html, 'for input(len=' + text.length + '):', text.slice(0, 200));

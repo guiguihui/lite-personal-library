@@ -489,6 +489,8 @@ class TestContentApi:
         assert r.status_code == 200
         # 返回纯文本片段
         assert isinstance(r.text, str)
+        assert not r.text.startswith('"')
+        assert r.headers["content-type"].startswith("text/plain")
 
     def test_read_section_path_traversal(self, client: TestClient) -> None:
         r = client.get(

@@ -12,7 +12,7 @@ type 单复数:global-index.json 用单数(book/paper/note),pageindex 目录用�
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.storage.content_io import read_markdown_section
 from app.storage.pageindex_io import read_index
@@ -80,7 +80,7 @@ async def read_doc(type: str, slug: str, request: Request) -> JSONResponse:
     return JSONResponse(data)
 
 
-@router.get("/section")
+@router.get("/section", response_class=PlainTextResponse)
 async def read_section(
     source_md: str,
     line_num: int = 0,
