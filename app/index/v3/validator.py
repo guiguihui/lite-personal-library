@@ -23,6 +23,7 @@ from .layer_codec import PostingLayerReader
 from .models import (
     ChunkRef,
     SearchViewRecipe,
+    ViewPin,
     make_doc_uid,
 )
 from .segment_projection import SegmentProjector
@@ -417,6 +418,8 @@ def _validate_delta(
     target: SearchViewReceipt,
     parent_generation: LogicalGenerationReceipt,
     generation: LogicalGenerationReceipt,
+    parent_pin: ViewPin,
+    target_pin: ViewPin,
     pageindex_dir: Path,
     check_cancelled: Callable[[], None],
 ) -> None:
@@ -425,6 +428,18 @@ def _validate_delta(
         raise TypeError("parent_generation must be a LogicalGenerationReceipt")
     if not isinstance(generation, LogicalGenerationReceipt):
         raise TypeError("generation must be a LogicalGenerationReceipt")
+    if not isinstance(parent_pin, ViewPin) or not isinstance(target_pin, ViewPin):
+        raise TypeError("parent_pin and target_pin must be ViewPin values")
+    if (
+        parent_pin.generation != parent_generation.generation_id
+        or parent_pin.view_id != parent.view_id
+    ):
+        raise ValueError("parent View differs from trusted parent pin")
+    if (
+        target_pin.generation != generation.generation_id
+        or target_pin.view_id != target.view_id
+    ):
+        raise ValueError("target View differs from trusted target pin")
     parent_refs = _validate_generation(
         parent_generation, pageindex_dir, check_cancelled
     )
@@ -819,12 +834,21 @@ def _validate_delta(
 def _validate_view(
     receipt: SearchViewReceipt,
     generation: LogicalGenerationReceipt,
+    pin: ViewPin,
     pageindex_dir: Path,
     check_cancelled: Callable[[], None],
 ) -> None:
     check_cancelled()
+    if not isinstance(receipt, SearchViewReceipt):
+        raise TypeError("receipt must be a SearchViewReceipt")
     if not isinstance(generation, LogicalGenerationReceipt):
         raise TypeError("generation must be a LogicalGenerationReceipt")
+    if not isinstance(pin, ViewPin):
+        raise TypeError("pin must be a ViewPin")
+    if pin.generation != generation.generation_id:
+        raise ValueError("trusted View pin differs from logical Generation")
+    if pin.view_id != receipt.view_id:
+        raise ValueError("View receipt differs from trusted View pin")
     generation_refs = _validate_generation(
         generation, pageindex_dir, check_cancelled
     )
@@ -1014,9 +1038,11 @@ def validate_delta_normal(
     generation: LogicalGenerationReceipt,
     pageindex_dir: Path,
     *,
+    parent_pin: ViewPin,
+    target_pin: ViewPin,
     check_cancelled: Callable[[], None] | None = None,
 ) -> ValidationReport:
-    """Validate one dirty Delta from touched summaries and sparse terms only."""
+    """Validate a dirty Delta between externally trusted immutable pins."""
 
     cancel = _check_cancelled(check_cancelled)
     return _capture(
@@ -1027,6 +1053,8 @@ def validate_delta_normal(
             target,
             parent_generation,
             generation,
+            parent_pin,
+            target_pin,
             Path(pageindex_dir),
             cancel,
         ),
@@ -1038,15 +1066,16 @@ def validate_view_normal(
     generation: LogicalGenerationReceipt,
     pageindex_dir: Path,
     *,
+    pin: ViewPin,
     check_cancelled: Callable[[], None] | None = None,
 ) -> ValidationReport:
-    """Replay one ordered Base/Delta chain and validate its active View."""
+    """Replay a View chain anchored by an externally trusted immutable pin."""
 
     cancel = _check_cancelled(check_cancelled)
     return _capture(
         "view_invalid",
         lambda: _validate_view(
-            receipt, generation, Path(pageindex_dir), cancel
+            receipt, generation, pin, Path(pageindex_dir), cancel
         ),
     )
 

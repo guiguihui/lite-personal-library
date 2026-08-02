@@ -696,7 +696,7 @@ git commit -m "feat(pageindex): build document replacement deltas"
 - Create: `tests/pageindex_v3/test_v3_validator.py`
 
 **Interfaces:**
-- Consumes: logical Generation/Base/Delta/View receipts, Task 4 readers, Task 3 summaries, and exact parent/target manifests.
+- Consumes: logical Generation/Base/Delta/View receipts, externally trusted parent/target `ViewPin` values, Task 4 readers, Task 3 summaries, and exact parent/target manifests.
 - Produces: `validate_generation_normal()`, `validate_base_normal()`, `validate_delta_normal()`, and `validate_view_normal()` using the existing `ValidationReport` shape.
 
 - [x] **Step 1: Write malicious re-bound receipt tests**
@@ -724,14 +724,14 @@ Dirty delta validation independently checks:
 
 It does not trust a re-bound receipt as semantic evidence and does not load unrelated Segments. Every live new replacement is decoded exactly once through `SegmentProjector.project_to_sink()`; the independently derived summary, exact per-chunk PCV metrics, and full seven-field posting digest/row count must match the stored Delta.
 
-View validation authenticates the ordered manifest chain, materializes only the zero-Delta and final owner/statistics endpoints, replays all replacement old/new sides and statistics deltas, and compares the final state to the target Generation. This is `O(N + C)` rather than `O(N*D + C)`. Schema-v1 whole-file owner hashes cannot also revalidate every intermediate owner artifact within that bound; preserving both properties requires the patch/Merkle owner schema-v2 decision after the exact-50k gate.
+View validation authenticates the ordered manifest chain, materializes only the zero-Delta and final owner/statistics endpoints, replays all replacement old/new sides and statistics deltas, and compares the final state to the target Generation. Delta and View validation require externally trusted pins and reject either endpoint before reading it when its receipt differs; callers must never construct those pins from the untrusted receipt currently being validated. This closes fully self-consistent owner-map/receipt rebinding without rescanning every Base Segment. The replay remains `O(N + C)` rather than `O(N*D + C)`. Schema-v1 whole-file owner hashes cannot also revalidate every intermediate owner artifact within that bound; preserving both properties requires the patch/Merkle owner schema-v2 decision after the exact-50k gate.
 
 - [x] **Step 4: Run focused validation tests**
 
 Run: `python -m pytest tests/pageindex_v2/test_streaming_json.py tests/pageindex_v3/test_generation_stream.py tests/pageindex_v3/test_v3_validator.py -q`
 Expected: deterministic error ordering, one-pass Generation hashes, cancellation identity preservation, bounded touched-token reads, zero base-posting reads on dirty Normal, endpoint-only View data reads, and independent full-base verification only when a base is explicitly created.
 
-Result: focused validation `47 passed`; full PageIndex v3 regression `454 passed, 5 skipped`; full repository `935 passed, 7 skipped`.
+Result after trusted-pin hardening: focused validation `49 passed`; PageIndex v3 excluding the intentionally red Task 9 reader test `456 passed, 5 skipped`. Full repository excluding the intentionally red Task 9 reader test: `937 passed, 7 skipped`.
 
 - [x] **Step 5: Commit**
 

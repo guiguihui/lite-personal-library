@@ -36,7 +36,7 @@ from app.index.v3.layer_codec import (
     TokenContribution,
 )
 from app.index.v3.layer_runs import build_sorted_layer
-from app.index.v3.models import CompactionPolicy, GenerationRecipe, SearchViewRecipe
+from app.index.v3.models import CompactionPolicy, GenerationRecipe, SearchViewRecipe, ViewPin
 import app.index.v3.segment_projection as projection_module
 from app.index.v3.segment_projection import SegmentProjector
 from app.index.v3.source_diff import SegmentChangeSet
@@ -78,6 +78,9 @@ class ValidationCorpus:
     def target(self) -> SearchViewReceipt:
         return self.delta_result.view
 
+
+def _pin(view: SearchViewReceipt) -> ViewPin:
+    return ViewPin(generation=view.generation, view_id=view.view_id)
 
 
 def _canonical(value: object) -> bytes:
@@ -325,15 +328,45 @@ def test_validate_delta_normal_returns_validation_report(
             corpus.initial_generation,
             corpus.target_generation,
             corpus.pageindex,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(corpus.target),
         )
     )
+
+
+def test_delta_normal_rejects_parent_outside_trusted_pin(
+    corpus: ValidationCorpus,
+) -> None:
+    wrong_parent_pin = ViewPin(
+        generation=corpus.parent.generation,
+        view_id=corpus.target.view_id,
+    )
+
+    report = validate_delta_normal(
+        corpus.delta,
+        corpus.parent,
+        corpus.target,
+        corpus.initial_generation,
+        corpus.target_generation,
+        corpus.pageindex,
+        parent_pin=wrong_parent_pin,
+        target_pin=_pin(corpus.target),
+    )
+
+    _assert_invalid_report(report, "delta_invalid")
+    assert "trusted parent pin" in report.errors[0]
 
 
 def test_validate_view_normal_returns_validation_report(
     corpus: ValidationCorpus,
 ) -> None:
     _assert_ok_report(
-        validate_view_normal(corpus.target, corpus.target_generation, corpus.pageindex)
+        validate_view_normal(
+            corpus.target,
+            corpus.target_generation,
+            corpus.pageindex,
+            pin=_pin(corpus.target),
+        )
     )
 
 
@@ -409,7 +442,7 @@ def test_view_normal_reads_only_endpoint_view_data(
     )
 
     _assert_ok_report(
-        validate_view_normal(result.view, generation, corpus.pageindex)
+        validate_view_normal(result.view, generation, corpus.pageindex, pin=_pin(result.view))
     )
     endpoint_ids = [corpus.parent.view_id, result.view.view_id]
     assert document_reads == endpoint_ids
@@ -512,10 +545,17 @@ def test_dirty_normal_uses_touched_term_windows_without_base_postings_or_v2(
             corpus.initial_generation,
             corpus.target_generation,
             corpus.pageindex,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(corpus.target),
         )
     )
     _assert_ok_report(
-        validate_view_normal(corpus.target, corpus.target_generation, corpus.pageindex)
+        validate_view_normal(
+            corpus.target,
+            corpus.target_generation,
+            corpus.pageindex,
+            pin=_pin(corpus.target),
+        )
     )
     assert base_reads["layer-documents.json"] == 0
     assert base_reads["postings.piv"] == 0
@@ -554,6 +594,8 @@ def test_normal_validation_propagates_cancellation_unchanged(
                 corpus.initial_generation,
                 corpus.target_generation,
                 corpus.pageindex,
+                parent_pin=_pin(corpus.parent),
+                target_pin=_pin(corpus.target),
                 check_cancelled=cancel,
             )
     assert observed.value is cancelled
@@ -912,6 +954,8 @@ def test_delta_rejects_rebound_parent_or_target_manifest_hash(
             corpus.initial_generation,
             corpus.target_generation,
             corpus.pageindex,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(target),
         ),
         "delta_invalid",
     )
@@ -944,6 +988,8 @@ def test_delta_rejects_scalar_transition_rebound_into_target_view(
             corpus.initial_generation,
             corpus.target_generation,
             corpus.pageindex,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(target),
         ),
         "delta_invalid",
     )
@@ -985,6 +1031,8 @@ def test_delta_rejects_rebound_target_owner_drift(
             corpus.initial_generation,
             corpus.target_generation,
             corpus.pageindex,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(target),
         ),
         "delta_invalid",
     )
@@ -1009,9 +1057,42 @@ def test_view_rejects_rebound_final_owner_summary(
         mutate_documents=mutate,
     )
     _assert_invalid_report(
-        validate_view_normal(target, corpus.target_generation, corpus.pageindex),
+        validate_view_normal(target, corpus.target_generation, corpus.pageindex, pin=_pin(target)),
         "view_invalid",
     )
+
+def test_view_normal_rejects_fully_rebound_initial_owner_map_without_trusted_pin(
+    corpus: ValidationCorpus,
+) -> None:
+    def mutate(documents: dict[str, dict[str, object]]) -> None:
+        owners = [
+            owner
+            for owner in documents.values()
+            if owner["owner_layer_kind"] == "base"
+        ]
+        assert len(owners) >= 2
+        owners[0]["doc_ordinal"], owners[1]["doc_ordinal"] = (
+            owners[1]["doc_ordinal"],
+            owners[0]["doc_ordinal"],
+        )
+        owners[0]["summary_sha256"] = "0" * 64
+        owners[0]["summary_bytes"] = 0
+
+    rebound = _rebind_view(
+        corpus.parent,
+        corpus.search_view_recipe,
+        mutate_documents=mutate,
+    )
+
+    report = validate_view_normal(
+        rebound,
+        corpus.initial_generation,
+        corpus.pageindex,
+        pin=_pin(corpus.parent),
+    )
+    _assert_invalid_report(report, "view_invalid")
+    assert "trusted View pin" in report.errors[0]
+
 
 def _delta_layer_inputs(
     corpus: ValidationCorpus,
@@ -1095,6 +1176,8 @@ def test_delta_rejects_rebound_touched_term_arithmetic(
             corpus.initial_generation,
             corpus.target_generation,
             corpus.pageindex,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(target),
         ),
         "delta_invalid",
     )
@@ -1134,6 +1217,8 @@ def test_delta_rejects_rebound_posting_tf_with_unchanged_df(
             corpus.initial_generation,
             corpus.target_generation,
             corpus.pageindex,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(target),
         ),
         "delta_invalid",
     )
@@ -1227,6 +1312,8 @@ def test_delta_rejects_consistent_summary_pcv_statistics_owner_drift(
             corpus.initial_generation,
             corpus.target_generation,
             corpus.pageindex,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(target),
         ),
         "delta_invalid",
     )
@@ -1287,6 +1374,8 @@ def test_delta_rejects_rows_outside_live_new_replacements(
             corpus.initial_generation,
             corpus.target_generation,
             corpus.pageindex,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(target),
         ),
         "delta_invalid",
     )
@@ -1319,6 +1408,8 @@ def test_delta_rejects_changed_summary_file_drift(
             corpus.initial_generation,
             corpus.target_generation,
             corpus.pageindex,
+            parent_pin=_pin(corpus.parent),
+            target_pin=_pin(corpus.target),
         ),
         "delta_invalid",
     )
@@ -1426,7 +1517,7 @@ def test_view_rejects_reordered_delta_chain(
         delta_ids=tuple(reversed(result.view.delta_ids)),
     )
     _assert_invalid_report(
-        validate_view_normal(reordered, generation, corpus.pageindex),
+        validate_view_normal(reordered, generation, corpus.pageindex, pin=_pin(reordered)),
         "view_invalid",
     )
 
@@ -1444,7 +1535,7 @@ def test_view_rejects_spliced_unknown_delta(
         delta_id_map={result.delta.delta_id: missing},
     )
     _assert_invalid_report(
-        validate_view_normal(spliced, generation, corpus.pageindex),
+        validate_view_normal(spliced, generation, corpus.pageindex, pin=_pin(spliced)),
         "view_invalid",
     )
 
@@ -1460,6 +1551,6 @@ def test_view_rejects_repeated_delta_cycle(
         result.view.delta_ids + (result.view.delta_ids[0],),
     )
     _assert_invalid_report(
-        validate_view_normal(cyclic, generation, corpus.pageindex),
+        validate_view_normal(cyclic, generation, corpus.pageindex, pin=_pin(cyclic)),
         "view_invalid",
     )
