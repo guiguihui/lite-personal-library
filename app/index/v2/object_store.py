@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .canonical import canonical_bytes, canonical_hash, write_json_atomic
+from .ids import make_doc_key
 
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -20,13 +21,18 @@ class SegmentStoreError(ValueError):
     """Raised when a Segment object is malformed, corrupt, or ambiguous."""
 
 
-@dataclass(frozen=True)
-class StoredSegment:
-    """A persisted immutable Segment object."""
+@dataclass(frozen=True, slots=True)
+class StoredSegmentRef:
+    """A lightweight attestation for one persisted immutable Segment."""
 
     segment_hash: str
     path: Path
     byte_size: int
+    doc_key: str
+    doc_type: str
+    slug: str
+    content_hash: str
+    segment_recipe_hash: str
 
     @property
     def hash(self) -> str:
@@ -41,10 +47,72 @@ class StoredSegment:
         return self.segment_hash
 
 
-def _validate_segment_hash(segment_hash: str) -> str:
-    if not isinstance(segment_hash, str) or not _SHA256_RE.fullmatch(segment_hash):
-        raise ValueError("segment_hash must be 64 lowercase hexadecimal characters")
-    return segment_hash
+# Backward-compatible import name. New code uses the explicit reference name
+# so Segment ownership remains visible at API boundaries.
+StoredSegment = StoredSegmentRef
+
+
+def _validate_sha256(value: object, field: str) -> str:
+    if not isinstance(value, str) or not _SHA256_RE.fullmatch(value):
+        raise ValueError(
+            f"{field} must be 64 lowercase hexadecimal characters"
+        )
+    return value
+
+
+def _validate_segment_hash(segment_hash: object) -> str:
+    return _validate_sha256(segment_hash, "segment_hash")
+
+
+def _document_identity(doc_key: object) -> tuple[str, str, str]:
+    if not isinstance(doc_key, str):
+        raise ValueError("doc_key must be a valid type-namespaced document key")
+    doc_type, separator, slug = doc_key.partition(":")
+    if not separator:
+        raise ValueError("doc_key must be a valid type-namespaced document key")
+    try:
+        expected = make_doc_key(doc_type, slug)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "doc_key must be a valid type-namespaced document key"
+        ) from exc
+    if expected != doc_key:
+        raise ValueError("doc_key must be a valid type-namespaced document key")
+    return doc_key, doc_type, slug
+
+
+def _segment_attestation(
+    segment: Mapping[str, object],
+) -> tuple[str, str, str, str, str]:
+    document = segment.get("document")
+    fingerprint = segment.get("fingerprint")
+    if not isinstance(document, Mapping) or not isinstance(
+        fingerprint, Mapping
+    ):
+        raise SegmentStoreError(
+            "segment object is missing document/fingerprint"
+        )
+
+    doc_key, doc_type, slug = _document_identity(document.get("doc_key"))
+    if document.get("type") != doc_type or document.get("id") != slug:
+        raise SegmentStoreError(
+            f"segment document identity does not match doc_key: {doc_key}"
+        )
+    content_hash = _validate_sha256(
+        fingerprint.get("content_hash"),
+        "content_hash",
+    )
+    segment_recipe_hash = _validate_sha256(
+        fingerprint.get("recipe_hash"),
+        "segment_recipe_hash",
+    )
+    return (
+        doc_key,
+        doc_type,
+        slug,
+        content_hash,
+        segment_recipe_hash,
+    )
 
 
 def _segment_path(pageindex_dir: Path, segment_hash: str) -> Path:
@@ -58,9 +126,59 @@ def _segment_path(pageindex_dir: Path, segment_hash: str) -> Path:
     )
 
 
+def _new_segment_ref(
+    segment_hash: str,
+    path: Path,
+    byte_size: int,
+    attestation: tuple[str, str, str, str, str],
+) -> StoredSegmentRef:
+    doc_key, doc_type, slug, content_hash, segment_recipe_hash = attestation
+    return StoredSegmentRef(
+        segment_hash=segment_hash,
+        path=path,
+        byte_size=byte_size,
+        doc_key=doc_key,
+        doc_type=doc_type,
+        slug=slug,
+        content_hash=content_hash,
+        segment_recipe_hash=segment_recipe_hash,
+    )
+
+
+def segment_ref_from_attestation(
+    pageindex_dir: Path,
+    doc_key: str,
+    segment_hash: str,
+    content_hash: str,
+    segment_recipe_hash: str,
+) -> StoredSegmentRef:
+    """Construct a Segment ref from manifest/proof facts without decoding it."""
+
+    identity = _document_identity(doc_key)
+    digest = _validate_segment_hash(segment_hash)
+    content_digest = _validate_sha256(content_hash, "content_hash")
+    recipe_digest = _validate_sha256(
+        segment_recipe_hash,
+        "segment_recipe_hash",
+    )
+    destination = _segment_path(Path(pageindex_dir), digest)
+    if not destination.exists():
+        raise FileNotFoundError(f"segment object not found: {digest}")
+    if not destination.is_file():
+        raise SegmentStoreError(
+            f"segment object path is not a file: {destination}"
+        )
+    return _new_segment_ref(
+        digest,
+        destination,
+        destination.stat().st_size,
+        (*identity, content_digest, recipe_digest),
+    )
+
+
 def put_segment(
     pageindex_dir: Path, segment: Mapping[str, object]
-) -> StoredSegment:
+) -> StoredSegmentRef:
     """Persist ``segment`` once and return its content-addressed location.
 
     Existing valid objects are never rewritten. If the path contains bytes
@@ -71,6 +189,7 @@ def put_segment(
     if not isinstance(segment, Mapping):
         raise TypeError("segment must be a mapping")
 
+    attestation = _segment_attestation(segment)
     encoded = canonical_bytes(segment)
     segment_hash = canonical_hash(segment)
     _validate_segment_hash(segment_hash)
@@ -93,8 +212,18 @@ def put_segment(
                 raise SegmentStoreError(
                     f"segment object repair failed at {destination}"
                 )
-            return StoredSegment(segment_hash, destination, len(repaired))
-        return StoredSegment(segment_hash, destination, len(existing))
+            return _new_segment_ref(
+                segment_hash,
+                destination,
+                len(repaired),
+                attestation,
+            )
+        return _new_segment_ref(
+            segment_hash,
+            destination,
+            len(existing),
+            attestation,
+        )
 
     write_json_atomic(destination, segment)
     written = destination.read_bytes()
@@ -102,18 +231,49 @@ def put_segment(
         raise SegmentStoreError(
             f"segment object was not written canonically at {destination}"
         )
-    return StoredSegment(segment_hash, destination, len(written))
+    return _new_segment_ref(
+        segment_hash,
+        destination,
+        len(written),
+        attestation,
+    )
 
 
-def load_segment(pageindex_dir: Path, segment_hash: str) -> dict[str, object]:
+def load_segment(
+    pageindex_dir: Path, segment_hash: str | StoredSegmentRef
+) -> dict[str, object]:
     """Load and verify one canonical Segment object.
 
     Hash validation happens before path construction, so traversal strings can
     never escape the object-store root.
     """
 
-    digest = _validate_segment_hash(segment_hash)
+    ref = segment_hash if isinstance(segment_hash, StoredSegmentRef) else None
+    digest = _validate_segment_hash(
+        ref.segment_hash if ref is not None else segment_hash
+    )
     path = _segment_path(Path(pageindex_dir), digest)
+    if ref is not None:
+        identity = _document_identity(ref.doc_key)
+        if (ref.doc_type, ref.slug) != identity[1:]:
+            raise SegmentStoreError(
+                f"segment ref attestation mismatch for {ref.doc_key}"
+            )
+        _validate_sha256(ref.content_hash, "content_hash")
+        _validate_sha256(
+            ref.segment_recipe_hash,
+            "segment_recipe_hash",
+        )
+        if (
+            isinstance(ref.byte_size, bool)
+            or not isinstance(ref.byte_size, int)
+            or ref.byte_size < 0
+        ):
+            raise ValueError("byte_size must be a non-negative integer")
+        if Path(ref.path).resolve() != path.resolve():
+            raise SegmentStoreError(
+                f"segment ref path mismatch: expected {path}, got {ref.path}"
+            )
     try:
         encoded = path.read_bytes()
     except FileNotFoundError:
@@ -124,6 +284,11 @@ def load_segment(pageindex_dir: Path, segment_hash: str) -> dict[str, object]:
         raise SegmentStoreError(
             f"segment object hash mismatch: expected {digest}, got {actual}"
         )
+    if ref is not None and len(encoded) != ref.byte_size:
+        raise SegmentStoreError(
+            "segment ref byte size mismatch: "
+            f"expected {ref.byte_size}, got {len(encoded)}"
+        )
 
     try:
         value: Any = json.loads(encoded.decode("utf-8"))
@@ -133,6 +298,24 @@ def load_segment(pageindex_dir: Path, segment_hash: str) -> dict[str, object]:
         raise SegmentStoreError(f"segment object must contain a JSON object: {digest}")
     if canonical_bytes(value) != encoded:
         raise SegmentStoreError(f"segment object is not canonical JSON: {digest}")
+    if ref is not None:
+        try:
+            actual_attestation = _segment_attestation(value)
+        except (TypeError, ValueError) as exc:
+            raise SegmentStoreError(
+                f"segment ref attestation mismatch for {ref.doc_key}"
+            ) from exc
+        expected_attestation = (
+            ref.doc_key,
+            ref.doc_type,
+            ref.slug,
+            ref.content_hash,
+            ref.segment_recipe_hash,
+        )
+        if actual_attestation != expected_attestation:
+            raise SegmentStoreError(
+                f"segment ref attestation mismatch for {ref.doc_key}"
+            )
     return value
 
 
@@ -193,7 +376,9 @@ def find_reusable_segments(
 __all__ = [
     "SegmentStoreError",
     "StoredSegment",
+    "StoredSegmentRef",
     "find_reusable_segments",
     "load_segment",
     "put_segment",
+    "segment_ref_from_attestation",
 ]

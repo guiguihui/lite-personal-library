@@ -8,10 +8,14 @@ import pytest
 from app.index.v2.canonical import canonical_bytes
 from app.index.v2.object_store import (
     SegmentStoreError,
+    StoredSegmentRef,
     find_reusable_segments,
     load_segment,
     put_segment,
 )
+
+_CONTENT_HASH = "1" * 64
+_SEGMENT_RECIPE_HASH = "2" * 64
 
 
 def _segment(doc_key: str = "book:alpha") -> dict[str, object]:
@@ -24,8 +28,8 @@ def _segment(doc_key: str = "book:alpha") -> dict[str, object]:
             "title": "Alpha",
         },
         "fingerprint": {
-            "content_hash": "content-alpha",
-            "recipe_hash": "recipe-v1",
+            "content_hash": _CONTENT_HASH,
+            "recipe_hash": _SEGMENT_RECIPE_HASH,
             "source_files": [],
         },
         "nodes": [],
@@ -43,6 +47,7 @@ def test_put_segment_is_content_addressed_and_immutable(tmp_path: Path) -> None:
     second = put_segment(tmp_path, segment)
 
     assert first == second
+    assert isinstance(first, StoredSegmentRef)
     assert first.path == (
         tmp_path
         / "objects"
@@ -89,5 +94,9 @@ def test_find_reusable_segments_indexes_fingerprints(tmp_path: Path) -> None:
     reusable = find_reusable_segments(tmp_path)
 
     assert reusable == {
-        ("book:alpha", "content-alpha", "recipe-v1"): stored.segment_hash
+        (
+            "book:alpha",
+            _CONTENT_HASH,
+            _SEGMENT_RECIPE_HASH,
+        ): stored.segment_hash
     }
