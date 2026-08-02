@@ -1,5 +1,9 @@
 # PageIndex v3 P2 Bounded-Memory Compiler Implementation Plan
 
+## Execution Status (2026-08-02)
+
+Completed and verified on branch `codex/pageindex-v3-deep-incremental`. The full suite passed with 476 tests and 2 skips; exact-50k cold peak working set fell from 6,280,855,552 B to 198,983,680 B, no-op P95 was 497.927 ms, and explicit Deep Audit passed in a separate process. Dirty edit/delete still spend about 129-140 seconds in the schema-3 compatibility recompile, so that remaining gate is intentionally handed to the P3 base+delta plan. Raw commands, report hashes, tradeoffs, and mechanism counters are recorded in `docs/pageindex-v3-p2-performance-evidence.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the production PageIndex compatibility build with a bounded-memory, reference-driven compiler and a Normal validator that never performs a second full build, while preserving byte-for-byte schema-3 output and existing publish safety.
