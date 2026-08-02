@@ -8,13 +8,15 @@ import shutil
 import tempfile
 import time
 from collections.abc import Mapping, Sequence
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import TYPE_CHECKING, Any
 
 from .canonical import canonical_hash, write_json_atomic
 from .catalog import DocumentSource, discover_documents, fingerprint_document
 from .ids import normalize_relative_path
+from .input_proof import INPUT_PROOF_PATH, validate_input_proof
 from .models import CompilerRecipe, SegmentRecipe
+from .streaming_json import stream_file_digest
 from .no_change import NoChangeMatch, try_no_change
 from .protocol import (
     EXIT_BUILD_FAILED,
@@ -30,7 +32,9 @@ from .protocol import (
 )
 
 if TYPE_CHECKING:
+    from .artifacts import CandidateReceipt
     from .compiler import CompiledGeneration
+    from .object_store import StoredSegmentRef
 
 
 def compile_generation(
@@ -42,6 +46,27 @@ def compile_generation(
     return implementation(segments, recipe)
 
 
+def compile_generation_to_candidate(
+    refs: Sequence[StoredSegmentRef],
+    pageindex_dir: Path,
+    candidate_dir: Path,
+    recipe: CompilerRecipe,
+    *,
+    max_run_bytes: int = 32 * 1024 * 1024,
+    merge_fan_in: int = 32,
+) -> CandidateReceipt:
+    from .compiler import compile_generation_to_candidate as implementation
+
+    return implementation(
+        refs,
+        pageindex_dir,
+        candidate_dir,
+        recipe,
+        max_run_bytes=max_run_bytes,
+        merge_fan_in=merge_fan_in,
+    )
+
+
 def find_reusable_segments(
     pageindex_dir: Path,
 ) -> dict[tuple[str, str, str], str]:
@@ -50,8 +75,27 @@ def find_reusable_segments(
     return implementation(pageindex_dir)
 
 
+def segment_ref_from_attestation(
+    pageindex_dir: Path,
+    doc_key: str,
+    segment_hash: str,
+    content_hash: str,
+    segment_recipe_hash: str,
+) -> StoredSegmentRef:
+    from .object_store import segment_ref_from_attestation as implementation
+
+    return implementation(
+        pageindex_dir,
+        doc_key,
+        segment_hash,
+        content_hash,
+        segment_recipe_hash,
+    )
+
+
 def load_segment(
-    pageindex_dir: Path, segment_hash: str
+    pageindex_dir: Path,
+    segment_hash: str | StoredSegmentRef,
 ) -> dict[str, object]:
     from .object_store import load_segment as implementation
 
@@ -59,8 +103,9 @@ def load_segment(
 
 
 def put_segment(
-    pageindex_dir: Path, segment: Mapping[str, object]
-) -> object:
+    pageindex_dir: Path,
+    segment: Mapping[str, object],
+) -> StoredSegmentRef:
     from .object_store import put_segment as implementation
 
     return implementation(pageindex_dir, segment)
@@ -141,41 +186,114 @@ def _string(value: object, field: str) -> str:
     return value
 
 
-def _read_base_segments(
+def _nonnegative_metric(
+    values: Mapping[str, object],
+    key: str,
+    default: int,
+) -> int:
+    value = values.get(key, default)
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int)
+        or value < 0
+    ):
+        raise ValueError(f"{key} must be a non-negative integer")
+    return value
+
+
+def _read_base_segment_refs(
     request: BuildRequest,
     reporter: TaskReporter,
-) -> tuple[list[dict[str, object]], set[str]]:
+) -> tuple[list[StoredSegmentRef], set[str]]:
+    """Read base attestations without decoding any Segment object."""
+
     generation = request.base_generation
     if generation is None:
         return [], set()
 
-    manifest_path = (
+    generation_dir = (
         request.pageindex_dir
         / "generations"
         / generation
-        / "manifest.json"
     )
+    manifest_path = generation_dir / "manifest.json"
     manifest = read_json_object(manifest_path)
     if manifest.get("generation") != generation:
         raise ValueError(
             f"base manifest generation mismatch at {manifest_path}"
         )
     documents = _mapping(manifest.get("documents"), "manifest.documents")
+    document_keys = {
+        _string(raw_doc_key, "manifest.documents key")
+        for raw_doc_key in documents
+    }
+    files = _mapping(manifest.get("files"), "manifest.files")
+    if (
+        manifest.get("schema_version") == 2
+        and INPUT_PROOF_PATH not in files
+    ):
+        if request.mode == "recompile":
+            raise ValueError(
+                "schema-2 base cannot be recompiled without input proof"
+            )
+        return [], document_keys
 
-    segments: list[dict[str, object]] = []
-    for doc_key in sorted(documents):
+    proof = validate_input_proof(
+        read_json_object(generation_dir / INPUT_PROOF_PATH)
+    )
+    proof_documents = _mapping(
+        proof.get("documents"),
+        "input_proof.documents",
+    )
+    if document_keys != set(proof_documents):
+        raise ValueError(
+            "base input proof document set does not match manifest"
+        )
+    proof_hash = canonical_hash(proof)
+    if manifest.get("input_proof_sha256") != proof_hash:
+        raise ValueError("base input proof is not bound by the manifest")
+    if proof.get("compiler_recipe_hash") != manifest.get(
+        "compiler_recipe_hash"
+    ):
+        raise ValueError(
+            "base input proof compiler recipe does not match manifest"
+        )
+    proof_metadata = _mapping(
+        files.get(INPUT_PROOF_PATH),
+        f"manifest.files[{INPUT_PROOF_PATH!r}]",
+    )
+    if proof_metadata.get("sha256") != proof_hash:
+        raise ValueError(
+            "base input proof file hash does not match manifest"
+        )
+
+    refs: list[StoredSegmentRef] = []
+    for doc_key in sorted(document_keys):
         _check_cancel(reporter)
         segment_hash = _string(
-            documents[doc_key], f"manifest.documents[{doc_key!r}]"
+            documents[doc_key],
+            f"manifest.documents[{doc_key!r}]",
         )
-        segment = load_segment(request.pageindex_dir, segment_hash)
-        document = _mapping(segment.get("document"), "segment.document")
-        if document.get("doc_key") != doc_key:
-            raise ValueError(
-                f"segment {segment_hash} does not belong to {doc_key}"
+        proof_entry = _mapping(
+            proof_documents[doc_key],
+            f"input_proof.documents[{doc_key!r}]",
+        )
+        refs.append(
+            segment_ref_from_attestation(
+                request.pageindex_dir,
+                doc_key,
+                segment_hash,
+                _string(
+                    proof_entry.get("content_hash"),
+                    f"input_proof.documents[{doc_key!r}].content_hash",
+                ),
+                _string(
+                    proof_entry.get("segment_recipe_hash"),
+                    f"input_proof.documents[{doc_key!r}].segment_recipe_hash",
+                ),
             )
-        segments.append(segment)
-    return segments, set(str(key) for key in documents)
+        )
+    return refs, document_keys
 
 
 def _snapshot_sources(
@@ -241,56 +359,70 @@ def _materialize_source_snapshot(
     )
 
 
-def _base_reusable_segments(
-    segments: Sequence[Mapping[str, object]],
-) -> dict[tuple[str, str, str], str]:
-    """Index only Segments referenced by the selected base Generation."""
+def _base_reusable_segment_refs(
+    refs: Sequence[StoredSegmentRef],
+) -> dict[tuple[str, str, str], StoredSegmentRef]:
+    """Index refs bound to the selected base Generation."""
 
-    reusable: dict[tuple[str, str, str], str] = {}
-    for segment in segments:
-        document = _mapping(segment.get("document"), "segment.document")
-        fingerprint = _mapping(
-            segment.get("fingerprint"), "segment.fingerprint"
-        )
+    reusable: dict[tuple[str, str, str], StoredSegmentRef] = {}
+    for ref in refs:
         key = (
-            _string(document.get("doc_key"), "document.doc_key"),
-            _string(
-                fingerprint.get("content_hash"),
-                "fingerprint.content_hash",
-            ),
-            _string(
-                fingerprint.get("recipe_hash"),
-                "fingerprint.recipe_hash",
-            ),
+            ref.doc_key,
+            ref.content_hash,
+            ref.segment_recipe_hash,
         )
-        segment_hash = canonical_hash(segment)
         previous = reusable.get(key)
-        if previous is not None and previous != segment_hash:
+        if (
+            previous is not None
+            and previous.segment_hash != ref.segment_hash
+        ):
             raise ValueError(
                 f"base generation has conflicting reusable segments for {key!r}"
             )
-        reusable[key] = segment_hash
+        reusable[key] = ref
     return reusable
 
 
-def _source_segments(
+def _source_segment_refs(
     request: BuildRequest,
     reporter: TaskReporter,
-    base_segments: Sequence[Mapping[str, object]] = (),
-) -> tuple[list[dict[str, object]], dict[str, int], set[str]]:
+    base_refs: Sequence[StoredSegmentRef] = (),
+) -> tuple[list[StoredSegmentRef], dict[str, object], set[str]]:
+    """Discover sources while retaining only immutable Segment references."""
+
     if not request.content_dir.is_dir():
         raise NotADirectoryError(request.content_dir)
 
     recipe = SegmentRecipe()
     recipe_hash = canonical_hash(recipe.as_dict())
+    bootstrap_reuse_scan_ms = 0.0
     if request.mode == "full":
-        reusable: dict[tuple[str, str, str], str] = {}
+        reusable: dict[
+            tuple[str, str, str],
+            StoredSegmentRef,
+        ] = {}
     elif request.base_generation is not None:
-        reusable = _base_reusable_segments(base_segments)
+        reusable = _base_reusable_segment_refs(base_refs)
     else:
-        # Bootstrap incremental builds have no Generation lineage yet. Retain
-        # the existing object-store fallback only for that first-build case.
-        reusable = find_reusable_segments(request.pageindex_dir)
+        # Bootstrap incremental builds have no Generation lineage yet. Keep
+        # the object-store scan isolated to this first-build path.
+        scan_started = time.perf_counter()
+        reusable = {
+            key: segment_ref_from_attestation(
+                request.pageindex_dir,
+                key[0],
+                segment_hash,
+                key[1],
+                key[2],
+            )
+            for key, segment_hash in find_reusable_segments(
+                request.pageindex_dir
+            ).items()
+        }
+        bootstrap_reuse_scan_ms = round(
+            (time.perf_counter() - scan_started) * 1000,
+            3,
+        )
 
     for attempt in range(1, 4):
         _check_cancel(reporter)
@@ -308,7 +440,7 @@ def _source_segments(
             documents_complete=0,
         )
 
-        segments: list[dict[str, object]] = []
+        refs: list[StoredSegmentRef] = []
         rebuilt = 0
         reused = 0
         job_dir = request.pageindex_dir / "build" / request.job_id
@@ -330,9 +462,9 @@ def _source_segments(
                     break
                 before[source.doc_key] = content_hash
                 reuse_key = (source.doc_key, content_hash, recipe_hash)
-                segment_hash = reusable.get(reuse_key)
-                if segment_hash is not None:
-                    segment = load_segment(request.pageindex_dir, segment_hash)
+                ref = reusable.get(reuse_key)
+                if ref is not None:
+                    del captured
                     reused += 1
                     action = "reused"
                 else:
@@ -341,6 +473,7 @@ def _source_segments(
                         captured,
                         snapshot_root,
                     )
+                    del captured
                     segment = build_segment(immutable_source, recipe)
                     fingerprint = _mapping(
                         segment.get("fingerprint"), "segment.fingerprint"
@@ -349,10 +482,20 @@ def _source_segments(
                         raise RuntimeError(
                             f"snapshot fingerprint mismatch for {source.doc_key}"
                         )
-                    put_segment(request.pageindex_dir, segment)
+                    ref = put_segment(request.pageindex_dir, segment)
+                    del segment
                     rebuilt += 1
                     action = "rebuilt"
-                segments.append(segment)
+
+                if (
+                    ref.doc_key,
+                    ref.content_hash,
+                    ref.segment_recipe_hash,
+                ) != reuse_key:
+                    raise RuntimeError(
+                        f"Segment ref attestation mismatch for {source.doc_key}"
+                    )
+                refs.append(ref)
                 reporter.transition(
                     "building_segments",
                     attempt=attempt,
@@ -366,11 +509,14 @@ def _source_segments(
                 _, after = _snapshot_sources(request.content_dir)
                 if before == after:
                     return (
-                        segments,
+                        refs,
                         {
                             "segments_rebuilt": rebuilt,
                             "segments_reused": reused,
                             "stabilization_attempts": attempt,
+                            "bootstrap_reuse_scan_ms": (
+                                bootstrap_reuse_scan_ms
+                            ),
                         },
                         set(before),
                     )
@@ -462,76 +608,257 @@ def _write_shadow_report(
     return summary, warnings, shadow_duration_ms
 
 
-def _directory_files(root: Path) -> dict[str, bytes]:
-    return {
-        path.relative_to(root).as_posix(): path.read_bytes()
-        for path in sorted(root.rglob("*"), key=lambda item: item.as_posix())
-        if path.is_file()
-    }
+def _safe_generation_path(root: Path, relative: object) -> Path:
+    """Resolve one receipt path without permitting traversal or drive changes."""
+
+    if not isinstance(relative, str) or not relative or "\\" in relative:
+        raise RuntimeError(f"unsafe Generation path: {relative!r}")
+    posix = PurePosixPath(relative)
+    windows = PureWindowsPath(relative)
+    if (
+        posix.is_absolute()
+        or windows.drive
+        or windows.root
+        or posix.as_posix() != relative
+        or any(part in {"", ".", ".."} for part in posix.parts)
+    ):
+        raise RuntimeError(f"unsafe Generation path: {relative!r}")
+
+    root_resolved = Path(root).resolve()
+    path = root_resolved.joinpath(*posix.parts)
+    try:
+        path.resolve().relative_to(root_resolved)
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(f"unsafe Generation path: {relative!r}") from exc
+    return path
+
+
+def _generation_file_set(root: Path) -> set[str]:
+    """Return exact regular-file paths while rejecting links and escapes."""
+
+    generation = Path(root)
+    if generation.is_symlink():
+        raise RuntimeError(f"unsafe Generation root link: {generation}")
+    root_resolved = generation.resolve()
+    files: set[str] = set()
+    try:
+        paths = generation.rglob("*")
+        for path in paths:
+            relative = path.relative_to(generation).as_posix()
+            if path.is_symlink():
+                raise RuntimeError(
+                    f"unsafe Generation symbolic link: {relative}"
+                )
+            try:
+                path.resolve().relative_to(root_resolved)
+            except (OSError, ValueError) as exc:
+                raise RuntimeError(
+                    f"unsafe Generation path: {relative}"
+                ) from exc
+            if path.is_file():
+                _safe_generation_path(generation, relative)
+                files.add(relative)
+            elif not path.is_dir():
+                raise RuntimeError(
+                    f"unsupported Generation entry: {relative}"
+                )
+    except OSError as exc:
+        raise RuntimeError(
+            f"cannot enumerate Generation files: {generation}: {exc}"
+        ) from exc
+    return files
+
+def _receipt_generation_files(
+    generation_dir: Path,
+    receipt: CandidateReceipt,
+) -> tuple[Mapping[str, Any], set[str]]:
+    """Validate receipt paths before any candidate move or deletion."""
+
+    generation = Path(generation_dir)
+    artifacts = _mapping(
+        receipt.artifacts,
+        "candidate_receipt.artifacts",
+    )
+    expected_files = {"manifest.json"}
+    for relative, reference in artifacts.items():
+        _safe_generation_path(generation, relative)
+        if relative == "manifest.json":
+            raise RuntimeError(
+                "candidate receipt must not list manifest.json as an artifact"
+            )
+        if getattr(reference, "relative_path", None) != relative:
+            raise RuntimeError(
+                f"candidate receipt artifact path mismatch: {relative!r}"
+            )
+        expected_files.add(relative)
+    return artifacts, expected_files
+
+
+def _verify_generation_receipt(
+    generation_dir: Path,
+    receipt: CandidateReceipt,
+) -> None:
+    """Verify one existing Generation using bounded streaming reads."""
+
+    generation = Path(generation_dir)
+    artifacts, expected_files = _receipt_generation_files(
+        generation, receipt
+    )
+
+    actual_files = _generation_file_set(generation)
+    if actual_files != expected_files:
+        missing = sorted(expected_files - actual_files)
+        extra = sorted(actual_files - expected_files)
+        raise RuntimeError(
+            "Generation file set mismatch: "
+            f"missing={missing!r}, extra={extra!r}"
+        )
+
+    manifest_path = _safe_generation_path(generation, "manifest.json")
+    try:
+        manifest_digest = stream_file_digest(manifest_path)
+    except OSError as exc:
+        raise RuntimeError(
+            f"cannot hash Generation manifest: {manifest_path}: {exc}"
+        ) from exc
+    if manifest_digest.sha256 != receipt.manifest_sha256:
+        raise RuntimeError(
+            "Generation manifest hash mismatch: "
+            f"expected {receipt.manifest_sha256}, "
+            f"got {manifest_digest.sha256}"
+        )
+
+    for relative in sorted(artifacts):
+        reference = artifacts[relative]
+        path = _safe_generation_path(generation, relative)
+        try:
+            byte_size = path.stat().st_size
+        except OSError as exc:
+            raise RuntimeError(
+                f"cannot stat Generation artifact {relative}: {exc}"
+            ) from exc
+        expected_size = getattr(reference, "byte_size", None)
+        if byte_size != expected_size:
+            raise RuntimeError(
+                f"Generation artifact size mismatch for {relative}: "
+                f"expected {expected_size}, got {byte_size}"
+            )
+        try:
+            digest = stream_file_digest(path)
+        except OSError as exc:
+            raise RuntimeError(
+                f"cannot hash Generation artifact {relative}: {exc}"
+            ) from exc
+        if digest.byte_size != expected_size:
+            raise RuntimeError(
+                f"Generation artifact size changed while hashing {relative}: "
+                f"expected {expected_size}, got {digest.byte_size}"
+            )
+        expected_hash = getattr(reference, "sha256", None)
+        if digest.sha256 != expected_hash:
+            raise RuntimeError(
+                f"Generation artifact hash mismatch for {relative}: "
+                f"expected {expected_hash}, got {digest.sha256}"
+            )
 
 
 def _finalize_generation(
-    candidate_dir: Path,
+    receipt: CandidateReceipt,
     generation_dir: Path,
 ) -> Path:
-    generation_dir.parent.mkdir(parents=True, exist_ok=True)
-    if generation_dir.exists():
-        if not generation_dir.is_dir():
+    """Install a candidate or prove an existing Generation is identical."""
+
+    candidate_dir = Path(receipt.candidate_dir)
+    generation = Path(generation_dir)
+    _receipt_generation_files(generation, receipt)
+    if candidate_dir.resolve() == generation.resolve():
+        raise RuntimeError("candidate and Generation directories must differ")
+    if candidate_dir.is_symlink() or not candidate_dir.is_dir():
+        raise RuntimeError(
+            f"candidate path is not a directory: {candidate_dir}"
+        )
+
+    generation.parent.mkdir(parents=True, exist_ok=True)
+    if generation.exists() or generation.is_symlink():
+        if generation.is_symlink() or not generation.is_dir():
             raise RuntimeError(
-                f"generation path is not a directory: {generation_dir}"
+                f"generation path is not a directory: {generation}"
             )
-        if _directory_files(candidate_dir) != _directory_files(generation_dir):
+        try:
+            _verify_generation_receipt(generation, receipt)
+        except RuntimeError as exc:
             raise RuntimeError(
-                f"existing generation differs from candidate: {generation_dir.name}"
-            )
+                "existing generation differs from candidate: "
+                f"{generation.name}: {exc}"
+            ) from exc
         shutil.rmtree(candidate_dir)
-        return generation_dir
+        return generation
 
     try:
-        os.replace(candidate_dir, generation_dir)
+        os.replace(candidate_dir, generation)
     except OSError:
-        if not generation_dir.is_dir():
+        if generation.is_symlink() or not generation.is_dir():
             raise
-        if _directory_files(candidate_dir) != _directory_files(generation_dir):
+        try:
+            _verify_generation_receipt(generation, receipt)
+        except RuntimeError as exc:
             raise RuntimeError(
-                f"concurrent generation differs from candidate: "
-                f"{generation_dir.name}"
-            )
+                "concurrent generation differs from candidate: "
+                f"{generation.name}: {exc}"
+            ) from exc
         shutil.rmtree(candidate_dir)
-    return generation_dir
+    return generation
 
 
 def _compile_and_validate(
     request: BuildRequest,
     reporter: TaskReporter,
-    segments: Sequence[Mapping[str, object]],
-) -> tuple[CompiledGeneration, Path, list[str]]:
+    refs: Sequence[StoredSegmentRef],
+) -> tuple[CandidateReceipt, Path, list[str]]:
+    """Compile refs directly to disk and validate the materialized candidate."""
+
+    candidate_dir = (
+        request.pageindex_dir
+        / "build"
+        / request.job_id
+        / "candidate"
+    )
+    if candidate_dir.exists():
+        if not candidate_dir.is_dir():
+            raise RuntimeError(
+                f"candidate path is not a directory: {candidate_dir}"
+            )
+        shutil.rmtree(candidate_dir)
+
     _check_cancel(reporter)
-    reporter.transition("compiling_global", segments=len(segments))
-    compiled = compile_generation(tuple(segments), CompilerRecipe())
+    reporter.transition("compiling_global", segments=len(refs))
+    receipt = compile_generation_to_candidate(
+        tuple(refs),
+        request.pageindex_dir,
+        candidate_dir,
+        CompilerRecipe(),
+    )
+    materialized = Path(receipt.candidate_dir)
+    if materialized.resolve() != candidate_dir.resolve():
+        raise RuntimeError(
+            "candidate compiler returned an unexpected directory: "
+            f"{materialized}"
+        )
 
     _check_cancel(reporter)
     reporter.transition(
         "materializing",
-        generation=compiled.generation_id,
+        generation=receipt.generation_id,
     )
-    # Imported here so invalid requests remain diagnosable even if a packaged
-    # build is missing the validator module.
-    from .validator import materialize_candidate, validate_candidate
-
-    candidate_dir = request.pageindex_dir / "build" / request.job_id / "candidate"
-    if candidate_dir.exists():
-        if not candidate_dir.is_dir():
-            raise RuntimeError(f'candidate path is not a directory: {candidate_dir}')
-        shutil.rmtree(candidate_dir)
-    materialized = Path(materialize_candidate(candidate_dir, compiled))
+    # Imported locally so invalid requests remain diagnosable in packaged apps.
+    from .validator import validate_candidate_normal
 
     _check_cancel(reporter)
     reporter.transition(
         "validating",
-        generation=compiled.generation_id,
+        generation=receipt.generation_id,
     )
-    report = validate_candidate(materialized, request.pageindex_dir)
+    report = validate_candidate_normal(receipt, request.pageindex_dir)
     ok, errors, warnings = _validation_details(report)
     if not ok:
         raise CandidateValidationError(errors, warnings)
@@ -539,15 +866,15 @@ def _compile_and_validate(
     _check_cancel(reporter)
     reporter.transition(
         "finalizing_generation",
-        generation=compiled.generation_id,
+        generation=receipt.generation_id,
     )
     generation_dir = _finalize_generation(
-        materialized,
+        receipt,
         request.pageindex_dir
         / "generations"
-        / compiled.generation_id,
+        / receipt.generation_id,
     )
-    return compiled, generation_dir, warnings
+    return receipt, generation_dir, warnings
 
 
 def _failed_result(
@@ -625,12 +952,17 @@ def run_worker(request_path: Path) -> int:
                 **dict(manifest_stats),
                 "no_op": True,
                 "segments_loaded": 0,
+                "segments_loaded_peak": 0,
+                "run_buffer_peak_bytes": 0,
                 "segments_rebuilt": 0,
                 "segments_reused": no_change.document_count,
                 "segments_deleted": 0,
                 "stabilization_attempts": no_change.stabilization_attempts,
+                "bootstrap_reuse_scan_ms": 0.0,
                 "postings_visited": 0,
                 "generation_bytes_written": 0,
+                "full_compile_runs": 0,
+                "normal_validation_runs": 0,
                 "deep_validation_runs": 0,
                 "duration_ms": round(
                     (time.perf_counter() - started) * 1000,
@@ -665,32 +997,38 @@ def run_worker(request_path: Path) -> int:
             reporter.finish(result)
             return EXIT_SUCCESS
 
-        base_segments: list[dict[str, object]] = []
+        base_refs: list[StoredSegmentRef] = []
         base_doc_keys: set[str] = set()
         if request.base_generation is not None:
             reporter.transition(
                 "loading_base_generation",
                 base_generation=request.base_generation,
             )
-            base_segments, base_doc_keys = _read_base_segments(request, reporter)
+            base_refs, base_doc_keys = _read_base_segment_refs(
+                request,
+                reporter,
+            )
 
         if request.mode == "recompile":
-            segments = base_segments
+            refs = base_refs
             current_doc_keys = base_doc_keys
             build_stats = {
                 "segments_rebuilt": 0,
-                "segments_reused": len(segments),
+                "segments_reused": len(refs),
                 "stabilization_attempts": 0,
+                "bootstrap_reuse_scan_ms": 0.0,
             }
         else:
-            segments, build_stats, current_doc_keys = _source_segments(
-                request, reporter, base_segments
+            refs, build_stats, current_doc_keys = _source_segment_refs(
+                request,
+                reporter,
+                base_refs,
             )
 
-        compiled, generation_dir, warnings = _compile_and_validate(
+        receipt, generation_dir, warnings = _compile_and_validate(
             request,
             reporter,
-            segments,
+            refs,
         )
         generation_build_duration_ms = round(
             (time.perf_counter() - started) * 1000,
@@ -711,13 +1049,68 @@ def run_worker(request_path: Path) -> int:
                 shadow_summary,
                 warnings,
             )
-        manifest_stats = _mapping(compiled.manifest.get("stats"), "manifest.stats")
+        manifest_path = generation_dir / "manifest.json"
+        manifest = read_json_object(manifest_path)
+        if manifest.get("generation") != receipt.generation_id:
+            raise RuntimeError(
+                "materialized manifest generation does not match receipt"
+            )
+        if canonical_hash(manifest) != receipt.manifest_sha256:
+            raise RuntimeError(
+                "materialized manifest hash does not match receipt"
+            )
+        manifest_stats = _mapping(
+            manifest.get("stats"),
+            "manifest.stats",
+        )
+        invariants = _mapping(
+            receipt.invariants,
+            "candidate_receipt.invariants",
+        )
+        generation_bytes_default = (
+            sum(
+                artifact.byte_size
+                for artifact in receipt.artifacts.values()
+            )
+            + manifest_path.stat().st_size
+        )
         stats: dict[str, object] = {
             **build_stats,
             "no_op": False,
             "segments_deleted": len(base_doc_keys - current_doc_keys),
             **dict(manifest_stats),
-            "duration_ms": round((time.perf_counter() - started) * 1000, 3),
+            "segments_loaded": _nonnegative_metric(
+                invariants,
+                "segments_loaded",
+                len(refs),
+            ),
+            "segments_loaded_peak": _nonnegative_metric(
+                invariants,
+                "segments_loaded_peak",
+                min(1, len(refs)),
+            ),
+            "run_buffer_peak_bytes": _nonnegative_metric(
+                invariants,
+                "run_buffer_peak_bytes",
+                0,
+            ),
+            "postings_visited": _nonnegative_metric(
+                invariants,
+                "postings_visited",
+                0,
+            ),
+            "generation_bytes_written": _nonnegative_metric(
+                invariants,
+                "generation_bytes_written",
+                generation_bytes_default,
+            ),
+            "full_compile_runs": 1,
+            "normal_validation_runs": 1,
+            "deep_validation_runs": 0,
+            "duration_ms": round(
+                (time.perf_counter() - started) * 1000,
+                3,
+            ),
             "shadow_duration_ms": shadow_duration_ms,
         }
         result: dict[str, object] = {
@@ -727,8 +1120,8 @@ def run_worker(request_path: Path) -> int:
             "job_id": request.job_id,
             "mode": request.mode,
             "base_generation": request.base_generation,
-            "generation": compiled.generation_id,
-            "manifest_sha256": canonical_hash(compiled.manifest),
+            "generation": receipt.generation_id,
+            "manifest_sha256": receipt.manifest_sha256,
             "generation_dir": str(generation_dir),
             "warnings": warnings,
             "shadow_report": shadow_summary,
@@ -737,7 +1130,7 @@ def run_worker(request_path: Path) -> int:
         }
         reporter.transition(
             "ready_to_publish",
-            generation=compiled.generation_id,
+            generation=receipt.generation_id,
             warnings=len(warnings),
         )
         reporter.finish(result)

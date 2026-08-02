@@ -11,6 +11,7 @@ import app.index.v2.supervisor as supervisor_module
 import app.index.v2.worker as worker_module
 import app.index.v2.validator as validator_module
 from app.index.v2.canonical import canonical_hash, write_json_atomic
+from app.index.v2.object_store import StoredSegmentRef
 from app.index.v2.protocol import BuildRequest, ProtocolError
 from app.index.v2.supervisor import (
     WorkerProcessError,
@@ -286,6 +287,111 @@ def test_worker_full_incremental_and_recompile_round_trip(
     assert recompile["stats"]["segments_reused"] == 3
 
 
+def test_dirty_incremental_passes_only_refs_without_worker_preload(
+    tmp_path: Path,
+    sample_content: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pageindex = tmp_path / "pageindex"
+    seed_dir = pageindex / "build" / "idx_ref_seed"
+    assert run_worker(
+        _request(seed_dir, sample_content, pageindex, mode="full")
+    ) == 0
+    generation = str(_read_json(seed_dir / "result.json")["generation"])
+
+    note = sample_content / "notes" / "welcome.md"
+    note.write_text(
+        note.read_text(encoding="utf-8") + "\nDirty reference-only build.\n",
+        encoding="utf-8",
+    )
+
+    observed: list[tuple[StoredSegmentRef, ...]] = []
+    real_compile = worker_module.compile_generation_to_candidate
+
+    def capture_refs(refs, *args, **kwargs):
+        snapshot = tuple(refs)
+        assert all(
+            isinstance(ref, StoredSegmentRef)
+            for ref in snapshot
+        )
+        observed.append(snapshot)
+        return real_compile(snapshot, *args, **kwargs)
+
+    def forbidden_preload(*_args, **_kwargs):
+        raise AssertionError("worker preloaded a reused Segment")
+
+    monkeypatch.setattr(
+        worker_module,
+        "compile_generation_to_candidate",
+        capture_refs,
+    )
+    monkeypatch.setattr(
+        worker_module,
+        "load_segment",
+        forbidden_preload,
+    )
+
+    dirty_dir = pageindex / "build" / "idx_ref_dirty"
+    assert run_worker(
+        _request(
+            dirty_dir,
+            sample_content,
+            pageindex,
+            mode="incremental",
+            base_generation=generation,
+        )
+    ) == 0
+
+    result = _read_json(dirty_dir / "result.json")
+    assert result["stats"]["segments_rebuilt"] == 1
+    assert result["stats"]["segments_reused"] == 2
+    assert result["stats"]["full_compile_runs"] == 1
+    assert result["stats"]["segments_loaded_peak"] <= 1
+    assert len(observed) == 1
+    assert {ref.doc_key for ref in observed[0]} == {
+        "book:alpha",
+        "note:welcome",
+        "paper:beta",
+    }
+
+
+def test_base_refs_reject_proof_manifest_document_mismatch(
+    tmp_path: Path,
+    sample_content: Path,
+) -> None:
+    pageindex = tmp_path / "pageindex"
+    seed_dir = pageindex / "build" / "idx_ref_proof_seed"
+    assert run_worker(
+        _request(seed_dir, sample_content, pageindex, mode="full")
+    ) == 0
+    generation = str(_read_json(seed_dir / "result.json")["generation"])
+    proof_path = (
+        pageindex
+        / "generations"
+        / generation
+        / "input-proof.json"
+    )
+    proof = _read_json(proof_path)
+    documents = proof["documents"]
+    assert isinstance(documents, dict)
+    documents.pop("note:welcome")
+    write_json_atomic(proof_path, proof)
+
+    job_dir = pageindex / "build" / "idx_ref_proof_mismatch"
+    assert run_worker(
+        _request(
+            job_dir,
+            sample_content,
+            pageindex,
+            mode="recompile",
+            base_generation=generation,
+        )
+    ) == 1
+    result = _read_json(job_dir / "result.json")
+    assert result["error_code"] == "build_failed"
+    assert "document set does not match manifest" in str(result["message"])
+
+
 def test_worker_persists_compact_and_full_shadow_reports(
     tmp_path: Path,
     sample_content: Path,
@@ -410,15 +516,15 @@ def test_corrupt_candidate_fails_and_same_request_recovers(
     legacy = pageindex / "global-index.json"
     legacy.parent.mkdir(parents=True, exist_ok=True)
     legacy.write_bytes(b"legacy-remains-active")
-    real_validate = validator_module.validate_candidate
+    real_validate = validator_module.validate_candidate_normal
 
-    def corrupt_then_validate(candidate, pageindex_dir):
-        (Path(candidate) / "chunks.json").unlink()
-        return real_validate(candidate, pageindex_dir)
+    def corrupt_then_validate(receipt, pageindex_dir):
+        (Path(receipt.candidate_dir) / "chunks.json").unlink()
+        return real_validate(receipt, pageindex_dir)
 
     monkeypatch.setattr(
         validator_module,
-        "validate_candidate",
+        "validate_candidate_normal",
         corrupt_then_validate,
     )
     assert run_worker(request) == 1
@@ -429,7 +535,11 @@ def test_corrupt_candidate_fails_and_same_request_recovers(
     generations = pageindex / "generations"
     assert not generations.exists() or not any(generations.iterdir())
 
-    monkeypatch.setattr(validator_module, "validate_candidate", real_validate)
+    monkeypatch.setattr(
+        validator_module,
+        "validate_candidate_normal",
+        real_validate,
+    )
     assert run_worker(request) == 0
     recovered = _read_json(job_dir / "result.json")
     assert recovered["status"] == "ready_to_publish"
