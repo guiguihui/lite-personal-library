@@ -273,16 +273,18 @@ git commit -m "feat(pageindex): persist raw search projections"
 - Create: `app/index/v3/varint.py`
 - Create: `app/index/v3/layer_codec.py`
 - Create: `app/index/v3/layer_runs.py`
+- Create: `tests/pageindex_v3/test_varint.py`
 - Create: `tests/pageindex_v3/test_layer_codec.py`
 - Create: `tests/pageindex_v3/test_layer_runs.py`
+- Create: `tests/pageindex_v3/test_staged_layer_builder.py`
 
 **Interfaces:**
 - Consumes: sorted logical `SearchPosting` records, layer-local `LayerPosting` rows, a canonical layer document table, signed token-statistic contributions, and P2 `AtomicHashingSink`/`ArtifactRef` primitives.
-- Produces: `PostingLayerReceipt`, `write_posting_layer(...)`, `PostingLayerReader.iter_token(token, include_body=True)`, `PostingLayerReader.get_chunk_metrics(refs)`, and `build_sorted_layer(..., max_run_bytes, merge_fan_in)`.
+- Produces: `PostingLayerReceipt`, `write_posting_layer(..., check_cancelled)`, `PostingLayerReader.iter_token(token, include_body=True)`, `PostingLayerReader.get_chunk_metrics(refs)`, explicit `PostingLayerReader.audit()`, `StagedLayerBuilder`, and compatibility `build_sorted_layer(..., max_run_bytes, merge_fan_in, check_cancelled)`.
 
-- [ ] **Step 1: Lock the layer document table and PIV3 bytes**
+- [x] **Step 1: Lock the layer document table and PIV3 bytes**
 
-`layer-documents.json` assigns dense layer-local ordinals by a list strictly sorted by `doc_uid`. Every record contains `doc_key, doc_uid, segment_hash, chunk_count, chunk_block_offset, chunk_block_bytes`. Base layers contain every document; delta layers contain only added/changed new versions. Ordinals are physical compression IDs and never appear in public/cache identity.
+`layer-documents.json` assigns dense layer-local ordinals by a list strictly sorted by `doc_uid`. Every record contains `doc_key, doc_uid, segment_hash, chunk_count, chunk_block_offset, chunk_block_bytes, chunk_block_sha256`. Base layers contain every document; delta layers contain only added/changed new versions. Ordinals are physical compression IDs and never appear in public/cache identity. The local chunk-block digest lets a dirty build or query authenticate one candidate document without hashing the complete PCV artifact.
 
 `postings.piv` starts with `b"PIV3PST1"`. Token groups are strictly increasing by UTF-8 token bytes:
 
@@ -304,7 +306,7 @@ repeated body rows sorted by (doc_ordinal, local_id):
 
 Non-body rows require `title_tf + breadcrumb_tf > 0`; body rows require `body_tf > 0`. A chunk may occur once in both partitions. Term metadata bounds the complete group exactly, so a pruned query reads the non-body partition and seeks past body bytes without decoding them.
 
-- [ ] **Step 2: Lock candidate-seekable chunk metrics**
+- [x] **Step 2: Lock candidate-seekable chunk metrics**
 
 `chunks.pcv` starts with `b"PIV3CHK1"` and stores one document block per layer document:
 
@@ -318,37 +320,37 @@ repeated chunks with strictly increasing local_id:
     minimal-uvarint body_length
 ```
 
-The document table's offset/size exactly encloses its block. PCV copies no title, breadcrumb, or body text; the reader seeks only candidate-document blocks, and Segment hydration happens after ranking.
+The document table's offset/size/digest exactly authenticates and encloses its block. PCV copies no title, breadcrumb, or body text; the reader seeks and hashes only candidate-document blocks, and Segment hydration happens after ranking.
 
-- [ ] **Step 3: Lock canonical term metadata and bounded lookup**
+- [x] **Step 3: Lock canonical term metadata and bounded lookup**
 
-`terms.jsonl` is `canonical_bytes(record) + b"\n"`, strictly sorted by token. Each record contains `token, block_offset, block_bytes, nonbody_rows, body_rows, df_any_delta, df_nonbody_delta, df_body_delta`. Base contributions are non-negative; delta contributions are signed. A token with postings but zero net DF change remains; a disappeared token remains with null/zero block and negative statistics; a record with no postings and an all-zero triple is forbidden.
+`terms.jsonl` is `canonical_bytes(record) + b"\n"`, strictly sorted by token. Each record contains `token, block_offset, block_bytes, nonbody_rows, body_rows, df_any_delta, df_nonbody_delta, df_body_delta, prefix_bytes, prefix_sha256, body_offset, body_bytes, body_sha256`. The prefix digest authenticates token/non-body rows/body-count independently; the body digest lets `include_body=False` skip body bytes physically. Base contributions are non-negative; delta contributions are signed. A token with postings but zero net DF change remains; a disappeared token remains with null/zero block and negative statistics; a record with no postings and an all-zero triple is forbidden.
 
-`terms.sidx.json` is canonical, declares stride 128 and the terms artifact SHA-256/size/line count, and stores `[token, byte_offset]` for the first and every 128th line. Lookup binary-searches this sparse array, seeks, and scans at most 128 canonical lines. It never materializes the complete lexicon.
+`terms.sidx.json` is canonical, declares stride 128 and the terms artifact SHA-256/size/line count, and stores `[first_token, byte_offset, window_bytes, window_sha256, line_count]` for each contiguous window. Lookup binary-searches the sparse array, reads and authenticates exactly one window, and scans at most 128 canonical lines. It never materializes or hashes the complete lexicon on the normal hot path.
 
-- [ ] **Step 4: Add corruption, random-seek, and body-skip tests**
+- [x] **Step 4: Add corruption, random-seek, and body-skip tests**
 
 Cover bad magic, truncation, overlong/non-minimal varints, invalid UTF-8, integer overflow, unknown ordinal, duplicate/non-monotonic rows, zero TF, invalid PCV block boundaries, overlapping/out-of-range token blocks, token mismatch, noncanonical JSONL, invalid signed triples, sparse-index digest/offset/stride mismatch, extra bytes, and Windows handle closure. Instrument reads to prove one-token lookup touches only one sparse window and one token group; `include_body=False` must not read body row bytes.
 
-- [ ] **Step 5: Implement strict streaming readers/writers and receipts**
+- [x] **Step 5: Implement strict streaming readers/writers and receipts**
 
-Every integer rejects `bool`, negatives, and values above `2**64 - 1`; decoded varints are re-encoded to prove minimality. Readers bind ordinals through the attested document table and restore complete `ChunkRef` values. Writers stream PIV3, PCV, JSONL, sparse index, and SHA-256 receipts without creating whole-artifact strings/byte arrays.
+Every integer rejects `bool`, negatives, and values above `2**64 - 1`; decoded varints are re-encoded to prove minimality. Readers bind ordinals through the attested document table and restore complete `ChunkRef` values. Writers stream PIV3, PCV, JSONL, sparse index, and SHA-256 receipts without creating whole-artifact strings/byte arrays, and check cancellation inside documents, very-high-DF token groups, spool copies, and term windows.
 
-`PostingLayerReceipt` attests the five artifacts plus document/chunk/term/nonbody/body counts. It is the only supported way to open a layer.
+`PostingLayerReceipt` attests the five artifacts plus document/chunk/term/nonbody/body counts and the physical Search View recipe. It is the only supported way to open a layer. Opening pins all five file handles and authenticates only the small document/sparse routing metadata; local window/PIV/PCV digests protect random reads. Full artifact SHA-256 and semantic revalidation are explicit `audit()` work and never run on no-op or normal dirty builds.
 
-- [ ] **Step 6: Implement encoded-byte-bounded external runs**
+- [x] **Step 6: Implement encoded-byte-bounded external runs**
 
-`LayerRunBuilder` accounts for encoded row bytes before append, sorts in place, spills before the configured bound, merges with at most `merge_fan_in` readers plus one writer, uses unique scratch directories, and closes all Windows handles before cleanup. Ordering is `(token_utf8, doc_ordinal, local_id)`; duplicate keys fail deterministically.
+`LayerRunBuilder` accounts before append for both encoded bytes and a conservative resident charge based on the actual Python row/string/key representations (including PEP 393 non-BMP expansion), sorts in place, spills before either configured bound, merges with at most `merge_fan_in` readers plus one writer, uses counted SHA-256-footer scratch runs, unique scratch directories, strict cleanup, and closes all Windows handles before cleanup. Ordering is `(token_utf8, doc_ordinal, local_id)`; duplicate keys fail deterministically. `StagedLayerBuilder.begin_document()` assigns the physical ordinal before projection, its ticket streams postings directly into bounded runs, and `ticket.commit(chunk_count, chunk_metrics)` appends one PCV block plus a disk-spooled document record. It retains only one Segment's metrics and O(documents) lean routing/chunk-count metadata; `build_sorted_layer()` is a compatibility wrapper, not the Task 6 production path.
 
-- [ ] **Step 7: Run codec/run tests under forced one-row runs and two-way fan-in**
+- [x] **Step 7: Run codec/run tests under forced one-row runs and two-way fan-in**
 
-Run: `python -m pytest tests/pageindex_v3/test_layer_codec.py tests/pageindex_v3/test_layer_runs.py -q`
+Run: `python -m pytest tests/pageindex_v3/test_varint.py tests/pageindex_v3/test_layer_codec.py tests/pageindex_v3/test_layer_runs.py tests/pageindex_v3/test_staged_layer_builder.py -q`
 Expected: deterministic bytes independent of input order; observed readers, run bytes, sparse scans, candidate-PCV reads, and body-partition reads stay within their bounds.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
-git add app/index/v3/varint.py app/index/v3/layer_codec.py app/index/v3/layer_runs.py tests/pageindex_v3/test_layer_codec.py tests/pageindex_v3/test_layer_runs.py
+git add app/index/v3/__init__.py app/index/v3/varint.py app/index/v3/layer_codec.py app/index/v3/layer_runs.py tests/pageindex_v3/test_varint.py tests/pageindex_v3/test_layer_codec.py tests/pageindex_v3/test_layer_runs.py tests/pageindex_v3/test_staged_layer_builder.py docs/superpowers/plans/2026-08-02-pageindex-v3-p3-base-delta.md
 git commit -m "feat(pageindex): add seekable posting layers"
 ```
 
@@ -455,7 +457,7 @@ view_id = canonical_hash(view_core)
 
 - [ ] **Step 3: Implement a one-Segment-at-a-time full base build**
 
-For each ref, call `project_to_sink()` once, persist/reuse its summary and retain the returned `StoredSummaryRef`, assign the layer ordinal, feed raw postings directly to bounded runs, append PCV metrics, update scalar totals/document owners with the trusted summary SHA/size, and release all Segment-derived containers before the next ref. The external merge emits base-positive term contributions and token_count. Do not write a legacy export.
+For each ref, call `StagedLayerBuilder.begin_document()` to assign the ordinal, call `project_to_sink()` exactly once with `ticket.add_posting` as its sink, persist/reuse the summary and retain only its `StoredSummaryRef`, then `ticket.commit(summary.chunk_count, metrics)` to append PCV facts. Update scalar totals/document owners with the trusted summary SHA/size and release the summary, metrics, and all Segment-derived containers before the next ref. The external merge emits base-positive term contributions and token_count. Do not call compatibility `build_sorted_layer()`, reload a Segment for metrics, or write a legacy export.
 
 - [ ] **Step 4: Implement content-addressed finalization**
 

@@ -25,6 +25,16 @@ from .summary_store import (
     load_summary,
     put_summary,
 )
+from .layer_codec import (
+    LayerCodecError,
+    LayerDocument,
+    PostingLayerReader,
+    PostingLayerReceipt,
+    TermRecord,
+    TokenContribution,
+    write_posting_layer,
+)
+from .layer_runs import LayerRunError, StagedLayerBuilder, build_sorted_layer
 
 __all__ = [
     "ChunkMetric",
@@ -32,6 +42,9 @@ __all__ = [
     "CompactionPolicy",
     "GenerationRecipe",
     "LayerPosting",
+    "LayerCodecError",
+    "LayerDocument",
+    "LayerRunError",
     "LegacyExportRecipe",
     "SearchPosting",
     "SearchViewRecipe",
@@ -40,15 +53,22 @@ __all__ = [
     "SegmentProjector",
     "SegmentSummary",
     "StoredSummaryRef",
+    "StagedLayerBuilder",
+    "PostingLayerReader",
+    "PostingLayerReceipt",
     "SummaryStoreError",
     "TokenSummary",
+    "TermRecord",
+    "TokenContribution",
     "ViewPin",
     "logical_generation_core",
     "logical_generation_id",
     "load_summary",
     "make_doc_uid",
     "put_summary",
+    "write_posting_layer",
     "validate_doc_key",
     "diff_segment_inputs",
+    "build_sorted_layer",
     "validate_sha256",
 ]
