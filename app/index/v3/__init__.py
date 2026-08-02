@@ -35,16 +35,26 @@ from .layer_codec import (
     write_posting_layer,
 )
 from .layer_runs import LayerRunError, StagedLayerBuilder, build_sorted_layer
+from .generation import (
+    LogicalGenerationError,
+    LogicalGenerationReceipt,
+    build_logical_generation,
+    validate_logical_generation_manifest,
+)
+from .statistics import CorpusTotals, TokenDfDelta, token_df_deltas
 
 __all__ = [
     "ChunkMetric",
     "ChunkRef",
     "CompactionPolicy",
+    "CorpusTotals",
     "GenerationRecipe",
     "LayerPosting",
     "LayerCodecError",
     "LayerDocument",
     "LayerRunError",
+    "LogicalGenerationError",
+    "LogicalGenerationReceipt",
     "LegacyExportRecipe",
     "SearchPosting",
     "SearchViewRecipe",
@@ -60,6 +70,7 @@ __all__ = [
     "TokenSummary",
     "TermRecord",
     "TokenContribution",
+    "TokenDfDelta",
     "ViewPin",
     "logical_generation_core",
     "logical_generation_id",
@@ -70,5 +81,8 @@ __all__ = [
     "validate_doc_key",
     "diff_segment_inputs",
     "build_sorted_layer",
+    "build_logical_generation",
+    "token_df_deltas",
+    "validate_logical_generation_manifest",
     "validate_sha256",
 ]

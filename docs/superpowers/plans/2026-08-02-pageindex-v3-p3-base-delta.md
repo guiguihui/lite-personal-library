@@ -6,11 +6,13 @@
 
 **Architecture:** A logical Generation identifies `doc_key -> segment_hash` under a logical search recipe. A physical Search View independently identifies one immutable base posting layer plus ordered document-replacement deltas; raw title, breadcrumb, and body TF remain stored, while extreme body-DF suppression is applied from pinned global statistics at query time. Normal incremental builds hash the source catalog once, build only changed Segments, write one small delta and one small View, validate only new artifacts and parent attestations, and never invoke the schema-3 compatibility compiler.
 
-**Tech Stack:** Python 3.10+, standard library only (`dataclasses`, `hashlib`, `heapq`, `json`, `os`, `pathlib`, `struct`, `tempfile`, `threading`), existing PageIndex v2 Segment/object-store/canonical primitives, FastAPI retrieval code, pytest, Windows PSAPI benchmark harness.
+**Tech Stack:** Python 3.10+, standard library only (`ctypes`, `dataclasses`, `errno`, `hashlib`, `heapq`, `json`, `os`, `pathlib`, `struct`, `sys`, `tempfile`, `threading`), existing PageIndex v2 Segment/object-store/canonical primitives, FastAPI retrieval code, pytest, Windows PSAPI benchmark harness.
 
 ## Scope Boundary
 
 This plan ends with a shadow-capable pinned reader, query adapter, P3 worker, explicit optimize/legacy-export commands, and exact-50k performance/equivalence evidence. Formal `current.json` CAS publication, rollback leases, chat migration, delayed GC, and removal of root monolith runtime dependencies are a separate P4 cutover plan because they coordinate the HTTP server, frontend session lifecycle, and storage retention policy independently of the P3 indexing algorithm.
+
+Concurrent/cooperative builders and untrusted on-disk artifacts are in scope. A hostile process running as the same OS user and mutating a freshly randomized private staging directory between individual filesystem syscalls is not a security boundary; static symlink/junction paths and any observed directory-identity drift still fail closed, and cleanup never recursively traverses an unexpected replacement.
 
 ## Global Constraints
 
@@ -357,6 +359,7 @@ git commit -m "feat(pageindex): add seekable posting layers"
 ### Task 5: Build logical Generations, scalar totals, and reversible token contributions
 
 **Files:**
+- Modify: `app/index/v3/__init__.py`
 - Create: `app/index/v3/generation.py`
 - Create: `app/index/v3/statistics.py`
 - Create: `tests/pageindex_v3/test_generation.py`
@@ -364,9 +367,9 @@ git commit -m "feat(pageindex): add seekable posting layers"
 
 **Interfaces:**
 - Consumes: Task 1 recipes/models, Segment refs, Task 3 summaries, P1 input proof.
-- Produces: `LogicalGenerationReceipt`, `build_logical_generation(refs, proof, recipe, candidate_dir)`, `CorpusTotals.from_summaries()`, `CorpusTotals.apply(removed, added)`, and per-token signed `TokenDfDelta` values for changed summaries.
+- Produces: compact `LogicalGenerationReceipt`, `build_logical_generation(refs, proof, recipe, candidate_dir, check_cancelled)`, strict manifest validation, `CorpusTotals.from_summaries(..., token_count)`, `CorpusTotals.apply(removed, added, token_count_delta)`, and per-token signed `TokenDfDelta` values for changed summaries.
 
-- [ ] **Step 1: Test stable logical identity and artifact discrimination**
+- [x] **Step 1: Test stable logical identity and artifact discrimination**
 
 ```python
 def test_full_incremental_and_recompile_have_one_logical_generation_id(refs, proof):
@@ -374,17 +377,17 @@ def test_full_incremental_and_recompile_have_one_logical_generation_id(refs, pro
     b = build_logical_generation(tuple(reversed(refs)), proof, GenerationRecipe(), path_b)
     assert a.generation_id == b.generation_id
     assert len(a.generation_id) == 64
-    assert a.manifest["artifact_kind"] == "logical_generation"
-    assert a.manifest["schema_version"] == 4
+    assert a.manifest_ref.sha256 == b.manifest_ref.sha256
+    assert not hasattr(a, "manifest")  # receipt never retains the O(N) mapping
 ```
 
 Ensure old schema-2/3 compatibility manifests cannot be parsed as P3 logical manifests even if their `generation` field looks valid. Reject short hash prefixes everywhere except explicit display helpers.
 
-- [ ] **Step 2: Test exact `base - old + new` arithmetic without a full vocabulary rewrite**
+- [x] **Step 2: Test exact `base - old + new` arithmetic without a full vocabulary rewrite**
 
 Build scalar totals from several summaries, replace one, delete one, and add one. Assert patched totals equal a clean recomputation and negative intermediate values fail. Independently derive sorted signed token triples `[df_any, df_nonbody, df_body]` from only removed/added summaries; zero triples disappear, token-only negative deltas remain, and threshold crossings preserve all three raw values.
 
-- [ ] **Step 3: Implement small canonical Generation artifacts**
+- [x] **Step 3: Implement small canonical Generation artifacts**
 
 The core manifest is:
 
@@ -398,23 +401,23 @@ core = {
 generation_id = canonical_hash(core)
 ```
 
-Write canonical `manifest.json` and `input-proof.json`; include the recipe, complete Generation ID, proof/artifact digests and sizes, and document count. Source proof is an attestation but is excluded from the logical identity core. Do not include Search View layout, corpus statistics, task metadata, or legacy export fields.
+Write canonical `manifest.json` and `input-proof.json` incrementally inside an identity-checked private sibling staging directory, then publish the complete candidate with an atomic no-replace rename (Windows native rename or Linux `renameat2(RENAME_NOREPLACE)`; unsupported platforms fail closed); include the recipe, complete Generation ID, proof/artifact digests and sizes, and document count. Compute every O(N) hash with `iter_canonical_json()` plus incremental SHA-256—never `canonical_bytes()`—and keep only compact ArtifactRefs in `LogicalGenerationReceipt` rather than a third in-memory manifest/documents mapping. Source proof is an attestation excluded from the logical identity core but must exactly bind the recipe plus every ref's content and Segment-recipe hashes. Do not include Search View layout, corpus statistics, task metadata, or legacy export fields.
 
-- [ ] **Step 4: Implement immutable scalar totals and sparse token deltas**
+- [x] **Step 4: Implement immutable scalar totals and sparse token deltas**
 
-`CorpusTotals` contains only `documents`, `total_chunks`, `token_count`, three field-length sums, and `posting_count`; its canonical size is O(1). Full-base construction derives token_count during the term merge. Incremental `apply()` subtracts removed summaries, adds new summaries, accepts the touched-token-derived `token_count_delta`, and validates every aggregate is non-negative.
+`CorpusTotals` contains only `documents`, `total_chunks`, `token_count`, three field-length sums, and `posting_count`; its canonical size is O(1). `posting_count` always comes from `SegmentSummary.posting_count`, never Task 4 `postings.records` because split-field rows can double-count one logical posting. Full-base construction requires token_count from the base term merge. Incremental `apply()` first proves every `base - removed` scalar is non-negative, then adds new summaries, applies the touched-token-derived `token_count_delta`, checks overflow/conservation, and never infers token_count from a delta layer's physical term_count.
 
-`token_df_deltas(removed, added)` reads only the changed summaries and emits sorted signed `TokenDfDelta(token, df_any, df_nonbody, df_body)`. It never loads or materializes the base vocabulary. Full-base token contributions are produced during the external posting merge and stored in Task 4 `terms.jsonl`, not in a View-wide `statistics.json`.
+`token_df_deltas(removed, added)` reads only the changed summaries and emits sorted signed `TokenDfDelta(token, df_any, df_nonbody, df_body)`. It never loads or materializes the base vocabulary; all-zero net triples disappear, negative-only token disappearance and field-only migration remain. The statistics domain does not import Task 4's physical codec; Task 7 adapts deltas lazily to `TokenContribution`. Full-base token contributions are produced during the external posting merge and stored in Task 4 `terms.jsonl`, not in a View-wide `statistics.json`.
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `python -m pytest tests/pageindex_v3/test_generation.py tests/pageindex_v3/test_statistics.py -q`
-Expected: all tests pass; clean/patched scalar totals match exactly, and one-document token-delta work is bounded by that document's summary.
+Result: `123 passed, 1 skipped`; clean/patched scalar totals match exactly, and one-document token-delta work is bounded by that document's summary.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
-git add app/index/v3/generation.py app/index/v3/statistics.py tests/pageindex_v3/test_generation.py tests/pageindex_v3/test_statistics.py
+git add app/index/v3/__init__.py app/index/v3/generation.py app/index/v3/statistics.py tests/pageindex_v3/test_generation.py tests/pageindex_v3/test_statistics.py docs/superpowers/plans/2026-08-02-pageindex-v3-p3-base-delta.md
 git commit -m "feat(pageindex): add logical generations and search statistics"
 ```
 
