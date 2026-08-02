@@ -29,6 +29,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 import math
 import re
 from typing import Any
@@ -135,17 +136,7 @@ def lexical_rerank(
         )
         h: Hit = s["h"]
         # 返回新 Hit（带 rerank_score），不修改原 Hit
-        out.append(
-            Hit(
-                node=h.node,
-                score=h.score,
-                tokens=h.tokens,
-                positions=h.positions,
-                chunk=h.chunk,
-                rrf_score=h.rrf_score,
-                rerank_score=rerank_score,
-            )
-        )
+        out.append(replace(h, rerank_score=rerank_score))
     out.sort(key=lambda h: h.rerank_score or 0, reverse=True)
     return out
 

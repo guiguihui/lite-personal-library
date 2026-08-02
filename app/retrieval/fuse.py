@@ -24,6 +24,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from app.retrieval.search import Hit
 from app.retrieval.search import _js_round  # 复用 JS 风格舍入
 from app.retrieval.tokenizer import tokenize
@@ -42,12 +44,20 @@ def rrf_fuse(paths: list[list[Hit] | None], k: int = 60) -> list[Hit]:
     - item 保留最高 BM25 分的那条。
     - 输出未截断（按 rrf_score 降序）。
     """
-    scores: dict[str, dict[str, Hit | float]] = {}  # key → {item, rrf}
+    scores: dict[tuple[str, str, str], dict[str, Hit | float]] = {}
     for hits in paths:
         if not hits:
             continue
         for i, h in enumerate(hits):
-            key = f"{h.node.get('doc_id')}:{h.node.get('node_id')}"
+            key = (
+                ("stable", h.doc_uid, h.node_key)
+                if h.doc_uid is not None and h.node_key is not None
+                else (
+                    "legacy",
+                    str(h.node.get("doc_id")),
+                    str(h.node.get("node_id")),
+                )
+            )
             rrf = 1 / (k + i + 1)
             entry = scores.get(key)
             if entry is not None:
@@ -62,14 +72,10 @@ def rrf_fuse(paths: list[list[Hit] | None], k: int = 60) -> list[Hit]:
         item: Hit = e["item"]  # type: ignore[assignment]
         rrf: float = e["rrf"]  # type: ignore[assignment]
         # 复制并覆写 score / rrf_score（不修改原 Hit，保持不可变）
-        fused = Hit(
-            node=item.node,
+        fused = replace(
+            item,
             score=_js_round(rrf, 3),
-            tokens=item.tokens,
-            positions=item.positions,
-            chunk=item.chunk,
             rrf_score=rrf,
-            rerank_score=item.rerank_score,
         )
         out.append(fused)
     out.sort(key=lambda h: h.rrf_score or 0, reverse=True)

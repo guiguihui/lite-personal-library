@@ -160,6 +160,13 @@ class SearchResultItem(BaseModel):
     breadcrumb: str
     text: str
     score: float
+    generation: str | None = None
+    view_id: str | None = None
+    doc_key: str | None = None
+    doc_uid: str | None = None
+    segment_hash: str | None = None
+    local_id: int | None = None
+    node_key: str | None = None
 
 
 class SearchResponse(BaseModel):
