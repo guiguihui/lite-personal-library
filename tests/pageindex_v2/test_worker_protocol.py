@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -738,6 +739,120 @@ def test_supervisor_rejects_noncanonical_manifest(
     with pytest.raises(WorkerProcessError, match="not canonical"):
         run_shadow_build(tmp_path / "content", pageindex, "full")
 
+
+def _write_discovery_manifest(
+    pageindex: Path,
+    generation: str,
+    *,
+    schema_version: int = 3,
+    artifact_kind: str | None = None,
+    manifest_generation: str | None = None,
+) -> Path:
+    directory = pageindex / "generations" / generation
+    directory.mkdir(parents=True)
+    manifest: dict[str, object] = {
+        "schema_version": schema_version,
+        "generation": (
+            generation if manifest_generation is None else manifest_generation
+        ),
+    }
+    if artifact_kind is not None:
+        manifest["artifact_kind"] = artifact_kind
+    path = directory / "manifest.json"
+    write_json_atomic(path, manifest)
+    return path
+
+
+@pytest.mark.parametrize(
+    ("schema_version", "artifact_kind"),
+    [(2, None), (3, None), (3, "legacy_generation")],
+)
+def test_v2_discovery_accepts_only_supported_legacy_shapes(
+    tmp_path: Path,
+    schema_version: int,
+    artifact_kind: str | None,
+) -> None:
+    pageindex = tmp_path / "pageindex"
+    generation = "a" * 20
+    _write_discovery_manifest(
+        pageindex,
+        generation,
+        schema_version=schema_version,
+        artifact_kind=artifact_kind,
+    )
+
+    assert supervisor_module._latest_shadow_generation(pageindex) == generation
+
+
+def test_v2_discovery_skips_p3_unknown_and_damaged_candidates(
+    tmp_path: Path,
+) -> None:
+    pageindex = tmp_path / "pageindex"
+    legacy = "a" * 20
+    legacy_manifest = _write_discovery_manifest(pageindex, legacy)
+
+    logical_short = "b" * 20
+    _write_discovery_manifest(
+        pageindex,
+        logical_short,
+        schema_version=3,
+        artifact_kind="logical_generation",
+    )
+    _write_discovery_manifest(
+        pageindex,
+        "c" * 20,
+        schema_version=3,
+        artifact_kind="unexpected_generation_kind",
+    )
+    damaged_dir = pageindex / "generations" / ("d" * 20)
+    damaged_dir.mkdir(parents=True)
+    damaged_manifest = damaged_dir / "manifest.json"
+    damaged_manifest.write_bytes(b'{"schema_version":3')
+    _write_discovery_manifest(
+        pageindex,
+        "e" * 20,
+        manifest_generation="f" * 20,
+    )
+    logical_full = "1" * 64
+    _write_discovery_manifest(
+        pageindex,
+        logical_full,
+        schema_version=4,
+        artifact_kind="logical_generation",
+    )
+
+    os.utime(legacy_manifest, ns=(100, 100))
+    for directory in (pageindex / "generations").iterdir():
+        manifest = directory / "manifest.json"
+        if manifest != legacy_manifest:
+            os.utime(manifest, ns=(200, 200))
+    write_json_atomic(
+        pageindex / "current.json",
+        {"generation": logical_short},
+    )
+
+    assert supervisor_module._current_generation(pageindex) is None
+    assert supervisor_module._latest_shadow_generation(pageindex) == legacy
+
+
+def test_v2_discovery_keeps_valid_current_legacy_generation(
+    tmp_path: Path,
+) -> None:
+    pageindex = tmp_path / "pageindex"
+    current = "a" * 20
+    newer = "b" * 20
+    current_manifest = _write_discovery_manifest(pageindex, current)
+    newer_manifest = _write_discovery_manifest(
+        pageindex,
+        newer,
+        artifact_kind="legacy_generation",
+    )
+    os.utime(current_manifest, ns=(100, 100))
+    os.utime(newer_manifest, ns=(200, 200))
+    write_json_atomic(pageindex / "current.json", {"generation": current})
+
+    assert supervisor_module._current_generation(pageindex) == current
+    assert supervisor_module._latest_shadow_generation(pageindex) == current
 
 def test_supervisor_uses_latest_shadow_as_default_incremental_base(
     tmp_path: Path, sample_content: Path

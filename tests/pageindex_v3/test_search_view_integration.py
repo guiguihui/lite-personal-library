@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.retrieval.search import Hit
 from app.retrieval.search_view import search_pinned_view
 
-from test_reader import (
+from .test_reader import (
     ReaderCorpus,
     _open_clean,
     _open_incremental,

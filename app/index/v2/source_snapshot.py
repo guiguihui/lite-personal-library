@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .canonical import canonical_hash
+from .canonical import canonical_hash, iter_canonical_json
 from .ids import make_doc_key, normalize_relative_path
 from .catalog import DocumentSource, discover_documents
 from .input_proof import proof_from_fingerprints, validate_input_proof
@@ -26,6 +26,13 @@ _Topology = tuple[tuple[str, tuple[str, ...]], ...]
 
 class _SourceChanged(RuntimeError):
     """A source changed while its already-open handle was being hashed."""
+
+
+def _streaming_canonical_hash(value: object) -> str:
+    digest = hashlib.sha256()
+    for fragment in iter_canonical_json(value):
+        digest.update(fragment.encode("utf-8"))
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,7 +64,9 @@ class StableCatalogSnapshot:
         object.__setattr__(self, "sources", tuple(self.sources))
         validated_proof = validate_input_proof(self.proof)
         object.__setattr__(self, "proof", validated_proof)
-        object.__setattr__(self, "_proof_sha256", canonical_hash(validated_proof))
+        object.__setattr__(
+            self, "_proof_sha256", _streaming_canonical_hash(validated_proof)
+        )
         object.__setattr__(self, "directory_state", tuple(self.directory_state))
         object.__setattr__(self, "topology", tuple(self.topology))
         object.__setattr__(self, "file_state", tuple(self.file_state))
@@ -65,9 +74,15 @@ class StableCatalogSnapshot:
     def validated_proof(self) -> dict[str, object]:
         """Return a detached proof and reject mutation after capture."""
 
-        if canonical_hash(self.proof) != self._proof_sha256:
+        if _streaming_canonical_hash(self.proof) != self._proof_sha256:
             raise RuntimeError("stable catalog snapshot proof was mutated")
         return validate_input_proof(self.proof)
+
+    @property
+    def proof_sha256(self) -> str:
+        """Return the immutable capture-time proof digest without re-encoding."""
+
+        return self._proof_sha256
 
     def verify_unchanged(
         self,

@@ -1,92 +1,93 @@
-"""Incremental base-and-delta search index primitives."""
+"""Incremental base-and-delta search index primitives.
 
-from .models import (
-    ChunkRef,
-    CompactionPolicy,
-    GenerationRecipe,
-    LayerPosting,
-    LegacyExportRecipe,
-    SearchPosting,
-    SearchViewRecipe,
-    SegmentSummary,
-    TokenSummary,
-    ViewPin,
-    logical_generation_core,
-    logical_generation_id,
-    make_doc_uid,
-    validate_doc_key,
-    validate_sha256,
+The package root is intentionally import-light. Public names remain
+backward-compatible, but their defining modules are imported only when the
+name is first requested (PEP 562). This keeps fresh no-op workers from
+loading builders, the reader, or the validator they never execute.
+"""
+
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Final
+
+
+_EXPORTS: Final[dict[str, str]] = {}
+
+
+def _exports(module: str, *names: str) -> None:
+    for name in names:
+        if name in _EXPORTS:  # pragma: no cover - import-time invariant
+            raise RuntimeError(f"duplicate PageIndex v3 export: {name}")
+        _EXPORTS[name] = module
+
+
+_exports(
+    ".models",
+    "ChunkRef", "CompactionPolicy", "GenerationRecipe", "LayerPosting",
+    "LegacyExportRecipe", "SearchPosting", "SearchViewRecipe",
+    "SegmentSummary", "TokenSummary", "ViewPin", "logical_generation_core",
+    "logical_generation_id", "make_doc_uid", "validate_doc_key",
+    "validate_sha256",
 )
-from .source_diff import SegmentChangeSet, diff_segment_inputs
-from .segment_projection import ChunkMetric, SegmentProjection, SegmentProjector
-from .summary_store import (
-    StoredSummaryRef,
-    SummaryStoreError,
-    load_summary,
-    put_summary,
+_exports(".source_diff", "SegmentChangeSet", "diff_segment_inputs")
+_exports(
+    ".segment_projection", "ChunkMetric", "SegmentProjection",
+    "SegmentProjector",
 )
-from .layer_codec import (
-    LayerCodecError,
-    LayerDocument,
-    PostingLayerReader,
-    PostingLayerReceipt,
-    TermRecord,
-    TokenContribution,
-    write_posting_layer,
+_exports(
+    ".summary_store", "StoredSummaryRef", "SummaryStoreError",
+    "load_summary", "put_summary",
 )
-from .layer_runs import LayerRunError, StagedLayerBuilder, build_sorted_layer
-from .generation import (
-    LogicalGenerationError,
-    LogicalGenerationReceipt,
-    build_logical_generation,
-    validate_logical_generation_inputs,
-    validate_logical_generation_manifest,
+_exports(
+    ".layer_codec", "LayerCodecError", "LayerDocument", "PostingLayerReader",
+    "PostingLayerReceipt", "TermRecord", "TokenContribution",
+    "write_posting_layer",
 )
-from .statistics import CorpusTotals, TokenDfDelta, token_df_deltas
-from .view_store import (
-    BaseObjectReceipt,
-    SearchViewReceipt,
-    ViewDocumentOwner,
-    ViewStoreConflictError,
-    ViewStoreError,
-    finalize_base_object,
-    finalize_search_view,
-    load_base_object,
-    load_search_view,
-    load_search_view_metadata,
-    load_view_documents,
-    write_base_candidate,
-    write_search_view_candidate,
+_exports(
+    ".layer_runs", "LayerRunError", "StagedLayerBuilder",
+    "build_sorted_layer",
 )
-from .base_builder import build_base_view
-from .delta_store import (
-    DeltaObjectReceipt,
-    DeltaStoreConflictError,
-    DeltaStoreError,
-    DocumentReplacement,
-    StatisticsDelta,
-    finalize_delta_object,
-    load_delta_object,
-    load_delta_object_metadata,
-    write_delta_candidate,
+_exports(
+    ".generation", "LogicalGenerationError", "LogicalGenerationReceipt",
+    "build_logical_generation", "validate_logical_generation_inputs",
+    "validate_logical_generation_manifest",
 )
-from .delta_builder import (
-    CompactionRecommendation,
-    DeltaBuildResult,
-    DeltaBuildWork,
-    build_delta_view,
+_exports(".statistics", "CorpusTotals", "TokenDfDelta", "token_df_deltas")
+_exports(
+    ".view_store", "BaseObjectReceipt", "SearchViewReceipt",
+    "ViewDocumentOwner", "ViewStoreConflictError", "ViewStoreError",
+    "finalize_base_object", "finalize_search_view", "load_base_object",
+    "load_search_view", "load_search_view_metadata", "load_view_documents",
+    "write_base_candidate", "write_search_view_candidate",
 )
-from .validator import (
-    validate_base_normal,
-    validate_delta_normal,
-    validate_generation_normal,
-    validate_view_normal,
+_exports(".base_builder", "build_base_view")
+_exports(
+    ".delta_store", "DeltaObjectReceipt", "DeltaStoreConflictError",
+    "DeltaStoreError", "DocumentReplacement", "StatisticsDelta",
+    "finalize_delta_object", "load_delta_object",
+    "load_delta_object_metadata", "write_delta_candidate",
 )
-from .reader import (
-    DEFAULT_CHUNK_CACHE_BYTES,
-    PinnedSearchView,
-    PinnedSearchViewError,
+_exports(
+    ".delta_builder", "CompactionRecommendation", "DeltaBuildResult",
+    "DeltaBuildWork", "build_delta_view",
 )
+_exports(
+    ".validator", "validate_base_normal", "validate_delta_normal",
+    "validate_generation_normal", "validate_view_normal",
+)
+_exports(
+    ".reader", "DEFAULT_CHUNK_CACHE_BYTES", "PinnedSearchView",
+    "PinnedSearchViewError",
+)
+_exports(
+    ".protocol", "MAX_JSON_LINE_BYTES", "PROTOCOL_NAME", "PROTOCOL_VERSION",
+    "BuildRequest", "BuildResult", "GenerationAttestation",
+    "LegacyExportAttestation", "ParentAttestation", "ProtocolError",
+    "ViewAttestation", "WorkerError", "WorkerMetrics", "decode_request_line",
+    "decode_result_line", "encode_request_line", "encode_result_line",
+)
+
 
 __all__ = [
     "ChunkMetric",
@@ -165,4 +166,37 @@ __all__ = [
     "DEFAULT_CHUNK_CACHE_BYTES",
     "PinnedSearchView",
     "PinnedSearchViewError",
+    "MAX_JSON_LINE_BYTES",
+    "PROTOCOL_NAME",
+    "PROTOCOL_VERSION",
+    "BuildRequest",
+    "BuildResult",
+    "GenerationAttestation",
+    "LegacyExportAttestation",
+    "ParentAttestation",
+    "ProtocolError",
+    "ViewAttestation",
+    "WorkerError",
+    "WorkerMetrics",
+    "decode_request_line",
+    "decode_result_line",
+    "encode_request_line",
+    "encode_result_line",
 ]
+
+
+if set(__all__) != set(_EXPORTS):  # pragma: no cover - import-time invariant
+    raise RuntimeError("PageIndex v3 lazy export table differs from __all__")
+
+
+def __getattr__(name: str) -> object:
+    module_name = _EXPORTS.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module(module_name, __name__), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted((*globals(), *__all__))

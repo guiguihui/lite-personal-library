@@ -10,7 +10,7 @@ from app.index.v3.segment_projection import SegmentProjector
 
 # Reuse the Base-plus-three-Delta corpus. Importing the decorated fixture into
 # this module also makes it visible to pytest when this file runs in isolation.
-from test_reader import ReaderCorpus, _open_incremental, reader_corpus  # noqa: F401
+from .test_reader import ReaderCorpus, _open_incremental, reader_corpus  # noqa: F401
 
 
 def test_document_chunk_refs_preserve_selected_document_order_without_segments(

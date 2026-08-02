@@ -21,7 +21,7 @@ from app.index.v3.view_store import load_view_documents
 # Pytest's default import mode places this test directory on sys.path.  Importing
 # only the shared fixture/helpers avoids rebuilding the deliberately multi-layer
 # corpus while keeping this adversarial suite independent of its test functions.
-from test_reader import ReaderCorpus, _open_incremental, reader_corpus
+from .test_reader import ReaderCorpus, _open_incremental, reader_corpus
 
 
 def _ref(corpus: ReaderCorpus, position: int = 0) -> ChunkRef:

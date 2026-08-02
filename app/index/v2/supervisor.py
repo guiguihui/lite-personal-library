@@ -30,6 +30,60 @@ class WorkerProcessError(RuntimeError):
 
 
 _GENERATION_ID_RE = re.compile(r"^[0-9a-f]{20}$")
+_LEGACY_GENERATION_SCHEMA_VERSIONS = frozenset({2, 3})
+_LEGACY_GENERATION_ARTIFACT_KIND = "legacy_generation"
+
+
+def _legacy_generation_manifest(
+    generation_root: Path,
+    generation: str,
+) -> Path | None:
+    """Return a classified legacy manifest, never a P3/unknown artifact.
+
+    Schema-2/3 manifests predate ``artifact_kind`` and remain supported. A
+    producer that declares a kind must use the one explicit legacy kind;
+    logical P3 Generations and unknown future kinds belong to other readers.
+    """
+
+    if not isinstance(generation, str) or not _GENERATION_ID_RE.fullmatch(
+        generation
+    ):
+        return None
+    root = Path(generation_root)
+    directory = root / generation
+    manifest = directory / "manifest.json"
+    try:
+        resolved_root = root.resolve(strict=True)
+        resolved_directory = directory.resolve(strict=True)
+        resolved_manifest = manifest.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return None
+    if (
+        not directory.is_dir()
+        or not manifest.is_file()
+        or resolved_directory.parent != resolved_root
+        or resolved_directory.name != generation
+        or resolved_manifest.parent != resolved_directory
+        or resolved_manifest.name != "manifest.json"
+    ):
+        return None
+    try:
+        value = read_json_object(manifest)
+    except ProtocolError:
+        return None
+    schema_version = value.get("schema_version")
+    if (
+        type(schema_version) is not int
+        or schema_version not in _LEGACY_GENERATION_SCHEMA_VERSIONS
+        or value.get("generation") != generation
+    ):
+        return None
+    if (
+        "artifact_kind" in value
+        and value.get("artifact_kind") != _LEGACY_GENERATION_ARTIFACT_KIND
+    ):
+        return None
+    return manifest
 
 
 def _verify_success_result(
@@ -204,8 +258,11 @@ def _current_generation(pageindex_dir: Path) -> str | None:
     generation = value.get("generation")
     if not isinstance(generation, str) or not _GENERATION_ID_RE.fullmatch(generation):
         return None
-    manifest = pageindex_dir / "generations" / generation / "manifest.json"
-    return generation if manifest.is_file() else None
+    manifest = _legacy_generation_manifest(
+        pageindex_dir / "generations",
+        generation,
+    )
+    return generation if manifest is not None else None
 
 
 def _latest_shadow_generation(pageindex_dir: Path) -> str | None:
@@ -216,25 +273,27 @@ def _latest_shadow_generation(pageindex_dir: Path) -> str | None:
     root = pageindex_dir / "generations"
     if not root.is_dir():
         return None
-    candidates = [
-        directory
-        for directory in root.iterdir()
-        if (
-            directory.is_dir()
-            and _GENERATION_ID_RE.fullmatch(directory.name)
-            and (directory / "manifest.json").is_file()
-        )
-    ]
+    try:
+        directories = tuple(root.iterdir())
+    except OSError:
+        return None
+    candidates: list[tuple[Path, int]] = []
+    for directory in directories:
+        manifest = _legacy_generation_manifest(root, directory.name)
+        if manifest is None:
+            continue
+        try:
+            modified = manifest.stat().st_mtime_ns
+        except OSError:
+            continue
+        candidates.append((directory, modified))
     if not candidates:
         return None
     latest = max(
         candidates,
-        key=lambda directory: (
-            (directory / "manifest.json").stat().st_mtime_ns,
-            directory.name,
-        ),
+        key=lambda candidate: (candidate[1], candidate[0].name),
     )
-    return latest.name
+    return latest[0].name
 
 
 def run_shadow_build(

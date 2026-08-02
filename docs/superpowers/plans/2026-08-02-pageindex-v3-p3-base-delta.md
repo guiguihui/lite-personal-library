@@ -880,11 +880,11 @@ git commit -m "feat(search): add pinned search view shadow reader"
 - Consumes: all previous P3 components and existing v2 Segment building/object store.
 - Produces: protocol-v1 P3 request/result with `{generation, view_id}`, modes `incremental` and `optimize`, `legacy_export` in `{"none","full"}`, and fresh-process supervisor functions.
 
-- [ ] **Step 1: Write strict protocol and lifecycle tests**
+- [x] **Step 1: Write strict protocol and lifecycle tests**
 
 An incremental request accepts an optional base pair; no pair bootstraps a full base, while a pair produces no-op or one delta. `optimize` requires a pair and creates a new base View for the same Generation. Results attest both manifests. Mixed/missing pairs, unsafe IDs, stale parent pairs, malformed legacy-export flags, and protocol-v2/v1 confusion fail.
 
-- [ ] **Step 2: Implement the default incremental pipeline**
+- [x] **Step 2: Implement the default incremental pipeline**
 
 ```text
 stable catalog snapshot
@@ -899,29 +899,42 @@ stable catalog snapshot
 
 The dirty path sets `legacy_compile_runs=0`, never calls either v2 compiler, never writes schema-3 monoliths, and returns `ready_to_publish` only after receipts validate. Instrument source-hash time, dirty Segment time, Generation time, delta time, Normal time, Segment loads/peak, postings visited, and bytes written.
 
-- [ ] **Step 3: Implement explicit optimize**
+- [x] **Step 3: Implement explicit optimize**
 
 `mode="optimize"` streams all current refs into a new base and View under the same logical Generation. An incremental build only emits `compaction_recommended`; it never invokes optimize automatically.
 
-- [ ] **Step 4: Isolate legacy full export**
+- [x] **Step 4: Isolate legacy full export**
 
 `legacy_export="full"` explicitly wraps the existing P2 streaming compatibility compiler and Normal validator, writes to `exports/legacy/<logical_generation>/<export_id>/`, and reports its own counters. `legacy_export="none"` is the default. Exact bytes must match the existing schema-3 oracle.
 
-- [ ] **Step 5: Keep v2 shadow discovery from selecting P3 manifests**
+- [x] **Step 5: Keep v2 shadow discovery from selecting P3 manifests**
 
 Update v2 latest-generation scanning to accept only old schema-2/3 compatibility manifests (missing `artifact_kind` or explicit legacy kind). P3 scans only `artifact_kind="logical_generation"`; neither silently treats the other as a base.
 
-- [ ] **Step 6: Run worker/legacy tests**
+- [x] **Step 6: Run worker/legacy tests**
 
 Run: `python -m pytest tests/pageindex_v3/test_worker_protocol.py tests/pageindex_v3/test_legacy_export.py tests/pageindex_v2/test_worker_protocol.py -q`
 Expected: v2 behavior stays byte-compatible; P3 edit/delete loads only changed old/new Segments and has zero legacy compiles unless explicitly requested.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add app/index/v3/protocol.py app/index/v3/worker.py app/index/v3/supervisor.py app/index/v3/legacy_export.py app/pageindex_v3_worker.py app/index/v2/supervisor.py tests/pageindex_v3/test_worker_protocol.py tests/pageindex_v3/test_legacy_export.py tests/pageindex_v2/test_worker_protocol.py
 git commit -m "feat(pageindex): build incremental search views by default"
 ```
+
+Result: protocol-v1 now defaults to proof-first incremental builds, emits one
+document-replacement Delta for dirty input, returns before Segment loading on
+no-op, and reserves clean Base rebuilding for explicit `optimize`. Legacy
+schema-3 export is lazy and opt-in; default builds report zero legacy compiler
+runs. Lazy package exports and build-only worker imports keep no-op processes
+from importing Base/Delta builders, validators, or the legacy compiler. The
+fresh-process supervisor authenticates request/result identity,
+Generation/View lineage, and compact artifact receipts without consulting
+`current.json` or latest-mtime discovery. V2 discovery rejects logical P3
+manifests. Adversarial lifecycle, P3, V2, and full-repository validation passed:
+`109 passed` focused, `570 passed, 5 skipped` P3, `234 passed, 1 skipped` V2,
+and `1064 passed, 7 skipped` repository-wide.
 
 ### Task 12: Prove exact-50k dirty gates and document the P4 cutover seam
 

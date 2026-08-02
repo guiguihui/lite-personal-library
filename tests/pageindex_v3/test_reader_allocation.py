@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from app.index.v3.layer_codec import PostingLayerReader
 
-from test_reader import ReaderCorpus, _open_incremental, reader_corpus
+from .test_reader import ReaderCorpus, _open_incremental, reader_corpus
 
 
 def test_stale_rows_are_filtered_before_search_posting_allocation(

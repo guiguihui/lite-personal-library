@@ -25,7 +25,7 @@ from app.retrieval.tokenizer import tokenize
 
 # Importing the decorated fixture makes it available when this file is run in
 # isolation while also exercising the real Base-plus-three-Delta reader.
-from test_reader import (  # noqa: E402,F401
+from .test_reader import (  # noqa: E402,F401
     ReaderCorpus,
     _open_clean,
     _open_incremental,

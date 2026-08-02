@@ -26,6 +26,11 @@ def _dispatch() -> int:
     # PyInstaller workers reuse this executable. Route the special mode before
     # importing app.main so a build subprocess does not initialize the desktop
     # window, HTTP server, or long-lived application state.
+    if len(sys.argv) > 1 and sys.argv[1] == "--pageindex-v3-worker":
+        from app.pageindex_v3_worker import main as worker_main
+
+        return worker_main(sys.argv[2:])
+
     if len(sys.argv) > 1 and sys.argv[1] == "--pageindex-worker":
         from app.pageindex_worker import main as worker_main
 
