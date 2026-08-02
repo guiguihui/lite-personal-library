@@ -144,6 +144,24 @@ def test_recipes_reject_unknown_versions(factory: object, message: str) -> None:
 @pytest.mark.parametrize(
     "factory",
     [
+        lambda: GenerationRecipe(schema_version=1.0),
+        lambda: GenerationRecipe(schema_version=True),
+        lambda: SearchViewRecipe(schema_version=1.0),
+        lambda: SearchViewRecipe(schema_version=True),
+        lambda: LegacyExportRecipe(schema_version=1.0),
+        lambda: LegacyExportRecipe(schema_version=True),
+        lambda: replace(_summary(), schema_version=1.0),
+        lambda: replace(_summary(), schema_version=True),
+    ],
+)
+def test_model_schema_versions_require_exact_int(factory: object) -> None:
+    with pytest.raises(ValueError, match="schema_version"):
+        factory()  # type: ignore[operator]
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [
         lambda: GenerationRecipe(body_df_min=True),
         lambda: GenerationRecipe(body_df_min=0),
         lambda: GenerationRecipe(body_df_ratio_numerator=True),
@@ -413,7 +431,8 @@ def test_segment_summary_is_strict_immutable_and_detached() -> None:
 
 def test_segment_summary_allows_empty_corpus_and_empty_text_chunk() -> None:
     empty = replace(
-        _summary(tokens=()),
+        _summary(),
+        tokens=(),
         chunk_count=0,
         title_length_sum=0,
         breadcrumb_length_sum=0,
@@ -424,6 +443,46 @@ def test_segment_summary_allows_empty_corpus_and_empty_text_chunk() -> None:
     assert empty.tokens == ()
     assert empty.as_dict()["tokens"] == []
     assert empty_chunk.chunk_count == 1
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["title_length_sum", "breadcrumb_length_sum", "body_length_sum"],
+)
+def test_zero_chunk_summary_requires_zero_field_lengths(field: str) -> None:
+    empty = replace(
+        _summary(),
+        tokens=(),
+        chunk_count=0,
+        title_length_sum=0,
+        breadcrumb_length_sum=0,
+        body_length_sum=0,
+        posting_count=0,
+    )
+
+    with pytest.raises(ValueError, match="chunk_count"):
+        replace(empty, **{field: 1})
+
+
+def test_segment_summary_requires_postings_exactly_when_text_is_nonempty() -> None:
+    empty_chunk = replace(
+        _summary(),
+        tokens=(),
+        chunk_count=1,
+        title_length_sum=0,
+        breadcrumb_length_sum=0,
+        body_length_sum=0,
+        posting_count=0,
+    )
+
+    with pytest.raises(ValueError, match="posting_count"):
+        replace(empty_chunk, title_length_sum=1)
+    with pytest.raises(ValueError, match="posting_count"):
+        replace(
+            empty_chunk,
+            posting_count=1,
+            tokens=(TokenSummary("alpha", 1, 0, 1),),
+        )
 
 
 @pytest.mark.parametrize(

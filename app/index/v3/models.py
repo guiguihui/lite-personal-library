@@ -101,8 +101,9 @@ class GenerationRecipe:
     body_df_ratio_denominator: int = 10
 
     def __post_init__(self) -> None:
-        if self.schema_version != MODEL_SCHEMA_VERSION or isinstance(
-            self.schema_version, bool
+        if (
+            type(self.schema_version) is not int
+            or self.schema_version != MODEL_SCHEMA_VERSION
         ):
             raise ValueError(
                 f"unsupported schema_version: {self.schema_version!r}; "
@@ -161,8 +162,9 @@ class SearchViewRecipe:
     statistics_version: str = "scalar-plus-layer-delta-v1"
 
     def __post_init__(self) -> None:
-        if self.schema_version != MODEL_SCHEMA_VERSION or isinstance(
-            self.schema_version, bool
+        if (
+            type(self.schema_version) is not int
+            or self.schema_version != MODEL_SCHEMA_VERSION
         ):
             raise ValueError(
                 f"unsupported schema_version: {self.schema_version!r}; "
@@ -241,8 +243,9 @@ class LegacyExportRecipe:
     generation_layout_version: str = "manifest-input-proof-v1"
 
     def __post_init__(self) -> None:
-        if self.schema_version != MODEL_SCHEMA_VERSION or isinstance(
-            self.schema_version, bool
+        if (
+            type(self.schema_version) is not int
+            or self.schema_version != MODEL_SCHEMA_VERSION
         ):
             raise ValueError(
                 f"unsupported schema_version: {self.schema_version!r}; "
@@ -414,8 +417,9 @@ class SegmentSummary:
     artifact_kind: str = "segment_search_summary"
 
     def __post_init__(self) -> None:
-        if self.schema_version != MODEL_SCHEMA_VERSION or isinstance(
-            self.schema_version, bool
+        if (
+            type(self.schema_version) is not int
+            or self.schema_version != MODEL_SCHEMA_VERSION
         ):
             raise ValueError(
                 f"unsupported schema_version: {self.schema_version!r}; "
@@ -430,10 +434,27 @@ class SegmentSummary:
         validate_sha256(self.content_hash, "content_hash digest")
         validate_sha256(self.segment_recipe_hash, "segment_recipe_hash digest")
         chunk_count = _require_u64("chunk_count", self.chunk_count)
-        _require_u64("title_length_sum", self.title_length_sum)
-        _require_u64("breadcrumb_length_sum", self.breadcrumb_length_sum)
-        _require_u64("body_length_sum", self.body_length_sum)
+        title_length_sum = _require_u64(
+            "title_length_sum", self.title_length_sum
+        )
+        breadcrumb_length_sum = _require_u64(
+            "breadcrumb_length_sum", self.breadcrumb_length_sum
+        )
+        body_length_sum = _require_u64("body_length_sum", self.body_length_sum)
         posting_count = _require_u64("posting_count", self.posting_count)
+        field_length_sum = (
+            title_length_sum
+            + breadcrumb_length_sum
+            + body_length_sum
+        )
+        if chunk_count == 0 and field_length_sum != 0:
+            raise ValueError(
+                "chunk_count == 0 requires all field length sums to equal zero"
+            )
+        if (posting_count == 0) != (field_length_sum == 0):
+            raise ValueError(
+                "posting_count must equal zero exactly when all field lengths are zero"
+            )
 
         if isinstance(self.tokens, (str, bytes, bytearray)):
             raise TypeError("tokens must be an iterable of TokenSummary values")
