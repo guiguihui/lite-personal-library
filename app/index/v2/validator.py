@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from app.retrieval.tokenizer import tokenize
 
+from .artifacts import ArtifactRef, CandidateReceipt
 from .canonical import canonical_bytes, canonical_hash, sha256_bytes, write_json_atomic
 from .compiler import CompiledGeneration, compile_generation
 from .ids import normalize_relative_path
@@ -26,11 +29,33 @@ from .models import (
     SegmentRecipe,
 )
 from .object_store import load_segment
+from .streaming_json import (
+    BoundedJsonError,
+    load_bounded_canonical_json,
+    stream_file_digest,
+)
 
-__all__ = ["ValidationReport", "materialize_candidate", "validate_candidate"]
+__all__ = [
+    "ValidationMode",
+    "ValidationReport",
+    "materialize_candidate",
+    "validate_candidate",
+    "validate_candidate_deep",
+    "validate_candidate_normal",
+]
 
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+class ValidationMode(str, Enum):
+    """Validation cost/assurance levels exposed to build orchestration."""
+
+    NORMAL = "normal"
+    SAMPLED = "sampled"
+    DEEP = "deep"
+
+
 
 
 @dataclass(frozen=True, slots=True)
@@ -416,7 +441,534 @@ def _validate_runtime_references(
                 _add(errors, "posting_invalid_tf", f"{token!r}:{chunk_id}")
 
 
-def validate_candidate(candidate_dir: Path, pageindex_dir: Path) -> ValidationReport:
+_MISSING = object()
+
+
+def _ref_field(reference: object, field: str) -> object:
+    if isinstance(reference, Mapping):
+        return reference.get(field, _MISSING)
+    return getattr(reference, field, _MISSING)
+
+
+def _resolves_within(path: Path, root: Path) -> bool:
+    try:
+        Path(path).resolve().relative_to(Path(root).resolve())
+    except (OSError, ValueError):
+        return False
+    return True
+
+
+def _candidate_file_set(
+    candidate: Path,
+    errors: list[str],
+) -> tuple[set[str], set[str]]:
+    """Return regular candidate files and paths that must never be opened."""
+
+    actual: set[str] = set()
+    unsafe: set[str] = set()
+    if candidate.is_symlink():
+        _add(errors, "unsafe_file", "candidate directory is a symbolic link")
+        return actual, unsafe
+    if not candidate.exists():
+        _add(errors, "candidate_missing", str(candidate))
+        return actual, unsafe
+    if not candidate.is_dir():
+        _add(errors, "candidate_invalid", f"not a directory: {candidate}")
+        return actual, unsafe
+
+    def walk_error(exc: OSError) -> None:
+        _add(errors, "candidate_scan_failed", str(exc))
+
+    for current, directories, filenames in os.walk(
+        candidate,
+        followlinks=False,
+        onerror=walk_error,
+    ):
+        current_path = Path(current)
+        for name in tuple(directories):
+            path = current_path / name
+            relative = path.relative_to(candidate).as_posix()
+            if path.is_symlink() or not _resolves_within(path, candidate):
+                unsafe.add(relative)
+                _add(errors, "unsafe_file", relative)
+                directories.remove(name)
+
+        for name in filenames:
+            path = current_path / name
+            relative = path.relative_to(candidate).as_posix()
+            actual.add(relative)
+            try:
+                _safe_relative_path(relative)
+            except ValueError:
+                unsafe.add(relative)
+                _add(errors, "unsafe_file", relative)
+                continue
+            if (
+                path.is_symlink()
+                or not path.is_file()
+                or not _resolves_within(path, candidate)
+            ):
+                unsafe.add(relative)
+                _add(errors, "unsafe_file", relative)
+    return actual, unsafe
+
+
+def _load_control_document(
+    path: Path,
+    relative: str,
+    errors: list[str],
+) -> object | None:
+    try:
+        return load_bounded_canonical_json(path)
+    except FileNotFoundError:
+        _add(errors, "file_missing", relative)
+    except BoundedJsonError as exc:
+        code = (
+            "manifest_not_canonical"
+            if relative == "manifest.json" and "not canonical" in str(exc)
+            else "file_not_canonical"
+            if "not canonical" in str(exc)
+            else "json_invalid"
+        )
+        _add(errors, code, f"{relative}: {exc}")
+    except OSError as exc:
+        _add(errors, "file_read_failed", f"{relative}: {exc}")
+    return None
+
+
+def _valid_receipt_artifacts(
+    receipt: CandidateReceipt,
+    errors: list[str],
+) -> dict[str, ArtifactRef]:
+    artifacts: dict[str, ArtifactRef] = {}
+    for relative, reference in receipt.artifacts.items():
+        try:
+            _safe_relative_path(relative)
+        except (TypeError, ValueError) as exc:
+            _add(errors, "receipt_path_invalid", str(exc))
+            continue
+        if relative == "manifest.json":
+            _add(
+                errors,
+                "receipt_path_invalid",
+                "manifest.json is attested by manifest_sha256",
+            )
+            continue
+        if not isinstance(reference, ArtifactRef):
+            _add(errors, "receipt_invalid", f"{relative}: invalid ArtifactRef")
+            continue
+        if reference.relative_path != relative:
+            _add(
+                errors,
+                "receipt_invalid",
+                f"{relative}: ArtifactRef path differs",
+            )
+            continue
+        if (
+            not _SHA256_RE.fullmatch(reference.sha256)
+            or isinstance(reference.byte_size, bool)
+            or not isinstance(reference.byte_size, int)
+            or reference.byte_size < 0
+        ):
+            _add(errors, "receipt_invalid", f"{relative}: invalid attestation")
+            continue
+        artifacts[relative] = reference
+    return artifacts
+
+
+def _validate_artifact_receipts(
+    candidate: Path,
+    receipt: CandidateReceipt,
+    artifacts: Mapping[str, ArtifactRef],
+    unsafe: set[str],
+    errors: list[str],
+) -> object | None:
+    for relative, reference in sorted(artifacts.items()):
+        if relative in unsafe:
+            continue
+        try:
+            actual = stream_file_digest(candidate / _safe_relative_path(relative))
+        except FileNotFoundError:
+            _add(errors, "file_missing", relative)
+            continue
+        except OSError as exc:
+            _add(errors, "file_read_failed", f"{relative}: {exc}")
+            continue
+        if actual.sha256 != reference.sha256:
+            _add(errors, "file_hash_mismatch", relative)
+        if actual.byte_size != reference.byte_size:
+            _add(errors, "file_size_mismatch", relative)
+
+    if "manifest.json" in unsafe:
+        return None
+    try:
+        manifest_digest = stream_file_digest(candidate / "manifest.json")
+    except FileNotFoundError:
+        _add(errors, "file_missing", "manifest.json")
+        return None
+    except OSError as exc:
+        _add(errors, "file_read_failed", f"manifest.json: {exc}")
+        return None
+    if manifest_digest.sha256 != receipt.manifest_sha256:
+        _add(errors, "manifest_hash_mismatch", "manifest.json")
+    return manifest_digest
+
+
+def _validate_segment_ref_bindings(
+    segment_refs: Mapping[str, object],
+    documents: Mapping[str, object],
+    proof_documents: Mapping[str, object],
+    pageindex_dir: Path,
+    errors: list[str],
+) -> None:
+    valid_ref_keys: set[str] = set()
+    for raw_doc_key in segment_refs:
+        if not isinstance(raw_doc_key, str) or not raw_doc_key:
+            _add(errors, "segment_reference_invalid", repr(raw_doc_key))
+            continue
+        valid_ref_keys.add(raw_doc_key)
+
+    document_keys = set(documents)
+    proof_keys = set(proof_documents)
+    if valid_ref_keys != document_keys:
+        _add(
+            errors,
+            "segment_reference_mismatch",
+            "receipt Segment refs differ from manifest documents",
+        )
+    if proof_keys != document_keys:
+        _add(
+            errors,
+            "input_proof_documents_mismatch",
+            "proof documents differ from manifest documents",
+        )
+
+    for doc_key in sorted(valid_ref_keys & document_keys & proof_keys):
+        reference = segment_refs[doc_key]
+        segment_hash = _ref_field(reference, "segment_hash")
+        reference_doc_key = _ref_field(reference, "doc_key")
+        doc_type = _ref_field(reference, "doc_type")
+        slug = _ref_field(reference, "slug")
+        content_hash = _ref_field(reference, "content_hash")
+        segment_recipe_hash = _ref_field(reference, "segment_recipe_hash")
+        byte_size = _ref_field(reference, "byte_size")
+        reference_path = _ref_field(reference, "path")
+        proof_entry = _mapping(proof_documents[doc_key])
+
+        invalid = False
+        if (
+            not isinstance(segment_hash, str)
+            or not _SHA256_RE.fullmatch(segment_hash)
+            or documents[doc_key] != segment_hash
+        ):
+            invalid = True
+        if (
+            reference_doc_key != doc_key
+            or not isinstance(doc_type, str)
+            or not isinstance(slug, str)
+            or f"{doc_type}:{slug}" != doc_key
+        ):
+            invalid = True
+        if proof_entry is None:
+            invalid = True
+        elif (
+            proof_entry.get("content_hash") != content_hash
+            or proof_entry.get("segment_recipe_hash") != segment_recipe_hash
+        ):
+            _add(errors, "input_proof_segment_mismatch", doc_key)
+        if (
+            not isinstance(content_hash, str)
+            or not _SHA256_RE.fullmatch(content_hash)
+            or not isinstance(segment_recipe_hash, str)
+            or not _SHA256_RE.fullmatch(segment_recipe_hash)
+            or isinstance(byte_size, bool)
+            or not isinstance(byte_size, int)
+            or byte_size < 0
+        ):
+            invalid = True
+        if invalid:
+            _add(errors, "segment_reference_invalid", doc_key)
+            continue
+
+        expected_path = (
+            Path(pageindex_dir)
+            / "objects"
+            / "segments"
+            / segment_hash[:2]
+            / f"{segment_hash}.json"
+        )
+        try:
+            supplied_path = Path(reference_path)
+        except TypeError:
+            _add(errors, "segment_reference_invalid", f"{doc_key}: invalid path")
+            continue
+        if (
+            supplied_path.resolve() != expected_path.resolve()
+            or supplied_path.is_symlink()
+            or not _resolves_within(supplied_path, Path(pageindex_dir))
+        ):
+            _add(errors, "segment_reference_invalid", f"{doc_key}: unsafe path")
+            continue
+        if not supplied_path.exists():
+            _add(errors, "segment_object_missing", doc_key)
+            continue
+        if not supplied_path.is_file():
+            _add(errors, "segment_reference_invalid", f"{doc_key}: not a file")
+            continue
+        try:
+            actual_size = supplied_path.stat().st_size
+        except OSError as exc:
+            _add(errors, "segment_object_invalid", f"{doc_key}: {exc}")
+            continue
+        if actual_size != byte_size:
+            _add(errors, "segment_object_size_mismatch", doc_key)
+
+
+def validate_candidate_normal(
+    receipt: CandidateReceipt,
+    pageindex_dir: Path,
+) -> ValidationReport:
+    """Validate a compiler receipt without loading or recompiling all data."""
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not isinstance(receipt, CandidateReceipt):
+        _add(errors, "receipt_invalid", "expected CandidateReceipt")
+        return ValidationReport(False, tuple(errors), tuple(warnings))
+
+    for field in (
+        "revision_sha256",
+        "compiler_recipe_hash",
+        "input_proof_sha256",
+        "manifest_sha256",
+    ):
+        value = getattr(receipt, field)
+        if not isinstance(value, str) or not _SHA256_RE.fullmatch(value):
+            _add(errors, "receipt_invalid", field)
+    if (
+        not isinstance(receipt.generation_id, str)
+        or not re.fullmatch(r"[0-9a-f]{20}", receipt.generation_id)
+    ):
+        _add(errors, "receipt_invalid", "generation_id")
+
+    candidate = Path(receipt.candidate_dir)
+    artifacts = _valid_receipt_artifacts(receipt, errors)
+    actual_files, unsafe = _candidate_file_set(candidate, errors)
+    expected_files = {"manifest.json", *artifacts}
+    for extra in sorted(actual_files - expected_files):
+        _add(errors, "unexpected_file", extra)
+    for missing in sorted(expected_files - actual_files):
+        _add(errors, "file_missing", missing)
+
+    manifest_digest = _validate_artifact_receipts(
+        candidate,
+        receipt,
+        artifacts,
+        unsafe,
+        errors,
+    )
+    manifest_value = _load_control_document(
+        candidate / "manifest.json",
+        "manifest.json",
+        errors,
+    )
+    manifest = _mapping(manifest_value)
+    if manifest is None:
+        if manifest_value is not None:
+            _add(errors, "manifest_invalid", "manifest must be an object")
+        return ValidationReport(False, tuple(errors), tuple(warnings))
+
+    if manifest.get("schema_version") != COMPILER_SCHEMA_VERSION:
+        _add(
+            errors,
+            "schema_unknown",
+            f"manifest schema {manifest.get('schema_version')!r}",
+        )
+    if manifest.get("generation") != receipt.generation_id:
+        _add(errors, "generation_id_mismatch", "receipt differs from manifest")
+    if manifest.get("revision_sha256") != receipt.revision_sha256:
+        _add(errors, "revision_hash_mismatch", "receipt differs from manifest")
+    if manifest.get("compiler_recipe_hash") != receipt.compiler_recipe_hash:
+        _add(
+            errors,
+            "compiler_recipe_hash_mismatch",
+            "receipt differs from manifest",
+        )
+    if manifest.get("input_proof_sha256") != receipt.input_proof_sha256:
+        _add(
+            errors,
+            "input_proof_hash_mismatch",
+            "receipt differs from manifest",
+        )
+
+    recipe_value = _mapping(manifest.get("compiler_recipe"))
+    if recipe_value is None:
+        _add(errors, "compiler_recipe_invalid", "compiler_recipe must be an object")
+    else:
+        try:
+            recipe = CompilerRecipe(**dict(recipe_value))
+        except (TypeError, ValueError) as exc:
+            _add(errors, "compiler_recipe_invalid", str(exc))
+        else:
+            if canonical_bytes(dict(recipe_value)) != canonical_bytes(recipe.as_dict()):
+                _add(errors, "compiler_recipe_invalid", "non-canonical recipe value")
+            recipe_hash = canonical_hash(recipe.as_dict())
+            if recipe_hash != receipt.compiler_recipe_hash:
+                _add(
+                    errors,
+                    "compiler_recipe_hash_mismatch",
+                    "compiler recipe differs from receipt",
+                )
+
+    raw_documents = _mapping(manifest.get("documents"))
+    documents: dict[str, object] = {}
+    if raw_documents is None:
+        _add(errors, "manifest_invalid", "documents must be an object")
+    else:
+        for doc_key, segment_hash in raw_documents.items():
+            if (
+                not isinstance(doc_key, str)
+                or not doc_key
+                or not isinstance(segment_hash, str)
+                or not _SHA256_RE.fullmatch(segment_hash)
+            ):
+                _add(
+                    errors,
+                    "segment_reference_invalid",
+                    repr((doc_key, segment_hash)),
+                )
+                continue
+            documents[doc_key] = segment_hash
+
+        core_manifest = {
+            "schema_version": COMPILER_SCHEMA_VERSION,
+            "compiler_recipe_hash": manifest.get("compiler_recipe_hash"),
+            "input_proof_sha256": manifest.get("input_proof_sha256"),
+            "documents": dict(raw_documents),
+        }
+        revision = canonical_hash(core_manifest)
+        if manifest.get("revision_sha256") != revision:
+            _add(errors, "revision_hash_mismatch", revision)
+        if receipt.revision_sha256 != revision:
+            _add(errors, "revision_hash_mismatch", "receipt core manifest")
+        if manifest.get("generation") != revision[:20]:
+            _add(errors, "generation_id_mismatch", revision[:20])
+        if receipt.generation_id != revision[:20]:
+            _add(errors, "generation_id_mismatch", "receipt core manifest")
+
+    manifest_files = _mapping(manifest.get("files"))
+    if manifest_files is None:
+        _add(errors, "manifest_invalid", "files must be an object")
+        manifest_files = {}
+    if set(manifest_files) != set(artifacts):
+        _add(
+            errors,
+            "receipt_file_set_mismatch",
+            "manifest files differ from receipt artifacts",
+        )
+    for relative, reference in sorted(artifacts.items()):
+        metadata = _mapping(manifest_files.get(relative))
+        if metadata is None:
+            _add(errors, "file_metadata_invalid", relative)
+            continue
+        if set(metadata) != {"sha256", "bytes"}:
+            _add(errors, "file_metadata_invalid", relative)
+        if metadata.get("sha256") != reference.sha256:
+            _add(errors, "file_hash_mismatch", f"{relative}: manifest/receipt")
+        if metadata.get("bytes") != reference.byte_size:
+            _add(errors, "file_size_mismatch", f"{relative}: manifest/receipt")
+
+    proof_documents: Mapping[str, object] = {}
+    if INPUT_PROOF_PATH not in artifacts:
+        _add(errors, "input_proof_missing", "receipt artifacts")
+    else:
+        proof_value = _load_control_document(
+            candidate / INPUT_PROOF_PATH,
+            INPUT_PROOF_PATH,
+            errors,
+        )
+        if proof_value is not None:
+            try:
+                proof = validate_input_proof(proof_value)
+            except ValueError as exc:
+                _add(errors, "input_proof_invalid", str(exc))
+            else:
+                proof_hash = canonical_hash(proof)
+                if proof_hash != receipt.input_proof_sha256:
+                    _add(
+                        errors,
+                        "input_proof_hash_mismatch",
+                        "proof differs from receipt",
+                    )
+                if proof_hash != manifest.get("input_proof_sha256"):
+                    _add(
+                        errors,
+                        "input_proof_hash_mismatch",
+                        "proof differs from manifest",
+                    )
+                if proof.get("compiler_recipe_hash") != receipt.compiler_recipe_hash:
+                    _add(
+                        errors,
+                        "input_proof_compiler_recipe_mismatch",
+                        "proof differs from receipt",
+                    )
+                proof_documents = _mapping(proof.get("documents")) or {}
+
+    _validate_segment_ref_bindings(
+        receipt.segment_refs,
+        documents,
+        proof_documents,
+        Path(pageindex_dir),
+        errors,
+    )
+
+    stats = _mapping(manifest.get("stats"))
+    if stats is None:
+        _add(errors, "manifest_invalid", "stats must be an object")
+    else:
+        if stats.get("documents") != len(documents):
+            _add(errors, "aggregate_mismatch", "document count")
+        record_bindings = {
+            "global-index.json": "documents",
+            "node-index.json": "nodes",
+            "chunks.json": "chunks",
+            "inverted-index.json": "tokens",
+        }
+        for relative, stat_name in record_bindings.items():
+            reference = artifacts.get(relative)
+            if (
+                reference is not None
+                and reference.records is not None
+                and stats.get(stat_name) != reference.records
+            ):
+                _add(errors, "aggregate_mismatch", f"{relative} records")
+    if INPUT_PROOF_PATH in artifacts:
+        proof_records = artifacts[INPUT_PROOF_PATH].records
+        if proof_records is not None and proof_records != len(documents):
+            _add(errors, "aggregate_mismatch", "input proof records")
+
+    for key in ("stats", "pruning"):
+        if key in receipt.invariants and receipt.invariants[key] != manifest.get(key):
+            _add(errors, "aggregate_mismatch", f"receipt invariant {key}")
+    if (
+        manifest_digest is not None
+        and "generation_bytes_written" in receipt.invariants
+    ):
+        expected_bytes = manifest_digest.byte_size + sum(
+            reference.byte_size for reference in artifacts.values()
+        )
+        if receipt.invariants["generation_bytes_written"] != expected_bytes:
+            _add(errors, "aggregate_mismatch", "generation_bytes_written")
+
+    raw_warnings = manifest.get("warnings")
+    if isinstance(raw_warnings, list):
+        warnings.extend(str(item) for item in raw_warnings)
+    else:
+        _add(errors, "manifest_invalid", "warnings must be an array")
+    return ValidationReport(not errors, tuple(errors), tuple(warnings))
+
+
+def validate_candidate_deep(candidate_dir: Path, pageindex_dir: Path) -> ValidationReport:
     """Validate hashes, references, Segment facts, and exact pruning output."""
 
     candidate = Path(candidate_dir)
@@ -634,3 +1186,12 @@ def validate_candidate(candidate_dir: Path, pageindex_dir: Path) -> ValidationRe
     if isinstance(raw_warnings, list):
         warnings.extend(str(item) for item in raw_warnings)
     return ValidationReport(not errors, tuple(errors), tuple(warnings))
+
+
+def validate_candidate(
+    candidate_dir: Path,
+    pageindex_dir: Path,
+) -> ValidationReport:
+    """Backward-compatible entry point for the legacy Deep validator."""
+
+    return validate_candidate_deep(candidate_dir, pageindex_dir)
