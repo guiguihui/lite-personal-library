@@ -895,16 +895,12 @@ def test_worker_command_supports_development_and_frozen_launch(
     ]
 
 
-def test_run_app_routes_worker_before_importing_desktop_main() -> None:
+def test_run_app_does_not_dispatch_the_retired_v2_worker() -> None:
     project_root = Path(__file__).resolve().parents[2]
-    source = (project_root / 'run_app.py').read_text(encoding='utf-8')
-    worker_branch = 'sys.argv[1] == ' + chr(34) + '--pageindex-worker' + chr(34)
-    assert source.index(worker_branch) < source.index('from app.main import')
+    source = (project_root / "run_app.py").read_text(encoding="utf-8")
 
-    sys.modules.pop('run_app', None)
-    sys.modules.pop('app.main', None)
-    __import__('run_app')
-    assert 'app.main' not in sys.modules
+    assert 'sys.argv[1] == "--pageindex-worker"' not in source
+    assert 'sys.argv[1] == "--pageindex-v3-worker"' in source
 
 
 def test_setuptools_discovers_nested_app_packages() -> None:

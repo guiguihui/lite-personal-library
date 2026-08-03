@@ -1,348 +1,207 @@
-# 架构
-
-> 面向想理解 LQ-D Desktop 怎么工作、或要深度定制的开发者。
->
-> UI 重构设计见 [ui-refactor.md](ui-refactor.md),品牌清理见 [brand-cleanup.md](brand-cleanup.md),开发指南见 [development.md](development.md),部署/打包见 [deployment.md](deployment.md)。
-
-## 实现状态(2026-07-27 核实)
-
-阶段 1-8 全部已实现并验证可用。当前正在进行 UI 重构(见 [ui-refactor.md](ui-refactor.md))。
-
-| 阶段 | 状态 | 验证方式 |
-|------|------|----------|
-| 1 最小问答闭环 | ✅ | HTTP 服务端点 200,前端 chat.js 加载 |
-| 2 索引构建接入 | ✅ | `build_full`/`build_incremental` 跑通,产物 chunks.json/inverted-index.json 已生成 |
-| 3 Library 文档浏览 | ✅ | `frontend/library/library.js` 三栏布局 + `/api/content/*` 端点 200 |
-| 4 PDF 提取双后端 | ✅ | `app/pdf/{local,mineru,epub,factory}.py` 全实现 + 26 测试通过 |
-| 5 完整入库流水线 | ✅ | `app/ingest/pipeline.py` + 5 adapter(extract/clean/translate/validate/note)+ 27 测试通过 |
-| 6 LLM 代理 | ✅ | `app/llm/proxy.py` SSE 流转发,`use_llm_proxy` 开关 |
-| 7 Python 检索对拍 | ✅ | `app/retrieval/` 7 模块,54 pytest 用例全通过,golden benchmark 148 题对拍 |
-| 8 打包发布 | ✅ | `yuulibrary-desktop.spec` + `run_app.py`,PyInstaller 产物 exe 启动 + 全端点 200 验证 |
-| 9 UI 重构(Trae IDE 风格) | 🔄 | 见 [ui-refactor.md](ui-refactor.md) |
-
-**测试汇总**:148 pytest 用例,144 passed + 4 skipped(检索 54 + HTTP API 37 + PDF 26+3skip + 入库 27+1skip)。
-
-## 总体架构
-
-PyWebView 桌面壳 + Web 前端 + Python 后端轻量 HTTP 服务。文档存本地。
-
-```
-┌──────────────────────────────────────────────────────────┐
-│  pywebview 窗口(WebView2,主线程)                         │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  frontend/  (HTML + JS + CSS,WebView 加载)          │  │
-│  │  ┌────────────────────────────────────────────────┐│  │
-│  │  │ core/  (框架层)                                  ││  │
-│  │  │ shell.js / shell.css / theme.js / icons.js     ││  │
-│  │  │ events.js / store.js / tabs.js                 ││  │
-│  │  │ sidebar.js / overview.js                       ││  │
-│  │  │ statusbar.js / command-palette.js              ││  │
-│  │  └────────────────────────────────────────────────┘│  │
-│  │  ┌────────┬─────────┬─────────┬────────┬──────────┐│  │
-│  │  │ chat/  │ library/│ manage/ │ upload/│ config/  ││  │
-│  │  │session │ sidebar │ builder │ index  │ index    ││  │
-│  │  │ llm    │ reader  │ ingest  │ queue  │          ││  │
-│  │  │ agent  │         │         │        │          ││  │
-│  │  └────────┴─────────┴─────────┴────────┴──────────┘│  │
-│  │  shared/  (render.js / settings.js)                 │  │
-│  │  katex/   (数学渲染)                                 │  │
-│  └──────────────────────┬─────────────────────────────┘  │
-│                         │ HTTP(127.0.0.1:8765)             │
-├─────────────────────────┼────────────────────────────────┤
-│  Python 后端(uvicorn,后台 daemon 线程)                  │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  app/http/      FastAPI 路由层                        │  │
-│  │  app/storage/   文件 IO(替代 GitHub raw fetch)       │  │
-│  │  app/config/    配置管理(BYOK key 走 keyring)         │  │
-│  │  app/llm/       LLM 配置 + 代理                       │  │
-│  │  app/index/     索引构建(包装 vendor/build_pageindex)│  │
-│  │  app/ingest/    入库流水线编排                        │  │
-│  │  app/pdf/       PDF 提取双后端(本地库 / MinerU API)  │  │
-│  │  app/retrieval/ Python 检索重写(对拍工具)            │  │
-│  │  app/vendor/    从 yuulibrary-main 复制的脚本         │  │
-│  └────────────────────────────────────────────────────┘  │
-├──────────────────────────────────────────────────────────┤
-│  data/  (用户数据,本地)                                   │
-│  content/   pageindex/   config/   pdfs/                  │
-└──────────────────────────────────────────────────────────┘
-```
-
-## 核心设计决策
-
-| 决策 | 选择 | 理由 |
-|------|------|------|
-| GUI | PyWebView + Web 前端复用 | 复用现有 retrieval.js/chat.css/KaTeX,避免重写 UI |
-| 运行时检索 + ReAct | 全在前端 | 复用 retrieval.js 纯函数 + chat ReAct agent,零重写 |
-| Python 检索重写 | 对拍工具 | 移植 retrieval.js 到 Python,跑 golden benchmark 防回归 + 未来迁移基础 |
-| LLM | 9 provider BYOK 前端直连 | 复用 chat buildRequest,key 存本地 keyring |
-| PDF 提取 | 本地库 + MinerU 双后端 | 本地库零依赖离线,MinerU 高质量(公式/表格) |
-| 文档存储 | 本地 data/content/ | markdown + frontmatter,直接读 |
-| UI 风格 | Trae/Cursor IDE 风格 | 多标签 + 命令面板 + 状态栏,提升知识库操作效率 |
-
-## 模块依赖图(零耦合)
-
-依赖单向向下,无循环。`vendor/` 是叶子,只被 adapter 调用。
-
-```
-main ──┬── config ─── (叶子,无依赖)
-       ├── http ──┬── storage ── config
-       │          ├── index ── vendor.build_pageindex ─ config
-       │          ├── ingest ──┬── pdf ── config
-       │          │            ├── vendor.* ─ llm.config ─ config
-       │          │            └── llm.config ─ config
-       │          ├── llm ── config
-       │          ├── search ── retrieval ── storage ── config
-       │          └── status ── index/ingest/llm ── config
-       └── (pywebview)
-retrieval ── storage ── config   (独立工具,不进 http,不参与运行时)
-```
-
-## 前端架构
-
-### 资源加载(frontend/index.html)
-
-桌面壳注入变量,按顺序加载框架层与业务模块:
-
-```html
-<script>
-  window.LQD_CHAT_BASE = "/";            // 后端根(FastAPI 挂载点)
-  window.LQD_CHAT_RAW_BASE = "/raw/";   // 替代 GitHub raw,后端 /raw/content/<path>
-</script>
-
-<!-- core 框架层 -->
-<link rel="stylesheet" href="/frontend/core/shell.css">
-<script defer src="/frontend/core/theme.js"></script>
-<script defer src="/frontend/core/icons.js"></script>
-<script defer src="/frontend/core/events.js"></script>
-<script defer src="/frontend/core/store.js"></script>
-<script defer src="/frontend/core/tabs.js"></script>
-<script defer src="/frontend/core/sidebar.js"></script>
-<script defer src="/frontend/core/overview.js"></script>
-<script defer src="/frontend/core/statusbar.js"></script>
-<script defer src="/frontend/core/command-palette.js"></script>
-<script defer src="/frontend/core/shell.js"></script>
-
-<!-- 业务模块 -->
-<link rel="stylesheet" href="/frontend/chat/chat.css">
-<script defer src="/frontend/chat/retrieval.js"></script>
-<script defer src="/frontend/chat/session.js"></script>
-<script defer src="/frontend/chat/llm.js"></script>
-<script defer src="/frontend/chat/agent.js"></script>
-<script defer src="/frontend/chat/composer.js"></script>
-<script defer src="/frontend/chat/messages.js"></script>
-<script defer src="/frontend/chat/citations.js"></script>
-<script defer src="/frontend/chat/index.js"></script>
-<!-- library / manage / upload / config 类似 -->
-```
-
-### 五视图 + 多标签布局
-
-| Activity | Sidebar | Main Tab | Overview |
-|----------|---------|----------|----------|
-| Chat | 历史对话列表 | 对话标签 | 检索引用 / 快捷操作 |
-| Library | 文档分类列表 | 文档阅读标签 | 文档元信息 / 目录大纲 |
-| Manage | 索引/任务列表 | 索引管理标签 | 任务进度 / 日志摘要 |
-| Upload | 上传队列 | 上传队列标签 | 上传统计 |
-| Config | 配置分组导航 | 配置页标签 | 配置说明 / 快捷键 |
+# LQ-D 技术架构
 
-### 模块接口约定
+> 本文描述 2026-08-03 起的当前实现。开发与测试见 [development.md](development.md)，打包见 [deployment.md](deployment.md)。
 
-所有业务模块通过 `LqdTabs.register(type, component)` 注册,组件对象实现:
+## 1. 架构结论
 
-```javascript
-{
-  type: 'chat',
-  getTitle(tab) { return tab.title || '新对话'; },
-  getIcon() { return 'chat'; },
-  mount(container, tab) { /* 渲染并恢复 tab.state */ },
-  unmount(container, tab) { /* 保存 tab.state 并释放事件 */ },
-  renderSidebar(container) { /* 渲染左侧 Sidebar */ },
-  renderOverview(container, tab) { /* 渲染右侧 Overview */ }
-}
-```
+LQ-D 是本地优先、无数据库的桌面知识库。它不是“没有后端”：桌面进程内包含一个只监听 127.0.0.1 的 FastAPI 服务。文档、索引和配置都保存在本地文件系统，WebView 前端通过本地 HTTP API 使用这些能力。
 
-跨模块通信统一走事件总线:
+当前检索架构已收口为 PageIndex V3：
 
-```javascript
-LqdEvents.emit('chat:context', { query, contexts });
-LqdEvents.on('chat:context', ({ contexts }) => renderCitations(contexts));
-```
-
-### chat 模块拆分
-
-原 `frontend/chat/chat.js` 拆分为:
-
-| 文件 | 职责 |
-|------|------|
-| `chat/session.js` | 当前会话与归档历史 CRUD |
-| `chat/llm.js` | SSE 读取、provider 请求构造 |
-| `chat/agent.js` | ReAct 工具循环、retrieveContext |
-| `chat/composer.js` | 输入区与发送交互 |
-| `chat/messages.js` | 消息气泡、思考过程、工具调用 |
-| `chat/citations.js` | 引用片段格式化 |
-| `chat/index.js` | 注册 `LqdChat` 组件 |
-
-### 状态管理
-
-- `LqdEvents`:跨模块事件总线。
-- `LqdStore`:最小全局 UI 状态(theme / activity / tabs / status)。
-- 业务数据由各模块自行管理(localStorage / sessionStorage / 内存)。
-- localStorage key 统一使用 `lqd_*` 前缀,启动时从旧 `yuu_*` key 一次性迁移。
-
-## 后端架构
-
-### HTTP 服务层(app/http/)
-
-FastAPI app 工厂(`server.py:create_app`),挂载所有 router + GZipMiddleware(压缩 chunks.json ~26MB)+ CORS(仅 127.0.0.1)+ StaticFiles(`/frontend`)。
-
-| 路由文件 | 端点 | 用途 |
-|----------|------|------|
-| `routes_raw.py` | `GET /raw/content/<path>` | 替代 GitHub raw fetch |
-| `routes_pageindex.py` | `GET /pageindex/<path>` | 索引 JSON |
-| `routes_content.py` | `GET /api/content/*` | Library 浏览 |
-| `routes_settings.py` | `GET/PUT /api/settings` | BYOK 配置 CRUD |
-| `routes_index.py` | `POST /api/index/build` | 触发索引构建 |
-| `routes_ingest.py` | `POST /api/ingest/*` | 入库各阶段 |
-| `routes_llm_proxy.py` | `POST /api/llm/proxy` | LLM 代理(可选,解决 CORS) |
-| `routes_status.py` | `GET /api/status` | 应用/索引/模型状态(新增) |
-| `routes_search.py` | `GET /api/search` | 全局文本搜索(新增) |
-
-### 文件 IO(app/storage/)
-
-替代 GitHub raw fetch。所有路径过 `resolve_*_path` 校验 `..` 越界。
-
-`content_io.read_markdown_body_lines` 对齐 chat.js `fetchMdLines`:读 md → 剥 front matter → 按 `\n` split。
-
-### 配置管理(app/config/)
-
-- `AppConfig`(frozen dataclass):content_dir/pageindex_dir/config_dir/pdfs_dir/pdf_strategy/http_host/http_port/use_llm_proxy
-- `LlmConfig`:active_provider + 9 个 `LlmProviderConfig`(provider/model/base_url/has_key)
-- BYOK key 存储:优先 `keyring`,无则降级 `llm.yaml` 明文
-- `/api/settings` 响应只含 `has_key: bool`,不返回 key 本身;`/api/settings/key` 端点返回 key(供前端直连 LLM)
-
-### 索引构建(app/index/)
-
-包装 `vendor/build_pageindex.py`(从 yuulibrary-main 复制 + 路径参数化)。
-
-- `builder.build_full(content_dir, pageindex_dir, llm_model="")` → `BuildResult`
-- `builder.build_incremental(...)` → `BuildResult`
-- `status.start_build(mode, ...)` → job_id(后台 threading.Thread 跑)
-
-产物:`data/pageindex/{global-index,node-index,inverted-index,chunks,books/*,papers/*,notes/*}.json` + `.fingerprints.json`。
-
-### 入库流水线(app/ingest/)
-
-编排 extract→clean→translate→validate→note,长任务异步化。各 adapter 包装 `vendor/` 里对应脚本,统一签名。
-
-### PDF 提取(app/pdf/)
-
-双后端策略模式:
-
-- `local.py`:PyMuPDF/pdfplumber(离线,零外部依赖)
-- `mineru.py`:MinerU API(httpx,高质量,需 API key + 网络)
-- `factory.py`:按扩展名 + 策略路由
-
-### Python 检索重写(app/retrieval/)
-
-移植 `retrieval.js` 30+ 函数到 Python,作为对拍工具。**不参与运行时检索**(运行时仍走前端 retrieval.js)。新增 `/api/search` 可调用这些函数返回搜索结果。
-
-| 文件 | 移植自 retrieval.js |
-|------|---------------------|
-| `tokenizer.py` | tokenizeRaw/tokenizeUnique |
-| `bm25.py` | buildBM25Stats/bm25Score/buildChunkStats/bm25ScoreChunk |
-| `search.py` | search/searchInverted/searchTitlePhrase/searchDocRoute/searchMultiPath |
-| `fuse.py` | rrfFuse/rm3Expand |
-| `rerank.py` | lexicalRerank/shingle/jaccard/mmrSelect |
-| `confidence.py` | classifyConfidenceMulti/computeConfidenceSignals |
-| `benchmark.py` | 跑 golden.json 148 题,对拍 JS harness |
-
-## 数据流
-
-### 启动
-
-```
-python -m app.main
-  → load_app_config(data/config/app.yaml)
-  → create_app(cfg) → FastAPI(挂载 router + StaticFiles)
-  → run_server_in_thread(uvicorn, 127.0.0.1, 8765)  daemon
-  → webview.create_window("LQ-D", http://127.0.0.1:8765/frontend/index.html)
-  → WebView 加载 index.html → 注入变量 → 加载 core/ + 业务模块
-  → LqdShell.init() → 打开默认 Chat 标签
-```
-
-### 问答(运行时检索 + ReAct 全在前端)
-
-```
-用户输入 → LqdChatComposer.onSend
-  → LqdChatSession.saveUserMessage
-  → LqdSettings.load() + fetchApiKey()  [从 /api/settings]
-  → LqdChatAgent.retrieveContext
-      → LqdRetrieval.searchMultiPath
-      → fetch /pageindex/global-index.json / node-index.json / inverted-index.json
-      → fetch /pageindex/books/${id}.json
-      → fetchMdSection → fetch /raw/content/...
-  → LqdChatLLM.streamText
-      → fetch LLM provider SSE
-      → LqdChatMessages.appendStream
-  → LqdChatSession.saveAssistantMessage
-  → LqdEvents.emit('chat:context', contexts)
-  → LqdOverview 渲染引用片段
-```
-
-### 入库
-
-```
-Manage 视图 → 选 PDF + book + slug → POST /api/ingest/extract
-  → app.ingest.pipeline.run_pipeline [后台 asyncio]
-      → [extract] app.pdf.factory → merged/book.md + images/
-      → [clean] vendor/clean_markdown.py
-      → [translate] vendor/translate_chapters.py(调 app.llm.config.resolve_for_tier)
-      → [validate] vendor/validate_book.py → 38 项报告
-      → [note] (paper) vendor/generate_paper_note.py → _index.md
-  → md 落到 data/content/{books|papers}/<slug>/
-  → POST /api/index/build {mode:"incremental"}
-  → vendor/build_pageindex.py --incremental → patch_indexes → 写 data/pageindex/*.json
-  → 前端下次 loadIndexes() 加载新索引
-```
-
-## 关键参数速查
-
-| 参数 | 值 | 位置 |
-|------|-----|------|
-| HTTP 端口 | 8765 | app/config/defaults.py |
-| BM25 K | 1.5 | retrieval.js:156 |
-| BM25 B | 0.75 | retrieval.js:157 |
-| FIELD_BOOST (node) | title:6, breadcrumb:3, terms:2, summary:2 | retrieval.js:155 |
-| CHUNK_FIELD_BOOST | title:6, breadcrumb:3, body:1 | retrieval.js:329 |
-| RRF k | 60 | retrieval.js:540 |
-| RM3 M | 10 | retrieval.js:596 |
-| MMR lambda | 0.6 | retrieval.js:715 |
-| CHUNK_TARGET_CHARS | 500 | build_pageindex.py:466 |
-| CHUNK_OVERLAP_CHARS | 100 | build_pageindex.py:467 |
-| STOPWORD_DF_RATIO | 0.35 | build_pageindex.py:469 |
-| Activity Bar 宽度 | 48px | core/shell.css |
-| Sidebar 宽度 | 280px | core/shell.css |
-| Overview 宽度 | 320px | core/shell.css |
-| Tab Bar 高度 | 36px | core/shell.css |
-| Status Bar 高度 | 24px | core/shell.css |
-
-## 与原项目(yuulibrary-main)的关系
-
-| 原项目 | 桌面应用 | 处理 |
-|--------|----------|------|
-| `scripts/build_pageindex.py` | `app/vendor/build_pageindex.py` | 复制 + 路径参数化 |
-| `static/chat/retrieval.js` | `frontend/chat/retrieval.js` | 复制,仅命名空间与注释调整 |
-| `static/chat/chat.js` | `frontend/chat/{index,session,llm,agent,composer,messages,citations}.js` | 拆分 + 移除浮动模式 |
-| `static/chat/chat.css` | `frontend/chat/chat.css` | 删除浮动样式,统一 tokens |
-| `static/katex/` | `frontend/katex/` | 原样复制 |
-| `content/` | `data/content/` | 原样复制,清理旧品牌与第三方链接 |
-| `.claude/skills/*/scripts/` | `app/vendor/` | 复制(extract/clean/translate/validate 等) |
-| `tests/retrieval/golden.json` | `tests/retrieval/golden.json` | 原样复制 |
-| `hugo.toml`/`layouts/`/`themes/` | — | 丢弃(Hugo 特有) |
-| `.staticrypt.json`/`.github/workflows/` | — | 丢弃(Web 部署特有) |
-
-详见 [development.md](development.md) 的"从原项目同步更新"章节。
-
-## 品牌说明
-
-桌面应用与原 Hugo 站已从「Yuunagi Library」统一迁移至 **LQ-D**。清理细节见 [brand-cleanup.md](brand-cleanup.md)。
+- GET /api/search 是唯一检索入口；全局搜索和聊天的 search_library 使用同一接口。
+- 构建、发布、检索、状态检测和知识链接以同一个 V3 Generation/View 为准。
+- 前端不再下载 global-index.json、node-index.json、inverted-index.json 和 chunks.json 执行检索。
+- 前端只负责 Agent 编排、上下文预算与组装、引用和界面；召回、融合与排序只在后端维护。
+- V2 不再作为应用运行时。V3 仅复用其中的规范化 JSON、对象存储、Segment 构建、流式读取和校验等底层组件。
+
+## 2. 系统边界
+
+    用户
+      ↓
+    PyWebView / WebView2 桌面窗口
+      ↓
+    Vanilla JS 前端
+    （Agent 编排、上下文、引用、界面）
+      ↓ HTTP
+    FastAPI 本地服务 127.0.0.1:8765
+      ├─ /api/search → PageIndex V3 Runtime
+      ├─ /api/index  → V3 Worker 子进程
+      ├─ /api/links  → link-index.json
+      ├─ /api/ingest → PDF/EPUB 入库流水线
+      └─ /api/llm    → 可选 LLM 代理
+             ↓
+    data/content、data/pageindex、data/config、data/pdfs
+
+系统没有远程业务服务和数据库。外部网络只在用户主动使用云端 LLM、MinerU 或其他远程 Provider 时发生。
+
+## 3. 运行时进程
+
+app.main:main 完成以下启动流程：
+
+1. 从 data/config 读取配置，并确保本地数据目录存在。
+2. 通过 app.http.server:create_app 创建 FastAPI 应用。
+3. 在 daemon 线程中启动 Uvicorn，默认监听 127.0.0.1:8765。
+4. 主线程创建 PyWebView 窗口并加载 /frontend/index.html。
+5. 打包后的 V3 构建使用同一可执行文件的 --pageindex-v3-worker 模式启动隔离子进程。
+
+端口会在启动前预检，前端静态资源带 Cache-Control: no-store，避免 WebView2 复用旧资源。
+
+## 4. 前端职责
+
+前端位于 frontend/，由原生 HTML、CSS 和 JavaScript 组成，不需要 Node 运行时或打包步骤。
+
+| 层 | 目录 | 职责 |
+|---|---|---|
+| UI 框架 | frontend/core/ | Activity Bar、标签页、侧栏、状态栏、主题、事件总线 |
+| 聊天 | frontend/chat/ | 会话、ReAct 工具循环、LLM 流、上下文预算、消息与引用 |
+| 资料浏览 | frontend/library/ | 文档列表、阅读器、目录与文档标签 |
+| 管理与入库 | frontend/manage/、frontend/upload/ | V3 构建任务、入库队列与进度 |
+| 配置 | frontend/config/ | Provider、模型、路径和应用设置 |
+| 公共能力 | frontend/shared/ | Markdown 渲染、设置、知识链接组件 |
+
+### 4.1 聊天检索边界
+
+聊天检索流程如下：
+
+    模型调用 search_library
+      → GET /api/search?q=...&limit=12
+      → 按后端顺序接收 V3 命中
+      → 组装 source_id、正文、面包屑和版本信息
+      → 按模型窗口打包上下文
+      → 交给 ReAct 循环继续回答
+
+前端不执行 BM25、RM3、RRF、词法重排或 MMR，也不加载整套倒排索引。get_section 只在已有检索上下文上读取对应 Markdown 区间。
+
+## 5. 本地 HTTP 服务
+
+| 端点 | 职责 |
+|---|---|
+| GET /api/search | 唯一文本检索入口，查询当前 V3 Search View |
+| POST /api/index/build | 启动 V3 bootstrap 或增量构建 |
+| GET /api/index/build/{job_id} | 查询构建、发布和知识链接阶段 |
+| GET /api/status | 返回 V3 就绪状态、Generation、View ID 和其他状态 |
+| GET /api/content/section、GET /raw/content/* | 安全读取 Markdown 或区间 |
+| GET/POST /api/links/* | 知识链接、反向链接、邻域、预览和诊断 |
+| POST /api/ingest/* | PDF/EPUB 入库与处理 |
+| GET/PUT /api/settings | 应用与 LLM 配置 |
+| POST /api/llm/proxy | 可选本地 LLM 流代理 |
+
+/pageindex/* 和部分 /api/content/* 仍是资料阅读界面的兼容读取面，但不参与构建、检索、聊天、状态或知识链接的权威判定，也不会向聊天下载全量索引。
+
+## 6. PageIndex V3
+
+### 6.1 不可变数据模型
+
+- Generation：文档到 Segment 的逻辑映射，身份由内容和构建配方决定。
+- Search View：某个 Generation 的可查询物理视图，由 Base 和零个或多个 Delta 组成。
+- Segment：单篇文档的节点、切片和原始检索事实。
+- Base/Delta：持久化词项层、文档所有权和统计信息。
+
+检索请求必须同时绑定 Generation 和 View，不能在查询中猜测“最新版本”。
+
+### 6.2 应用发布指针
+
+V3 核心刻意不提供可变 latest。应用层 app.index.v3.runtime 通过 data/pageindex/current-v3.json 维护唯一发布指针，其中保存 Generation attestation、View attestation 和紧凑 Generation receipt。
+
+发布使用同目录临时文件、fsync 和 os.replace 原子替换。旧请求继续使用已经打开的不可变视图，新请求才会读取新指针，因此不需要数据库事务或常驻索引服务。
+
+### 6.3 构建与发布顺序
+
+    管理界面
+      → POST /api/index/build
+      → app.index.status 创建后台任务
+      → incremental 时读取 current-v3.json 作为 parent
+      → V3 Supervisor 启动全新 Worker 子进程
+      → Worker 生成 Generation/View attestation
+      → Supervisor 校验结果、摘要和 lineage
+      → runtime 原子发布 current-v3.json
+      → 基于已发布 V3 重建 link-index.json
+      → 任务返回 done 或 failed
+
+外部 API 继续接受 full 和 incremental：
+
+- full 表示不带 parent 的 V3 bootstrap。
+- incremental 使用 current-v3.json 中经过验证的 parent；首次运行时自动 bootstrap。
+- 两种模式都强制 legacy_export=none。
+
+## 7. 唯一检索链路
+
+app.http.routes_search 不读取旧的 global-index.json、inverted-index.json 或 chunks.json，也不做 shadow 双跑。
+
+每次请求执行：
+
+1. 检查 current-v3.json 是否存在。
+2. 严格解析 Generation/View attestation 和 receipt。
+3. 打开精确的 PinnedSearchView。
+4. 通过 app.retrieval.search_view:search_pinned_view 执行稀疏候选检索。
+5. 返回排序命中、正文区间和稳定引用字段。
+6. 请求结束后关闭不可变 reader。
+
+返回字段分三类：
+
+- UI：doc_type、slug、node_id、title、breadcrumb、text。
+- 上下文：source_md、line_num、line_end。
+- 可重复性：generation、view_id、doc_key、doc_uid、segment_hash、local_id、node_key。
+
+没有发布索引时返回空结果；指针存在但校验或打开失败时返回 HTTP 503，禁止静默回退到另一套索引。
+
+## 8. 状态与知识链接
+
+GET /api/status 的 index_ready 只由 V3 发布指针决定，同时返回 index_version=v3、generation 和 view_id。旧 JSON 是否存在不再影响就绪状态。
+
+知识链接在 V3 发布成功后构建：
+
+1. 从 data/content 建立文档目录并解析 wikilink/frontmatter。
+2. 从当前 V3 View 读取标题到稳定节点 ID 的映射。
+3. 原子生成 data/pageindex/link-index.json。
+4. 构建失败显示在索引任务中，不会伪装成成功。
+
+反向链接、邻域和预览只读取这份链接索引。
+
+## 9. V2 的保留边界
+
+V2 不再拥有应用当前指针或生产检索路径。V3 直接复用的 V2 底层能力包括：
+
+- canonical.py、artifacts.py：规范化 JSON、哈希和原子 artifact 写入。
+- ids.py、models.py：稳定文档标识和 Segment 配方。
+- object_store.py、segment_builder.py：内容寻址 Segment。
+- source_snapshot.py、input_proof.py：输入快照与证明。
+- streaming_json.py、streaming_compiler.py、validator.py：有界读取、兼容验证与离线工具。
+- process_metrics.py、benchmark.py：V3 基准测试复用。
+
+这些模块是 V3 的实现库，不是第二套运行时。旧 V2 supervisor/worker、shadow 检索和前端 JS 检索均不在生产请求链路中。
+
+## 10. 本地数据布局
+
+    data/
+    ├─ content/                  Markdown 真源
+    │  ├─ books/
+    │  ├─ papers/
+    │  └─ notes/
+    ├─ pageindex/
+    │  ├─ current-v3.json        应用唯一发布指针
+    │  ├─ generations/<id>/      不可变逻辑 Generation
+    │  ├─ views/<id>/            不可变 Search View
+    │  ├─ objects/               Segment、Base、Delta 等对象
+    │  ├─ build/<job-id>/        Worker 请求与结果
+    │  └─ link-index.json        知识链接索引
+    ├─ config/                   应用与 Provider 配置
+    └─ pdfs/                     导入源文件
+
+Markdown 是事实源，V3 和链接索引都是可重建派生数据。API Key 优先保存在系统 Keyring。
+
+## 11. 入库与外部服务
+
+app/ingest 编排 extract → clean → translate → validate → note。PDF 可使用本地 PyMuPDF/pdfplumber，也可选择 MinerU。内容落盘后触发 V3 增量构建，发布成功后自动刷新知识链接。
+
+LLM 采用 BYOK。前端可以按 Provider 直连，也可以通过 /api/llm/proxy 解决 CORS。LLM 不参与 V3 索引身份、发布和本地检索的正确性判断。
+
+## 12. 关键约束
+
+- 所有文本检索和聊天工具都调用 /api/search，排序策略只能维护一份。
+- current-v3.json 是唯一“当前索引”定义，不得通过目录时间或文件名猜测 latest。
+- 发布前必须由 Supervisor 验证 Worker 结果和 lineage。
+- 生产构建不得开启 legacy export。
+- 前端不得恢复全量倒排索引或 chunks 下载。
+- 文档路径必须通过 storage 层校验，禁止 .. 越界。
+- 本地服务默认只监听 loopback；外部网络能力必须由用户配置触发。

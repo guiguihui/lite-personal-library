@@ -2,82 +2,33 @@
  * LQ-D — Chat Agent
  *
  * ReAct 工具循环、检索上下文、发送消息（原 handleSend 改名为 sendMessage）。
- * 依赖: LqdSettings / LqdChatLLM / LqdChatSession / LqdChatMessages / LqdChatCitations / LqdEvents / YuuRetrieval。
+ * 依赖: LqdSettings / LqdChatLLM / LqdChatSession / LqdChatMessages / LqdChatCitations / LqdEvents。
  */
 (function () {
   'use strict';
 
   var BASE = (window.LQD_CHAT_BASE || '').replace(/\/+$/, '');
-  var PAGEINDEX = BASE + '/pageindex';
-
-  var R = window.YuuRetrieval;
-  var tokenize = R.tokenize;
-  var bm25ScorePure = R.bm25Score;
-  var lexicalRerank = R.lexicalRerank;
-  var rm3Expand = R.rm3Expand;
-  var mmrSelect = R.mmrSelect;
-  var estimateTokens = R.estimateTokens;
-
-  var globalIndex = null;
-  var nodeIndex = null;
-  var indexReady = false;
-  var invertedIndex = null;
-  var chunkStats = null;
-  var invertedReady = false;
-  var docCache = {};
+  var sectionCache = {};
   var mdCache = {};
-  var bm25Stats = null;
 
-  var MAX_SECTION_CHARS = 2500;
+  function estimateTokens(text) {
+    text = String(text || '');
+    var cjk = (text.match(/[\u4e00-\u9fff]/g) || []).length;
+    return Math.max(1, Math.ceil(cjk * 0.7 + (text.length - cjk) / 4));
+  }
 
-  // ── Index loading ───────────────────────────────────────────────────────
   async function loadIndexes() {
-    if (indexReady) return;
-    var [gi, ni] = await Promise.all([
-      fetch(PAGEINDEX + '/global-index.json').then(function (r) { return r.json(); }),
-      fetch(PAGEINDEX + '/node-index.json').then(function (r) { return r.json(); })
-    ]);
-    globalIndex = gi;
-    nodeIndex = ni;
-    indexReady = true;
-    loadInvertedIndex().catch(function () {});
+    // Compatibility no-op: PageIndex V3 lives behind /api/search.
+    return true;
   }
 
-  async function loadInvertedIndex() {
-    if (invertedReady) return;
-    try {
-      var [inv, chunks] = await Promise.all([
-        fetch(PAGEINDEX + '/inverted-index.json').then(function (r) { return r.json(); }),
-        fetch(PAGEINDEX + '/chunks.json').then(function (r) { return r.json(); })
-      ]);
-      invertedIndex = inv.postings || {};
-      chunkStats = R.buildChunkStats(chunks);
-      invertedReady = true;
-    } catch (_) {
-      invertedReady = true;
-    }
+  async function searchLibrary(query, topK) {
+    var url = BASE + '/api/search?q=' + encodeURIComponent(query) + '&limit=' + (topK || 12);
+    var response = await fetch(url);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var payload = await response.json();
+    return payload && Array.isArray(payload.results) ? payload.results : [];
   }
-
-  function buildBM25Stats() {
-    if (bm25Stats || !nodeIndex) return;
-    bm25Stats = R.buildBM25Stats(nodeIndex);
-  }
-
-  function bm25Score(queryTokens, node) {
-    if (!bm25Stats) return 0;  // stats 未构建(nodeIndex 未加载等),返回 0 不参与打分
-    return bm25ScorePure(queryTokens, node, bm25Stats);
-  }
-
-  function search(query, topK) {
-    topK = topK || 50;
-    if (invertedReady && invertedIndex && chunkStats) {
-      return R.searchMultiPath(query, invertedIndex, chunkStats, globalIndex, topK);
-    }
-    if (!nodeIndex) return [];
-    buildBM25Stats();
-    return R.search(query, nodeIndex, bm25Stats, topK);
-  }
-
   // ── Token budget packing ────────────────────────────────────────────────
   function packWithContextBudget(contexts, historyTokens, systemTokens) {
     var MODEL_WINDOW = 64000;
@@ -123,222 +74,60 @@
     return lines.slice(start, end).join('\n').trim();
   }
 
-  async function loadDocTree(docId) {
-    if (docCache[docId] !== undefined) return;
-    var doc = globalIndex && globalIndex.docs ? globalIndex.docs.find(function (d) { return d.id === docId; }) : null;
-    var typeRaw = doc ? doc.type : 'papers';
-    var type = typeRaw.endsWith('s') ? typeRaw : typeRaw + 's';
-    try {
-      var resp = await fetch(PAGEINDEX + '/' + type + '/' + docId + '.json');
-      var data = await resp.json();
-      var flat = [];
-      function walk(nodes, crumb) {
-        for (var i = 0; i < nodes.length; i++) {
-          var n = nodes[i];
-          var c = crumb.concat([n.title]);
-          flat.push(Object.assign({}, n, { _crumb: c }));
-          if (n.nodes) walk(n.nodes, c);
-        }
-      }
-      walk(data.structure, []);
-      docCache[docId] = { tree: data, flat: flat };
-    } catch (_) {
-      docCache[docId] = null;
-    }
-  }
-
-  async function buildContextChunk(doc, nodeId, docMeta) {
-    var flat = doc.flat;
-    var idx = -1;
-    for (var i = 0; i < flat.length; i++) {
-      if (flat[i].node_id === nodeId) { idx = i; break; }
-    }
-    if (idx < 0) return null;
-    var node = flat[idx];
-    var crumb = node._crumb || [node.title];
-    var text = await fetchMdSection(node.source_md, node.line_num, node.line_end);
-    if (!text) text = node.summary || node.text || '';
-
-    var parent = null;
-    if (crumb.length > 1) {
-      for (var j = 0; j < flat.length; j++) {
-        var n = flat[j];
-        if (!n._crumb || n._crumb.length !== crumb.length - 1) continue;
-        var match = true;
-        for (var k = 0; k < crumb.length - 1; k++) {
-          if (n._crumb[k] !== crumb[k]) { match = false; break; }
-        }
-        if (match) { parent = n; break; }
-      }
-    }
-    function siblingsFilter(n) {
-      if (!n._crumb || n._crumb.length !== crumb.length) return false;
-      if (n.node_id === node.node_id) return false;
-      for (var k = 0; k < crumb.length - 1; k++) {
-        if (n._crumb[k] !== crumb[k]) return false;
-      }
-      return true;
-    }
-    function childrenFilter(n) {
-      if (!n._crumb || n._crumb.length !== crumb.length + 1) return false;
-      for (var k = 0; k < crumb.length; k++) {
-        if (n._crumb[k] !== crumb[k]) return false;
-      }
-      return true;
-    }
-    var siblings = flat.filter(siblingsFilter).slice(0, 4);
-    var children = flat.filter(childrenFilter).slice(0, 4);
-
-    return {
-      sourceId: (docMeta.type || 'doc') + ':' + (docMeta.doc_id || docMeta.title || 'unknown') + ':' + nodeId,
-      docType: docMeta.type || '',
-      docTitle: docMeta.title || docMeta.doc_name || '',
-      docAuthor: docMeta.author || '',
-      nodeId: nodeId,
-      title: node.title,
-      breadcrumb: crumb,
-      text: text,
-      parentTitle: parent ? parent.title : '',
-      siblingTitles: siblings.map(function (n) { return n.title; }),
-      childTitles: children.map(function (n) { return n.title; })
+  function contextFromResult(result) {
+    var breadcrumb = result.breadcrumb
+      ? String(result.breadcrumb).split(' > ')
+      : [result.title || result.slug || '未命名章节'];
+    var sourceId = (result.doc_type || 'doc') + ':' + result.slug + ':' + result.node_id;
+    var context = {
+      sourceId: sourceId,
+      docType: result.doc_type || '',
+      docId: result.slug || '',
+      docTitle: breadcrumb[0] || result.slug || '',
+      docAuthor: '',
+      nodeId: result.node_id || '',
+      title: result.title || '',
+      breadcrumb: breadcrumb,
+      text: result.text || '',
+      sourceMd: result.source_md || '',
+      lineNum: result.line_num,
+      lineEnd: result.line_end,
+      parentTitle: '',
+      siblingTitles: [],
+      childTitles: [],
+      score: result.score || 0,
+      generation: result.generation || '',
+      viewId: result.view_id || ''
     };
+    sectionCache[sourceId] = context;
+    sectionCache[(result.slug || '') + ':' + (result.node_id || '')] = context;
+    return context;
   }
 
   async function retrieveContext(query) {
-    var hits = search(query);
-    if (!hits.length) return { contexts: [], docCount: 0, thin: true };
-
-    var origTokens = tokenize(query);
-    var expandedTokens = rm3Expand(origTokens, hits);
-    if (expandedTokens.length > origTokens.length) {
-      // 确保 bm25Stats 已构建。search() 走倒排索引路径(searchMultiPath)时
-      // 不会构建 bm25Stats,但下面 RM3 重打分要用 node 级 bm25Score,
-      // stats 为 null 会报 "Cannot read properties of null (fieldAvgLen)"。
-      buildBM25Stats();
-      for (var i = 0; i < hits.length; i++) {
-        hits[i].score = Math.round(bm25Score(expandedTokens, hits[i].node) * 100) / 100;
-      }
-      hits = hits.filter(function (h) { return h.score > 0; }).sort(function (a, b) { return b.score - a.score; });
+    var results = await searchLibrary(query, 12);
+    var contexts = [];
+    var seen = {};
+    var docs = {};
+    for (var i = 0; i < results.length && contexts.length < 8; i++) {
+      var result = results[i];
+      var key = (result.doc_key || result.slug || '') + ':' + (result.node_id || '');
+      if (seen[key]) continue;
+      seen[key] = true;
+      docs[result.doc_key || result.slug || ''] = true;
+      var context = contextFromResult(result);
+      if (context.text) contexts.push(context);
     }
-
-    hits = lexicalRerank(origTokens, query, hits);
-
-    var uniqueDocs = [];
-    var seenDocs = {};
-    for (var i = 0; i < hits.length; i++) {
-      var did = hits[i].node.doc_id;
-      if (!seenDocs[did]) { seenDocs[did] = true; uniqueDocs.push(did); }
-    }
-    uniqueDocs = uniqueDocs.slice(0, 6);
-    await Promise.all(uniqueDocs.map(loadDocTree));
-
-    var candidates = [];
-    var seenNodes = {};
-    for (var i = 0; i < Math.min(hits.length, 12); i++) {
-      var hit = hits[i];
-      var doc = docCache[hit.node.doc_id];
-      if (!doc) continue;
-      var key = hit.node.doc_id + ':' + hit.node.node_id;
-      if (seenNodes[key]) continue;
-      seenNodes[key] = true;
-      var ctx = await buildContextChunk(doc, hit.node.node_id, doc.tree);
-      if (ctx && ctx.text) {
-        ctx.url = hit.node.url || '';
-        ctx.rerankScore = hit.rerankScore || 0;
-        candidates.push(ctx);
-      }
-    }
-
-    var thin = candidates.length < 2;
-    if (thin && query.length > 4) {
-      var queryTokens = tokenize(query);
-      for (var t = 0; t < Math.min(queryTokens.length, 3); t++) {
-        var termHits = search(queryTokens[t], 4);
-        for (var h = 0; h < termHits.length; h++) {
-          var termHit = termHits[h];
-          if (!docCache[termHit.node.doc_id]) await loadDocTree(termHit.node.doc_id);
-          var d = docCache[termHit.node.doc_id];
-          if (!d) continue;
-          var key2 = termHit.node.doc_id + ':' + termHit.node.node_id;
-          if (seenNodes[key2]) continue;
-          seenNodes[key2] = true;
-          var ctx2 = await buildContextChunk(d, termHit.node.node_id, d.tree);
-          if (ctx2 && ctx2.text) {
-            ctx2.url = termHit.node.url || '';
-            ctx2.rerankScore = termHit.rerankScore || 0.1;
-            candidates.push(ctx2);
-          }
-          if (candidates.length >= 8) break;
-        }
-        if (candidates.length >= 8) break;
-      }
-      thin = candidates.length < 2;
-    }
-
-    var contexts = mmrSelect(candidates, 0.6, 8);
-    var sourceCount = uniqueDocs.length;
-    var signals = R.computeConfidenceSignals(query, hits);
-    var confidence = R.classifyConfidenceMulti(signals);
-
-    var finalContexts = contexts;
-    if (confidence === 'low' && contexts.length > 2) {
-      finalContexts = await llmRerank(query, contexts);
-    }
-
+    var topScore = results.length ? Number(results[0].score || 0) : 0;
+    var confidence = !results.length ? 'low' : (topScore >= 1 ? 'high' : 'medium');
     return {
-      contexts: finalContexts,
-      docCount: sourceCount,
-      thin: thin,
+      contexts: contexts,
+      docCount: Object.keys(docs).length,
+      thin: contexts.length < 2,
       confidence: confidence,
-      hits: hits.slice(0, 12)
+      hits: results
     };
   }
-
-  async function llmRerank(query, contexts) {
-    var cfg = window.LqdSettings.resolve();
-    if (!cfg.apiKey) return contexts;
-    var top = contexts.slice(0, 8);
-    var qToks = tokenize(query);
-    var docs = top.map(function (c, i) {
-      var crumb = (c.breadcrumb || []).join(' > ');
-      var fullText = c.text || '';
-      var lower = fullText.toLowerCase();
-      var hitTok = null;
-      for (var t = 0; t < qToks.length; t++) {
-        if (lower.includes(qToks[t])) { hitTok = qToks[t]; break; }
-      }
-      var snippet = '';
-      if (hitTok) {
-        var idx = lower.indexOf(hitTok);
-        var start = Math.max(0, idx - 150);
-        snippet = (start > 0 ? '…' : '') + fullText.slice(start, start + 400);
-      } else {
-        snippet = fullText.slice(0, 400);
-      }
-      return '[' + (i + 1) + '] ' + crumb + '\n片段：' + snippet;
-    }).join('\n---\n');
-    var userPrompt = '查询：' + query + '\n\n候选文档：\n' + docs + '\n\n为每个文档打 0-10 分（10 最相关），格式"[编号] 分数"，每行一个。只返回评分。';
-    try {
-      var resp = await window.LqdChatLLM.callLLMSync(
-        '你是文档相关性评估专家。根据查询评估文档相关性。',
-        userPrompt
-      );
-      if (!resp) return contexts;
-      var scores = new Map();
-      var lines = resp.split('\n');
-      for (var i = 0; i < lines.length; i++) {
-        var m = lines[i].match(/\[(\d+)\]\s*[:：]?\s*(\d+(?:\.\d+)?)/);
-        if (m) scores.set(parseInt(m[1], 10) - 1, parseFloat(m[2]));
-      }
-      if (!scores.size) return contexts;
-      var scored = top.map(function (c, i) { return { c: c, score: scores.has(i) ? scores.get(i) : 0 }; });
-      scored.sort(function (a, b) { return b.score - a.score; });
-      return scored.map(function (s) { return s.c; }).concat(contexts.slice(8));
-    } catch (_) {
-      return contexts;
-    }
-  }
-
   // ── System prompts ──────────────────────────────────────────────────────
   function truncateAtBoundary(text, maxChars) {
     if (!text || text.length <= maxChars) return text;
@@ -513,35 +302,25 @@
     if (name === 'get_section') {
       var docId = args.doc_id || '';
       var nodeId = args.node_id || '';
-      await loadDocTree(docId);
-      var doc = docCache[docId];
-      if (!doc) return { text: '文档 ' + docId + ' 未找到或加载失败' };
-      var node = null;
-      for (var i = 0; i < doc.flat.length; i++) {
-        if (doc.flat[i].node_id === nodeId) { node = doc.flat[i]; break; }
+      var context = sectionCache[docId + ':' + nodeId];
+      if (!context) {
+        return { text: '章节不在当前检索上下文中，请先用 search_library 检索该文档。' };
       }
-      if (!node) {
-        var available = doc.flat.slice(0, 5).map(function (n) {
-          return n.node_id + ' ' + n.title.slice(0, 20);
-        }).join('; ');
-        return { text: '节点 ' + nodeId + ' 未找到。可用节点：' + available + '...' };
+      var fullText = context.text;
+      if (context.sourceMd) {
+        var fetched = await fetchMdSection(
+          context.sourceMd,
+          context.lineNum,
+          context.lineEnd
+        );
+        if (fetched) fullText = fetched;
       }
-      var text = await fetchMdSection(node.source_md, node.line_num, node.line_end);
-      if (!text) text = node.summary || '(正文获取失败，仅显示摘要：' + (node.summary || '无') + ')';
-      var breadcrumb = (node._crumb || [node.title]).join(' > ');
-      var docTitle = doc.tree.title || docId;
       return {
-        text: '### ' + breadcrumb + '\n*来源: ' + docTitle + '*\n\n' + text,
-        __contexts: [{
-          sourceId: docId + ':' + nodeId,
-          text: text,
-          docTitle: docTitle,
-          breadcrumb: node._crumb || [node.title],
-          url: ''
-        }]
+        text: '### ' + context.breadcrumb.join(' > ') +
+          '\n*来源: ' + context.docTitle + '*\n\n' + fullText,
+        __contexts: [Object.assign({}, context, { text: fullText })]
       };
-    }
-    if (name === 'rewrite_query') {
+    }    if (name === 'rewrite_query') {
       var strategy = args.strategy || 'rewrite';
       var promptTemplates = {
         rewrite: '把以下查询改写得更具体、更适合文档检索。包含文档中可能出现的专业术语和同义词。只返回改写后的查询，不要解释。\n\n原始查询：',
@@ -562,29 +341,11 @@
   }
 
   function buildLibraryTOC() {
-    if (!globalIndex || !globalIndex.docs || !globalIndex.docs.length) {
-      return { text: '(索引未加载)', docCount: 0 };
-    }
-    var groups = { book: '书籍', paper: '论文', note: '笔记' };
-    var counts = { book: 0, paper: 0, note: 0 };
-    var lines = { book: [], paper: [], note: [] };
-    for (var i = 0; i < globalIndex.docs.length; i++) {
-      var doc = globalIndex.docs[i];
-      var t = doc.type || 'note';
-      if (!(t in counts)) continue;
-      counts[t]++;
-      var author = doc.author ? ' ' + doc.author.split(/[,，]/)[0] : '';
-      var tags = doc.tags && doc.tags.length ? ' [' + doc.tags.slice(0, 3).join(', ') + ']' : '';
-      var desc = (doc.description || '').slice(0, 50);
-      lines[t].push('- 《' + doc.title + '》' + author + ' — ' + desc + tags);
-    }
-    var text = '';
-    for (var key in groups) {
-      if (counts[key]) text += '### ' + groups[key] + '（' + counts[key] + ' 篇）\n' + lines[key].join('\n') + '\n\n';
-    }
-    return { text: text.trim(), docCount: globalIndex.docs.length };
+    return {
+      text: '(目录不在前端常驻；请通过 search_library 按需检索 V3 索引)',
+      docCount: 0
+    };
   }
-
   function buildAgentSystemPrompt() {
     var toc = buildLibraryTOC();
     return '你是 **LQ-D** 的知识助手，基于个人数字图书馆的 RAG 问答系统。\n\n' +
@@ -634,13 +395,6 @@
     window.LqdChatMessages.hideEmpty(refs.emptyEl, messagesEl);
     window.LqdChatMessages.appendMessageBubble('user', query, messagesEl);
     window.LqdChatSession.appendToCurrent('user', query);
-
-    try {
-      await loadIndexes();
-    } catch (e) {
-      window.LqdChatMessages.appendMessageBubble('assistant', '索引加载失败：' + e.message, messagesEl);
-      return;
-    }
 
     var contentEl = window.LqdChatMessages.appendMessageBubble('assistant', '<em>准备中……</em>', messagesEl);
     window.LqdChatMessages.setBusy(true, sendBtn, composerInput);

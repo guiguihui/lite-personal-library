@@ -31,11 +31,6 @@ def _dispatch() -> int:
 
         return worker_main(sys.argv[2:])
 
-    if len(sys.argv) > 1 and sys.argv[1] == "--pageindex-worker":
-        from app.pageindex_worker import main as worker_main
-
-        return worker_main(sys.argv[2:])
-
     from app.main import main as desktop_main
 
     return desktop_main()

@@ -6,7 +6,6 @@ from app.config.schema import BuildResult
 
 from .indexer import build_link_index
 from .features import feature_flags
-from .features import feature_flags
 
 
 def finish_with_links(raw: dict, content_dir: str, pageindex_dir: str) -> BuildResult:
@@ -18,8 +17,6 @@ def finish_with_links(raw: dict, content_dir: str, pageindex_dir: str) -> BuildR
         log=tuple(raw.get("log", [])),
     )
     if not result.ok:
-        return result
-    if not feature_flags()['knowledge_index_enabled']:
         return result
     if not feature_flags()['knowledge_index_enabled']:
         return result

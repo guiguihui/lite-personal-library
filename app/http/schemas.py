@@ -141,6 +141,9 @@ class StatusResponse(BaseModel):
     app_name: str
     version: str
     index_ready: bool
+    index_version: str = "v3"
+    generation: str | None = None
+    view_id: str | None = None
     index_running: bool
     ingest_running: bool
     active_provider: str
@@ -167,6 +170,9 @@ class SearchResultItem(BaseModel):
     segment_hash: str | None = None
     local_id: int | None = None
     node_key: str | None = None
+    source_md: str | None = None
+    line_num: int | None = None
+    line_end: int | None = None
 
 
 class SearchResponse(BaseModel):
