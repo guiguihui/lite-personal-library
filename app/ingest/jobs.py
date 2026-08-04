@@ -35,6 +35,7 @@ class IngestJob:
     started_at: float = 0.0
     input_pdf: str = ""
     doc_type: str = ""  # "book" | "paper" | "note"
+    network_policy: str = "allow_ai"
     slug: str = ""
     current_stage: str = "queued"
     pages: str | None = None
@@ -80,7 +81,8 @@ def create_job(req: IngestExtractRequest) -> str:
         doc_type=req.doc_type,
         slug=req.slug,
         pages=req.pages,
-        strategy=req.strategy,
+        strategy=req.extract_strategy or req.strategy,
+        network_policy=req.network_policy,
         stages=stages,
         log=[],
         result=None,

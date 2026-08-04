@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 import copy
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 from app.index.v2.canonical import canonical_hash
@@ -535,6 +536,19 @@ class SegmentProjection:
         object.__setattr__(self, "chunk_metrics", metrics)
 
 
+
+@dataclass(frozen=True, slots=True)
+class DocumentProjection:
+    """Detached authenticated metadata and document tree for Library reads."""
+
+    doc_uid: str
+    doc_key: str
+    segment_hash: str
+    document: Mapping[str, Any]
+    document_tree: Mapping[str, Any]
+    source_files: tuple[Mapping[str, str], ...]
+
+
 class SegmentProjector:
     """Load, validate, project, and release one immutable Segment per call."""
 
@@ -547,6 +561,32 @@ class SegmentProjector:
         doc_uid = _validate_ref(ref)
         segment = load_segment(self.pageindex_dir, ref)
         return self._project_mapping(ref, doc_uid, segment)
+
+    def load_document(self, ref: StoredSegmentRef) -> DocumentProjection:
+        doc_uid = _validate_ref(ref)
+        segment = load_segment(self.pageindex_dir, ref)
+        if not isinstance(segment, Mapping):
+            raise TypeError("loaded Segment must be a mapping")
+        self._analyze_mapping(
+            ref,
+            doc_uid,
+            segment,
+            materialize_postings=False,
+        )
+        document = _mapping(segment.get("document"), "segment.document")
+        tree = _mapping(segment.get("document_tree"), "segment.document_tree")
+        fingerprint = _mapping(segment.get("fingerprint"), "segment.fingerprint")
+        source_files = _sequence(fingerprint.get("source_files"), "source_files")
+        return DocumentProjection(
+            doc_uid,
+            ref.doc_key,
+            ref.segment_hash,
+            MappingProxyType(copy.deepcopy(dict(document))),
+            MappingProxyType(copy.deepcopy(dict(tree))),
+            tuple(
+                MappingProxyType(copy.deepcopy(dict(item))) for item in source_files
+            ),
+        )
 
     def _analyze_mapping(
         self,
@@ -754,6 +794,7 @@ class SegmentProjector:
 
 __all__ = [
     "ChunkMetric",
+    "DocumentProjection",
     "SegmentProjection",
     "SegmentProjector",
 ]

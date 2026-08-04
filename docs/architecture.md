@@ -205,3 +205,30 @@ LLM 采用 BYOK。前端可以按 Provider 直连，也可以通过 /api/llm/pro
 - 前端不得恢复全量倒排索引或 chunks 下载。
 - 文档路径必须通过 storage 层校验，禁止 .. 越界。
 - 本地服务默认只监听 loopback；外部网络能力必须由用户配置触发。
+## 13. Ingest, Library, and text-quality boundaries (2026-08-04)
+
+### Ingest contract
+
+- `GET /api/ingest/capabilities` is the source of truth for available formats, engines, degradation state, and upload limits.
+- Browser files use multipart `POST /api/ingest/upload`; an absolute path returned by the desktop picker uses JSON `POST /api/ingest/full`.
+- Uploads are streamed through a `.part` file, hashed, size/signature checked, and atomically staged before a job is created.
+- PDF uses PyMuPDF. EPUB prefers Pandoc and falls back to PyMuPDF. DOCX is unavailable until a real extractor exists.
+- `extract_strategy` selects local or MinerU extraction. `network_policy` independently selects `offline` or `allow_ai`.
+- Offline requests reject MinerU, translate, and note stages before background execution. Offline clean uses the regex classifier and never loads LLM configuration.
+
+Ingest publishes Markdown first and then returns an index `build_job_id`. New content becomes readable only after that V3 build publishes a new `current-v3.json`.
+
+### V3-only Library
+
+`/api/content/docs`, `/api/content/read`, and `/api/content/section` now read authenticated Segment projections from one pinned V3 view. They never fall back to Legacy global/document JSON.
+
+The list response supplies `generation` and `view_id`; the reader sends this pin on read and section requests. Pin drift returns `VIEW_CHANGED`; an absent or invalid published view returns `V3_VIEW_UNAVAILABLE`; a Markdown path outside the Segment fingerprint returns `CONTENT_OUT_OF_SYNC`.
+
+This makes search, chat, Library, and knowledge links agree on one published snapshot. Before the first V3 publish, Library is intentionally unavailable instead of showing stale Legacy data.
+
+### Text and UI invariants
+
+- Extraction disables preserved PDF ligatures, then applies conservative NFC normalization for FB00-FB06 ligatures, soft hyphens, nonbreaking spaces, and high-confidence spacing accents.
+- The tokenizer applies the same normalization to indexed text and queries; global NFKC is not used.
+- Upload queue states are `pending`, `running`, `done`, and `failed`; clearing done items preserves failures, and retry increments the attempt.
+- Chat owns its internal scroll areas and keeps the composer nonshrinking at supported desktop window sizes.

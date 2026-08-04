@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import io
 import time
+from app.text.normalization import normalize_extracted_text
 from pathlib import Path
 
 from app.pdf.base import ExtractResult
@@ -113,7 +114,9 @@ class LocalExtractor:
         img_count = 0
         for idx in page_indices:
             page = doc.load_page(idx)
-            text = page.get_text("text") or ""
+            flags = fitz.TEXTFLAGS_TEXT & ~fitz.TEXT_PRESERVE_LIGATURES
+            text = page.get_text("text", flags=flags) or ""
+            text, _ = normalize_extracted_text(text)
             chunks.append(f"\n\n<!-- page {idx + 1} -->\n\n{text}")
             # 图片提取(可选,失败不阻断)
             try:

@@ -32,7 +32,7 @@ _exports(
 )
 _exports(".source_diff", "SegmentChangeSet", "diff_segment_inputs")
 _exports(
-    ".segment_projection", "ChunkMetric", "SegmentProjection",
+    ".segment_projection", "ChunkMetric", "DocumentProjection", "SegmentProjection",
     "SegmentProjector",
 )
 _exports(
@@ -91,6 +91,7 @@ _exports(
 
 __all__ = [
     "ChunkMetric",
+    "DocumentProjection",
     "ChunkRef",
     "BaseObjectReceipt",
     "CompactionPolicy",

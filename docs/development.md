@@ -278,3 +278,26 @@ sys.stdout.reconfigure(encoding='utf-8')
 ### Q: pywebview 窗口打不开?
 
 A: 检查 `pip install pywebview` 是否成功。Windows 需要 WebView2 Runtime(Win10 自带)。无 pywebview 时 main.py 自动降级到浏览器模式。
+
+## Ingest remediation verification (2026-08-04)
+
+Run the focused gates before the full suite:
+
+```powershell
+python -m pytest tests/test_ingest_upload.py tests/test_ingest_policy.py tests/test_text_normalization.py tests/test_pdf.py tests/test_ingest.py tests/test_clean_pseudo_headings.py tests/pageindex_v3/test_library_projection.py -q
+node --test tests/frontend/upload-queue.test.js
+node --check frontend/upload/upload.js
+node --check frontend/library/reader.js
+node --check frontend/chat/index.js
+```
+
+Then run the repository gates:
+
+```powershell
+python -m pytest -q
+node --test tests/frontend/*.test.js
+```
+
+On restricted Windows sandboxes, Node's test runner may fail with `spawn EPERM` before executing assertions. Re-run the Node command outside that restricted token; `node --check` alone is only a syntax gate.
+
+For manual desktop acceptance, verify both a browser-selected file (multipart) and a native-picker absolute path. Confirm PDF and EPUB capabilities, offline policy rejection, failed-item retry, V3 publish completion, Library pin propagation, and chat composer visibility at 1000x600, 1387x762, and 1400x900.

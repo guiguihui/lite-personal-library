@@ -228,6 +228,7 @@ input, select, textarea { font-family: inherit; font-size: var(--fs-base); }
   flex-direction: column;
   position: relative;
   min-width: 0; /* grid 项默认 min-width:auto 会被内容撑开/挤压,导致 sidebar 折叠时 main 列宽塌缩为 0 → 内容不可见(空白页)。与 .lqd-overview 一致。 */
+  min-height: 0;
 }
 
 /* ── Tab Bar ── */
@@ -302,6 +303,7 @@ input, select, textarea { font-family: inherit; font-size: var(--fs-base); }
   overflow: auto;
   position: relative;
   min-width: 0; /* flex 项默认 min-width:auto,内部宽内容(library 三栏/manage 表单)会撑开导致父级 grid 1fr 列塌缩为 0 → 空白页 */
+  min-height: 0;
 }
 
 /* ── Overview(概览小窗) ── */

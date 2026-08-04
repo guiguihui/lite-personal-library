@@ -16,9 +16,29 @@ from pathlib import Path
 
 from app.pdf.base import ExtractResult
 
+def resolve_pandoc() -> str | None:
+    """Return a working Pandoc executable, not merely a same-named PATH entry."""
+    candidate = shutil.which("pandoc")
+    if not candidate:
+        return None
+    try:
+        probe = subprocess.run(
+            [candidate, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return candidate if probe.returncode == 0 else None
+
+
 
 class EpubExtractor:
     """pandoc EPUB 提取器。需外部 pandoc 命令。"""
+
+    def __init__(self, pandoc_path: str | None = None) -> None:
+        self._pandoc_path = pandoc_path
 
     def extract(
         self,
@@ -40,7 +60,7 @@ class EpubExtractor:
         merged_dir.mkdir(parents=True, exist_ok=True)
         images_dir.mkdir(parents=True, exist_ok=True)
 
-        pandoc = shutil.which("pandoc")
+        pandoc = self._pandoc_path or resolve_pandoc()
         if not pandoc:
             log.append("[error] pandoc not found in PATH")
             return ExtractResult(

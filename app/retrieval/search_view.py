@@ -19,6 +19,7 @@ from app.index.v3.view_store import ViewDocumentOwner
 from app.retrieval.bm25 import BM25_B, BM25_K, CHUNK_FIELD_BOOST
 from app.retrieval.fuse import rrf_fuse
 from app.retrieval.search import Hit, _js_round, _per_doc_truncate
+from app.text.normalization import normalize_for_search
 from app.retrieval.tokenizer import expand_query_weighted, tokenize, tokenize_unique
 
 __all__ = ["search_pinned_view"]
@@ -391,10 +392,11 @@ def search_pinned_view(
     if top_k <= 0:
         return []
 
-    original_tokens = tokenize_unique(query)
+    normalized_query = normalize_for_search(query)
+    original_tokens = tokenize_unique(normalized_query)
     if not original_tokens:
         return []
-    tokens, weights = expand_query_weighted(original_tokens, query)
+    tokens, weights = expand_query_weighted(original_tokens, normalized_query)
     if not tokens:
         return []
 
@@ -488,7 +490,7 @@ def search_pinned_view(
     }
     path_b = [query_hits[ref] for ref in path_b_refs]
     path_a_candidates = [query_hits[ref] for ref in path_a_refs]
-    path_a = _phrase_path(query, path_a_candidates, 20)
+    path_a = _phrase_path(normalized_query, path_a_candidates, 20)
 
     path_e: list[Hit] = []
     for ref in path_e_refs:

@@ -13,6 +13,12 @@
   function el(tag, cls, text) { var node = document.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; }
   function empty(node) { while (node && node.firstChild) node.removeChild(node.firstChild); }
   function isAlive(session) { return !!session && sessions().get(session.tabId) === session; }
+  function pinQuery(session) {
+    if (!session.generation || !session.viewId) return '';
+    return '&generation=' + encodeURIComponent(session.generation) +
+      '&view_id=' + encodeURIComponent(session.viewId);
+  }
+
 
   function showLoading(node, message, skeletonType) {
     empty(node);
@@ -96,6 +102,8 @@
       .then(function (response) { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
       .then(function (data) {
         if (!isAlive(session) || version !== session.docsVersion) return;
+        session.generation = data.generation || null;
+        session.viewId = data.view_id || null;
         session.docs = data.docs || [];
         renderShelf(session);
         if (!preserveContent) {
@@ -175,7 +183,7 @@
     showLoading(session.readerEl, '加载文档…', 'block');
     var request = sessions().begin(session);
     var options = request.signal ? { signal: request.signal } : {};
-    fetch('/api/content/read?type=' + encodeURIComponent(session.type) + '&slug=' + encodeURIComponent(slug), options)
+    fetch('/api/content/read?type=' + encodeURIComponent(session.type) + '&slug=' + encodeURIComponent(slug) + pinQuery(session), options)
       .then(function (response) { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
       .then(function (doc) {
         if (!sessions().isCurrent(session, request.version)) return;
@@ -218,7 +226,7 @@
     if (content) showLoading(content, '加载正文…');
     var request = sessions().begin(session);
     var options = request.signal ? { signal: request.signal } : {};
-    var url = '/api/content/section?source_md=' + encodeURIComponent(node.source_md) + '&line_num=' + (node.line_num || 0) + '&line_end=' + (node.line_end || '');
+    var url = '/api/content/section?source_md=' + encodeURIComponent(node.source_md) + '&line_num=' + (node.line_num || 0) + '&line_end=' + (node.line_end || '') + '&type=' + encodeURIComponent(session.type) + '&slug=' + encodeURIComponent(session.slug) + pinQuery(session);
     fetch(url, options)
       .then(function (response) { if (!response.ok) throw new Error('HTTP ' + response.status); return response.text(); })
       .then(function (text) { if (sessions().isCurrent(session, request.version)) renderSection(session, text); })

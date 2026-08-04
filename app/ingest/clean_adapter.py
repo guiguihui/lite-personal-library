@@ -55,7 +55,8 @@ def run_clean(job: IngestJob, prev_result: dict[str, Any], app_cfg: AppConfig) -
     update_job(job.job_id, current_stage="clean")
     append_log(job.job_id, "[clean] start")
 
-    _inject_llm_config(app_cfg)
+    if job.network_policy != "offline":
+        _inject_llm_config(app_cfg)
     clean = _import_clean()
 
     merged_path = Path(prev_result["merged_path"])
@@ -63,7 +64,7 @@ def run_clean(job: IngestJob, prev_result: dict[str, Any], app_cfg: AppConfig) -
         raise FileNotFoundError(f"merged not found: {merged_path}")
 
     content = merged_path.read_text(encoding="utf-8")
-    cleaned, stats = clean(content)
+    cleaned, stats = clean(content, heading_mode="regex" if job.network_policy == "offline" else "auto")
     merged_path.write_text(cleaned, encoding="utf-8")
 
     total = sum(v for v in stats.values() if isinstance(v, int))
@@ -86,7 +87,8 @@ def run_reclean(job: IngestJob, app_cfg: AppConfig) -> dict[str, Any]:
     update_job(job.job_id, current_stage="reclean")
     append_log(job.job_id, "[reclean] start")
 
-    _inject_llm_config(app_cfg)
+    if job.network_policy != "offline":
+        _inject_llm_config(app_cfg)
     clean = _import_clean()
 
     if job.doc_type == "note":
@@ -102,7 +104,7 @@ def run_reclean(job: IngestJob, app_cfg: AppConfig) -> dict[str, Any]:
 
     append_log(job.job_id, f"[reclean] target: {target}")
     content = target.read_text(encoding="utf-8")
-    cleaned, stats = clean(content)
+    cleaned, stats = clean(content, heading_mode="regex" if job.network_policy == "offline" else "auto")
     target.write_text(cleaned, encoding="utf-8")
 
     total = sum(v for v in stats.values() if isinstance(v, int))

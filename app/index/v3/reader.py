@@ -32,7 +32,7 @@ from .models import (
     ViewPin,
     make_doc_uid,
 )
-from .segment_projection import ChunkMetric, SegmentProjector
+from .segment_projection import ChunkMetric, DocumentProjection, SegmentProjector
 from .statistics import CorpusTotals
 from .view_store import (
     BaseObjectReceipt,
@@ -389,6 +389,24 @@ class PinnedSearchView:
         with self._state_lock:
             self._ensure_open()
             return self._owner_view
+
+    def get_document_projections(
+        self, doc_uids: Iterable[str] | None = None
+    ) -> tuple[DocumentProjection, ...]:
+        """Load authenticated Library projections from this exact pinned view."""
+        with self._state_lock:
+            self._ensure_open()
+            if doc_uids is None:
+                requested = tuple(sorted(self._refs_by_uid))
+            elif isinstance(doc_uids, (str, bytes, bytearray)):
+                raise TypeError("doc_uids must be an iterable of strings")
+            else:
+                requested = tuple(doc_uids)
+            missing = [uid for uid in requested if uid not in self._refs_by_uid]
+            if missing:
+                raise KeyError(f"unknown document UIDs: {missing}")
+            return tuple(self._projector.load_document(self._refs_by_uid[uid]) for uid in requested)
+
 
     def document_chunk_refs(self, doc_uids: Iterable[str]) -> tuple[ChunkRef, ...]:
         """Return every active chunk reference for the selected documents.

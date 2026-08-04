@@ -26,6 +26,7 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  min-height: 0;
   background: var(--bg-primary);
   color: var(--fg-primary);
 }
@@ -33,6 +34,8 @@
 /* ── Empty state ── */
 .lqd-chat-empty {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -93,6 +96,7 @@
 .lqd-chat-messages {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
@@ -199,6 +203,7 @@
 .lqd-chat-composer {
   display: flex;
   align-items: flex-end;
+  flex-shrink: 0;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--border);

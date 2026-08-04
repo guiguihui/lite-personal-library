@@ -18,6 +18,8 @@
       nodeId: state.nodeId || null,
       docs: [],
       currentDoc: null,
+      generation: state.generation || null,
+      viewId: state.viewId || null,
       shelfEl: null,
       treeEl: null,
       readerEl: null,
