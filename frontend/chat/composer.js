@@ -39,13 +39,14 @@
             (window.LqdIcons ? window.LqdIcons.icon('arrow-up') : '↑') +
           '</button>' +
         '</div>' +
-        '<div class="lqd-chat-scope-panel" hidden>' +
-          '<div class="lqd-chat-scope-title">检索范围</div>' +
-          '<label class="lqd-chat-scope-item"><input type="checkbox" data-scope="books"><span>书籍</span></label>' +
-          '<label class="lqd-chat-scope-item"><input type="checkbox" data-scope="papers"><span>论文</span></label>' +
-          '<label class="lqd-chat-scope-item"><input type="checkbox" data-scope="notes"><span>笔记</span></label>' +
-          '<label class="lqd-chat-scope-item"><input type="checkbox" data-scope="local"><span>本机文件</span></label>' +
-        '</div>' +
+      '</div>' +
+      // 检索范围面板放在 .lqd-chat-composer 下(不受 inner 的 overflow:hidden 裁剪)
+      '<div class="lqd-chat-scope-panel" hidden>' +
+        '<div class="lqd-chat-scope-title">检索范围</div>' +
+        '<label class="lqd-chat-scope-item"><input type="checkbox" data-scope="books"><span>书籍</span></label>' +
+        '<label class="lqd-chat-scope-item"><input type="checkbox" data-scope="papers"><span>论文</span></label>' +
+        '<label class="lqd-chat-scope-item"><input type="checkbox" data-scope="notes"><span>笔记</span></label>' +
+        '<label class="lqd-chat-scope-item"><input type="checkbox" data-scope="local"><span>本机文件</span></label>' +
       '</div>';
     container.appendChild(composer);
 
@@ -125,12 +126,16 @@
         }
         window.LqdChatAgent.setSearchScope(scope);
       });
-      // 点击外部关闭
-      document.addEventListener('click', function (e) {
-        if (scopePanel && !scopePanel.hidden && !scopePanel.contains(e.target) && !scopeBtn.contains(e.target)) {
+      // 点击外部关闭 — 用一次性的 doc 级捕获监听,检查是否点在本 composer 之外;
+      // 配合 composer 销毁时的清理,避免多会话标签累积全局监听(评审修复)。
+      var docClickGuard = function (e) {
+        if (!document.body.contains(composer)) { document.removeEventListener('click', docClickGuard, true); return; }
+        if (scopePanel && !scopePanel.hidden && !composer.contains(e.target)) {
           scopePanel.hidden = true;
         }
-      });
+      };
+      document.addEventListener('click', docClickGuard, true);
+      composer._lqdDocClickGuard = docClickGuard;
       if (window.LqdTooltip) {
         window.LqdTooltip.attach(scopeBtn, { text: '选择检索范围', position: 'top' });
       }

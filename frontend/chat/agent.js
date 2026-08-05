@@ -29,8 +29,9 @@
   var mdCache = {};
   // get_section 的 V3 快路径缓存:sourceId(和 docId:nodeId 键)→ context(含 sourceMd/lineNum/lineEnd)
   var sectionCache = {};
-  // P1-7: 会话级"上次检索上下文",用于追问感知(代词/范围延续)
-  var lastContexts = [];
+  // P1-7: 会话级"上次检索上下文",用于追问感知(代词/范围延续)。
+  // 评审修复:改为按 tabId 隔离,避免多会话标签间互相污染。
+  var lastContextsByTab = {};
 
   var MAX_SECTION_CHARS = 2500;
 
@@ -80,13 +81,15 @@
 
   // ── 后端检索(V3 优先 / legacy 回退,双轨都由 /api/search 封装)─────────────
   async function searchLibrary(query, topK) {
-    var url = BASE + '/api/search?q=' + encodeURIComponent(query) + '&limit=' + (topK || 12);
-    // 来源范围过滤:books/papers/notes(本机文件检索独立走 /api/filesearch)
     var scope = getSearchScope();
     var types = scopeDocTypes(scope);
-    if (types.length && types.length < 3) {
-      url += '&doc_types=' + encodeURIComponent(types.join(','));
+    // 评审修复:三个库来源全部关闭时,直接返回空(不搜索整个库)
+    if (!types.length) {
+      return [];
     }
+    var url = BASE + '/api/search?q=' + encodeURIComponent(query) + '&limit=' + (topK || 12);
+    // 来源范围过滤:books/papers/notes(本机文件检索独立走 /api/filesearch)
+    url += '&doc_types=' + encodeURIComponent(types.join(','));
     var response = await fetch(url);
     if (!response.ok) throw new Error('HTTP ' + response.status);
     var payload = await response.json();
@@ -204,9 +207,10 @@
   // 检索:走后端 /api/search,不再浏览器内跑 YuuRetrieval 多路检索。
   // 保留 mmrSelect 去冗余(后端顺序 + 同义相似度去重),其余精排由后端完成。
   // P1-7 追问感知:若新查询含代词("它/这个/那/他们/该/其")或很短,自动拼接
-  // 上次检索的文档名,让后端能命中延续的话题。
-  function buildFollowupQuery(query) {
+  // 上次检索的文档名,让后端能命中延续的话题。评审修复:按 tabId 隔离。
+  function buildFollowupQuery(query, tabId) {
     var q = String(query || '').trim();
+    var lastContexts = lastContextsByTab[tabId] || [];
     var pronoun = /(它|它们|他|他们|她|这个|那个|这些|那些|该|其|上面|上述|这)/.test(q);
     var short = q.length <= 8;
     if (!lastContexts.length) return q;
@@ -222,8 +226,8 @@
     return q + ' (' + names.join(' ') + ')';
   }
 
-  async function retrieveContext(query) {
-    var results = await searchLibrary(buildFollowupQuery(query), 12);
+  async function retrieveContext(query, tabId) {
+    var results = await searchLibrary(buildFollowupQuery(query, tabId), 12);
     if (!results || !results.length) {
       return { contexts: [], docCount: 0, thin: true, confidence: 'low', hits: [] };
     }
@@ -474,8 +478,8 @@
     }
   ];
 
-  async function retrieveContextAsText(query, budgetCtx, sourceCtx) {
-    var result = await retrieveContext(query);
+  async function retrieveContextAsText(query, budgetCtx, sourceCtx, tabId) {
+    var result = await retrieveContext(query, tabId);
     var confidence = result.confidence;
     var contexts = result.contexts;
     // P1-10: 无结果时给具体恢复指引(Codex 式)
@@ -510,6 +514,11 @@
 
   // ── 本机文件检索(调用后端 /api/filesearch/search) ──────────────────
   async function retrieveLocalFiles(query, sourceCtx) {
+    // 评审修复:尊重检索范围 — 未勾选"本机文件"时不检索本地文件
+    var scope = getSearchScope();
+    if (!scope.local) {
+      return { text: '本机文件检索已关闭(在输入框 ⊚ 检索范围中勾选「本机文件」可开启)', __contexts: [] };
+    }
     var url = BASE + '/api/filesearch/search?q=' + encodeURIComponent(query) + '&limit=5';
     try {
       var resp = await fetch(url);
@@ -520,7 +529,7 @@
       }
       var data = await resp.json();
     } catch (e) {
-      return { text: '本机文件检索失败: ' + e.message + '\n\n排查建议:\n- 确认本机检索已构建索引(边栏→本机检索→构建索引)\n- 确认后端服务正常运行在 127.0.0.1:8766', __contexts: [] };
+      return { text: '本机文件检索失败: ' + e.message + '\n\n排查建议:\n- 确认本机检索已构建索引(边栏→本机检索→构建索引)\n- 确认后端服务正常运行在 127.0.0.1:8765', __contexts: [] };
     }
 
     var results = data.results || [];
@@ -581,7 +590,7 @@
     return { text: text, __contexts: contexts };
   }
 
-  async function executeTool(name, args, budgetCtx, sourceCtx) {
+  async function executeTool(name, args, budgetCtx, sourceCtx, tabId) {
     if (name === 'search_library') {
       // 防御:模型返回的 tool arguments 可能缺 query 字段(空 {} 或格式异常),
       // 此时 args.query 为 undefined。若放任传给 retrieveContext → lexicalRerank,
@@ -591,7 +600,7 @@
       if (!searchQuery || typeof searchQuery !== 'string') {
         return { text: '检索参数 query 缺失或非字符串,请换关键词重新调用 search_library。', __contexts: [] };
       }
-      var r = await retrieveContextAsText(searchQuery, budgetCtx, sourceCtx);
+      var r = await retrieveContextAsText(searchQuery, budgetCtx, sourceCtx, tabId);
       r.__contexts = r.contexts;
       return r;
     }
@@ -807,11 +816,12 @@
     }
   }
 
-  async function sendMessage(query, refs) {
+  async function sendMessage(query, refs, tabId) {
     var messagesEl = refs.messagesEl;
     var composerInput = refs.composerInput;
     var sendBtn = refs.sendBtn;
     var stopBtn = refs.stopBtn;
+    var originTabId = tabId; // 会话写入始终落在发起 tab,避免多会话串写(评审修复)
 
     await window.LqdSettings.load();
     var apiKey = await window.LqdSettings.fetchApiKey();
@@ -831,7 +841,7 @@
 
     window.LqdChatMessages.hideEmpty(refs.emptyEl, messagesEl);
     window.LqdChatMessages.appendMessageBubble('user', query, messagesEl);
-    window.LqdChatSession.appendToCurrent('user', query);
+    window.LqdChatSession.appendToCurrent('user', query, null, originTabId);
 
     try {
       await loadIndexes();
@@ -855,7 +865,7 @@
     var thinkingOn = thinkingEnabled();
     var debugOn = debugEnabled();
     var systemPrompt = buildAgentSystemPrompt();
-    var messages = window.LqdChatSession.loadCurrent().slice(-6);
+    var messages = window.LqdChatSession.loadCurrent(originTabId).slice(-6);
     var MAX_LOOPS = 4;
 
     var budgetCtx = {
@@ -971,13 +981,15 @@
           updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
           if (tc.name === 'search_library' || tc.name === 'search_local_files') didSearch = true;
 
-          var toolResult = await executeTool(tc.name, args, budgetCtx, { registry: sourceRegistry, counter: nextSourceNum });
+          var toolResult = await executeTool(tc.name, args, budgetCtx, { registry: sourceRegistry, counter: nextSourceNum }, originTabId);
           // 检索完成:将 spinner 替换为完成图标,移除进度条
           toolTrail[stepIdx] = toolTrail[stepIdx]
             .replace(' lqd-tool-step--loading', ' lqd-tool-step--settled')
             .replace('<span class="lqd-tool-spinner"></span>', '<span class="lqd-tool-done">' + (window.LqdIcons ? window.LqdIcons.icon('check') : '✓') + '</span>')
             .replace('<div class="lqd-tool-progress"><div class="lqd-tool-progress-bar"></div></div>', '');
           updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
+          // 评审修复:工具路径的检索也要记录低置信(追问建议触发条件)
+          if (tc.name === 'search_library' && toolResult.confidence === 'low') confidenceLow = true;
           if (toolResult.__contexts) {
             for (var j = 0; j < toolResult.__contexts.length; j++) {
               var c = toolResult.__contexts[j];
@@ -998,7 +1010,7 @@
         finalText = '';
       }
 
-      if (!didSearch) {
+      if (!didSearch && !aborted) {
         // 强制检索:先显示加载中的步骤,完成后再换为完成态
         showThinker(contentEl, 'searching');
         toolTrail.push(
@@ -1007,7 +1019,7 @@
         );
         var forcedStepIdx = toolTrail.length - 1;
         updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
-        var forced = await retrieveContextAsText(query, budgetCtx, { registry: sourceRegistry, counter: nextSourceNum });
+        var forced = await retrieveContextAsText(query, budgetCtx, { registry: sourceRegistry, counter: nextSourceNum }, originTabId);
         // 检索完成:将 spinner 替换为完成图标,移除进度条
         toolTrail[forcedStepIdx] = toolTrail[forcedStepIdx]
           .replace(' lqd-tool-step--loading', ' lqd-tool-step--settled')
@@ -1090,9 +1102,11 @@
             messages: summaryMessages,
             tools: undefined,
             thinking: false,
-            maxTokens: 4096
+            maxTokens: 4096,
+            signal: abortCtrl.signal // 评审修复:停止按钮要能中止总结阶段
           });
           for await (var chunk2 of summaryStream) {
+            if (aborted) break; // 评审修复:中止后立即退出
             if (chunk2.type === 'text') {
               summaryText += chunk2.text;
               finalText = summaryText;
@@ -1102,7 +1116,9 @@
               window.LqdChatMessages.reRenderKatex(contentEl);
             }
           }
-        } catch (_) { /* ignore */ }
+        } catch (summaryErr) {
+          if (!aborted) throw summaryErr; // 非中止错误才上抛
+        }
         clearTimeout(summaryTimeout);
       }
 
@@ -1191,10 +1207,10 @@
 
       // 存消息时把引用卡片 HTML 一并存入(citations 字段),
       // 供切回标签重渲染时恢复流式输出时的"正文 + 参考来源"完整结构。
-      window.LqdChatSession.appendToCurrent('assistant', finalText, { citations: citationsHtml });
+      window.LqdChatSession.appendToCurrent('assistant', finalText, { citations: citationsHtml }, originTabId);
       emitContext(allContexts);
-      // P1-7: 记录本次检索上下文供追问感知
-      lastContexts = allContexts.slice();
+      // P1-7: 记录本次检索上下文供追问感知(按 tab 隔离,评审修复)
+      lastContextsByTab[originTabId] = allContexts.slice();
       if (window.LqdEvents) {
         window.LqdEvents.emit('chat:message', { role: 'assistant', content: finalText });
       }

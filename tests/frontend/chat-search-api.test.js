@@ -29,7 +29,8 @@ test('chat retrieval uses only /api/search and preserves backend order', async f
   require('../../frontend/chat/agent.js');
   const result = await window.LqdChatAgent.retrieveContext('alpha');
 
-  assert.deepEqual(requested, ['/api/search?q=alpha&limit=12']);
+  // 默认范围(书籍+论文+笔记全勾选)会显式带上 doc_types 过滤参数
+  assert.deepEqual(requested, ['/api/search?q=alpha&limit=12&doc_types=books%2Cpapers%2Cnotes']);
   assert.deepEqual(result.contexts.map((item) => item.docId), ['first', 'second']);
   assert.equal(requested.some((url) => /pageindex|inverted-index|chunks\.json/.test(url)), false);
 });

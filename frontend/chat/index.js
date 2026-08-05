@@ -118,7 +118,13 @@
     if (!refs) return;
     refs.composerInput.value = '';
     refs.composerInput.style.height = 'auto';
-    window.LqdChatAgent.sendMessage(query, refs).then(function () {
+    window.LqdChatAgent.sendMessage(query, refs, tabId).then(function () {
+      // 评审修复:消息完成后刷新 tab 标题(多会话场景下 tab 要可区分)
+      if (window.LqdTabs) {
+        window.LqdTabs.updateTabState(tabId, function (t) {
+          t.title = window.LqdChat.getTitle(t);
+        });
+      }
       if (window.LqdEvents) {
         window.LqdEvents.emit('chat:session:changed', {});
       }
@@ -497,17 +503,30 @@
         }
         var query = prev ? ((prev.querySelector('.lqd-chat-msg-text') || {}).textContent || '').trim() : '';
         if (!query) return;
-        // 删除这条 assistant 消息及其后所有消息,重新生成
+        // 评审修复:锚定在点击气泡的上一条用户消息,而不是全会话首个同文本消息
+        // (避免同问题问两次时,重新生成误删中间对话)。
+        // 用 DOM 序数定位:prev 是渲染流里第几个 user 消息,对应 session 里同序数的 user。
         var messages = window.LqdChatSession.loadCurrent();
-        var idx = -1;
-        for (var i = 0; i < messages.length; i++) {
-          if (messages[i].role === 'assistant' && messages[i].content && messages[i].content.indexOf(query) === -1) { /* not this */ }
+        // 数 DOM 里 prev 之前(含自身)的 user 消息序数
+        var ordinal = 0;
+        var scan = refs.messagesEl ? refs.messagesEl.firstElementChild : null;
+        while (scan && scan !== prev) {
+          if (scan.getAttribute && scan.getAttribute('data-role') === 'user') ordinal++;
+          scan = scan.nextElementSibling;
         }
-        // 找到匹配的 assistant 消息索引:其前一条是 query
+        // 在 session 里找第 ordinal 个 user 消息
+        var idx = -1;
+        var seenUsers = 0;
         for (var j = 0; j < messages.length; j++) {
-          if (messages[j].role === 'user' && messages[j].content === query && messages[j + 1] && messages[j + 1].role === 'assistant') {
-            idx = j; // 从这条 user 之后全部删除
-            break;
+          if (messages[j].role === 'user') {
+            if (seenUsers === ordinal) { idx = j; break; }
+            seenUsers++;
+          }
+        }
+        if (idx === -1) {
+          // 兜底:找不到精确序数时,用最后一个匹配文本的 user
+          for (var k = messages.length - 1; k >= 0; k--) {
+            if (messages[k].role === 'user' && messages[k].content === query) { idx = k; break; }
           }
         }
         if (idx === -1) return;
@@ -523,7 +542,7 @@
         while (cur) { toRemove.push(cur); cur = cur.nextElementSibling; }
         toRemove.forEach(function (el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
         if (window.LqdEvents) window.LqdEvents.emit('chat:session:changed', {});
-        window.LqdChatAgent.sendMessage(query, refs).then(function () {
+        window.LqdChatAgent.sendMessage(query, refs, tab.id).then(function () {
           if (window.LqdEvents) window.LqdEvents.emit('chat:session:changed', {});
         });
         return;
@@ -544,10 +563,6 @@
   function unmount(container, tab) {
     // M3: 流式输出中切标签时,把已收到的部分回答存入 session,
     // 避免用户切回后看到空白或丢失流式内容。
-    // agent.js 的 sendMessage 在流式过程中通过 contentEl 实时更新 DOM,
-    // unmount 时 DOM 被清除,但 session 里可能只有 user 消息没有 assistant 回答。
-    // 这里检查:如果 session 里最后一条是 user 消息(说明 assistant 还没存),
-    // 尝试从 DOM 读取当前流式内容并保存。
     var messages = window.LqdChatSession.loadCurrent(tab.id);
     if (messages && messages.length) {
       var last = messages[messages.length - 1];
@@ -558,8 +573,13 @@
           var bubbles = refs.messagesEl.querySelectorAll('.lqd-chat-message');
           if (bubbles.length > 0) {
             var lastBubble = bubbles[bubbles.length - 1];
-            if (lastBubble.getAttribute('data-role') === 'assistant' || lastBubble.classList.contains('lqd-chat-message--assistant')) {
-              var partialText = lastBubble.textContent || '';
+            if (lastBubble.getAttribute('data-role') === 'assistant') {
+              // 评审修复:只取 .lqd-chat-msg-content 的正文文本,
+              // 避免把思考过程/工具轨迹/引用卡片混入保存的内容
+              var contentEl = lastBubble.querySelector('.lqd-chat-msg-content');
+              var partialText = contentEl ? contentEl.textContent || '' : '';
+              // 去掉思考器标签文字
+              partialText = partialText.replace(/\s*(思考过程|thinking\.\.\.|searching\.\.\.)\s*/g, ' ').trim();
               if (partialText && partialText.trim()) {
                 window.LqdChatSession.appendToCurrent('assistant', partialText.trim(), {}, tab.id);
               }
@@ -571,8 +591,21 @@
     tabRefs.delete(tab.id);
   }
 
+  // 评审修复:关闭 chat 标签时归档会话,避免直接丢弃(多会话回归)
+  function onTabClosed(payload) {
+    var closedTab = payload && payload.tab;
+    if (!closedTab || closedTab.type !== 'chat') return;
+    var messages = window.LqdChatSession.loadCurrent(closedTab.id);
+    if (messages && messages.length) {
+      window.LqdChatSession.archiveCurrent(messages);
+    }
+    window.LqdChatSession.clearCurrent(closedTab.id);
+  }
+
   function getTitle(tab) {
-    var messages = window.LqdChatSession.loadCurrent();
+    // 评审修复:读该 tab 自己的会话(tab.id),而非当前 active 会话
+    var tabId = tab && tab.id;
+    var messages = window.LqdChatSession.loadCurrent(tabId);
     var first = '';
     for (var i = 0; i < messages.length; i++) {
       if (messages[i].role === 'user' && messages[i].content) {
@@ -817,6 +850,10 @@
     return '更早';
   }
 
+  // 评审修复:侧栏搜索词持久化 + 键盘导航只绑定一次
+  var sidebarSearchTerm = '';
+  var sidebarKeyNavBound = false;
+
   function renderSidebar(container) {
     container.innerHTML = '';
 
@@ -830,6 +867,7 @@
       searchInput.type = 'search';
       searchInput.placeholder = '搜索历史对话…';
       searchInput.setAttribute('aria-label', '搜索历史对话');
+      searchInput.value = sidebarSearchTerm; // 评审修复:恢复上次搜索词
       searchWrap.appendChild(searchInput);
       container.appendChild(searchWrap);
     }
@@ -874,41 +912,51 @@
       container.appendChild(wrap);
     }
 
-    renderList('');
-
     if (searchInput) {
       searchInput.addEventListener('input', function () {
+        sidebarSearchTerm = searchInput.value; // 评审修复:记住搜索词
         var existing = container.querySelector('.lqd-chat-history-wrap');
         if (existing) existing.remove();
         renderList(searchInput.value);
       });
     }
 
-    // P3-16: 键盘导航 — ↑↓ 移动、Enter 打开(聚焦侧栏时)
-    container.addEventListener('keydown', function (e) {
-      var items = container.querySelectorAll('.lqd-chat-history-item');
-      if (!items.length) return;
-      var active = document.activeElement;
-      var idx = -1;
-      for (var i = 0; i < items.length; i++) {
-        if (items[i] === active || items[i].contains(active)) { idx = i; break; }
-      }
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        var next = (e.key === 'ArrowDown') ? idx + 1 : idx - 1;
-        if (idx === -1) next = (e.key === 'ArrowDown') ? 0 : items.length - 1;
-        if (next >= 0 && next < items.length) items[next].focus();
-      } else if (e.key === 'Enter' && idx >= 0) {
-        e.preventDefault();
-        items[idx].click();
-      } else if (e.key === 'Home') {
-        e.preventDefault();
-        items[0].focus();
-      } else if (e.key === 'End') {
-        e.preventDefault();
-        items[items.length - 1].focus();
-      }
-    });
+    renderList(sidebarSearchTerm);
+
+    // P3-16: 键盘导航 — 只绑定一次(评审修复:避免每次 render 累积监听)
+    if (!sidebarKeyNavBound) {
+      sidebarKeyNavBound = true;
+      container.addEventListener('keydown', function (e) {
+        // 评审修复:搜索框聚焦时不劫持方向键(否则影响输入)
+        var targetTag = document.activeElement && document.activeElement.tagName;
+        if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') {
+          if (e.key === 'Enter') return;
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') return;
+        }
+        var items = container.querySelectorAll('.lqd-chat-history-item');
+        if (!items.length) return;
+        var active = document.activeElement;
+        var idx = -1;
+        for (var i = 0; i < items.length; i++) {
+          if (items[i] === active || items[i].contains(active)) { idx = i; break; }
+        }
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          var next = (e.key === 'ArrowDown') ? idx + 1 : idx - 1;
+          if (idx === -1) next = (e.key === 'ArrowDown') ? 0 : items.length - 1;
+          if (next >= 0 && next < items.length) items[next].focus();
+        } else if (e.key === 'Enter' && idx >= 0) {
+          e.preventDefault();
+          items[idx].click();
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          items[0].focus();
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          items[items.length - 1].focus();
+        }
+      });
+    }
   }
 
   // 构建单个会话项(供 renderSidebar 复用)
@@ -1086,21 +1134,8 @@
     return tab;
   }
 
-  // 复制当前会话到新标签(并行分支,各自独立演进)
-  function duplicateSession() {
-    var active = window.LqdTabs ? window.LqdTabs.active() : null;
-    if (!active || active.type !== 'chat') return newSessionTab();
-    var refs = tabRefs.get(active.id);
-    var messages = window.LqdChatSession.loadCurrent(active.id);
-    // 归档当前到历史,然后新标签从当前消息继续
-    var tab = newSessionTab();
-    if (tab && messages && messages.length) {
-      window.LqdChatSession.saveCurrent(messages.slice(), tab);
-      var newRefs = tabRefs.get(tab);
-      if (newRefs) renderMessages(newRefs, messages);
-    }
-    return tab;
-  }
+  // 复制当前会话到新标签由上下文菜单"复制为新会话"实现(见 showCtxMenu),
+  // 此处不再保留重复实现。
 
   var LqdChat = {
     type: 'chat',
@@ -1114,7 +1149,6 @@
     openNewChat: openNewChat,
     openSession: openSession,
     newSessionTab: newSessionTab,
-    duplicateSession: duplicateSession,
     exportSessionMarkdown: exportSessionMarkdown,
     downloadTextFile: downloadTextFile
   };
@@ -1126,6 +1160,10 @@
     if (window.LqdTabs) window.LqdTabs.register('chat', LqdChat);
     if (window.LqdSidebar) window.LqdSidebar.register('chat', LqdChat);
     if (window.LqdOverview) window.LqdOverview.register('chat', LqdChat);
+    // 评审修复:关闭 chat 标签时归档会话(避免多会话回归丢弃对话)
+    if (window.LqdEvents) {
+      window.LqdEvents.on('tab:closed', onTabClosed);
+    }
   }
 
   if (document.readyState === 'loading') {
