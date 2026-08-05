@@ -136,8 +136,10 @@
   width: 56px;
   height: 56px;
   margin-bottom: var(--space-6);
-  color: var(--fg-tertiary);
-  opacity: 0.75;
+  color: var(--tint-blue);
+  opacity: 0.9;
+  background: color-mix(in srgb, var(--tint-blue) 10%, transparent);
+  border-radius: 16px;
 }
 .lqd-chat-welcome-logo svg {
   width: 44px;
@@ -152,6 +154,23 @@
   letter-spacing: -0.01em;
   color: var(--fg-primary);
   text-align: center;
+}
+
+.lqd-chat-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--space-4);
+  border-radius: 16px;
+  color: var(--tint-blue);
+  background: color-mix(in srgb, var(--tint-blue) 10%, transparent);
+}
+.lqd-chat-empty-icon svg {
+  width: 30px;
+  height: 30px;
+  stroke-width: 1.6;
 }
 
 /* 建议动作卡片(Codex 四卡栅格) */
@@ -197,9 +216,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   color: var(--fg-secondary);
+  background: var(--bg-tertiary);
 }
 .lqd-chat-action-icon svg { width: 20px; height: 20px; stroke-width: 1.8; }
+
+/* Codex 风格:每张动作卡片的图标用 pastel 彩色点缀(小面积圆角块 + 同色描边) */
+.lqd-chat-action[data-action="ask"] .lqd-chat-action-icon {
+  color: var(--tint-blue);
+  background: color-mix(in srgb, var(--tint-blue) 12%, transparent);
+}
+.lqd-chat-action[data-action="summarize"] .lqd-chat-action-icon {
+  color: var(--tint-purple);
+  background: color-mix(in srgb, var(--tint-purple) 12%, transparent);
+}
+.lqd-chat-action[data-action="upload"] .lqd-chat-action-icon {
+  color: var(--tint-green);
+  background: color-mix(in srgb, var(--tint-green) 12%, transparent);
+}
+.lqd-chat-action[data-action="rebuild-index"] .lqd-chat-action-icon {
+  color: var(--tint-orange);
+  background: color-mix(in srgb, var(--tint-orange) 12%, transparent);
+}
 
 .lqd-chat-action-text { line-height: 1.4; }
 
@@ -499,14 +540,14 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--tint-purple) 30%, var(--border));
   border-radius: 50%;
-  background: var(--bg-primary);
-  color: var(--fg-secondary);
+  background: color-mix(in srgb, var(--tint-purple) 8%, var(--bg-primary));
+  color: var(--tint-purple);
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-fluid), color var(--dur-fast) var(--ease-fluid);
 }
-.lqd-chat-attach:hover { background: var(--bg-hover); color: var(--fg-primary); }
+.lqd-chat-attach:hover { background: color-mix(in srgb, var(--tint-purple) 16%, var(--bg-primary)); color: var(--tint-purple); }
 .lqd-chat-attach:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .lqd-chat-model {
@@ -633,8 +674,8 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--accent, #2563eb) 15%, transparent);
-  color: var(--accent, #2563eb);
+  background: color-mix(in srgb, var(--tint-green) 15%, transparent);
+  color: var(--tint-green);
   vertical-align: middle;
   flex-shrink: 0;
 }
@@ -825,11 +866,21 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--accent);
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  color: var(--tint-blue);
+  background: color-mix(in srgb, var(--tint-blue) 12%, transparent);
 }
 .lqd-chat-citation-icon svg {
   width: 13px;
   height: 13px;
+}
+
+/* 本机文件引用:图标用绿色点缀 */
+.lqd-chat-citation--localfile .lqd-chat-citation-icon {
+  color: var(--tint-green);
+  background: color-mix(in srgb, var(--tint-green) 12%, transparent);
 }
 
 /* ── 引用浮窗(Popover) ── */
@@ -874,8 +925,8 @@
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm, 6px);
-  background: color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
-  color: var(--accent, #2563eb);
+  background: color-mix(in srgb, var(--tint-blue) 12%, transparent);
+  color: var(--tint-blue);
   flex-shrink: 0;
 }
 
