@@ -761,12 +761,15 @@
     composing: 'thinking...'
   };
 
-  // 创建思考器 DOM 元素 (小图标 + 文字,横向展示)
+  // 创建思考器 DOM 元素 — Codex 圆角极简风:
+  // 柔光玻璃胶囊 + 三个依次弹跳的圆点 + 状态文字
   function createThinker(state) {
     var el = document.createElement('div');
     el.className = 'lqd-thinker';
     el.innerHTML =
-      '<div class="lqd-thinker-orb"></div>' +
+      '<div class="lqd-thinker-dots">' +
+        '<i></i><i></i><i></i>' +
+      '</div>' +
       '<span class="lqd-thinker-label">' + (THINKER_LABELS[state] || THINKER_LABELS.working) + '</span>';
     return el;
   }
