@@ -337,6 +337,60 @@
   color: inherit;
 }
 
+/* ── VS Code 风格代码框 ──
+   渲染器(render.js)把围栏代码块包成 .lqd-codebox:
+   顶部一条深色窗口栏(左三圆点 + 语言标签)+ 深色代码画布。 */
+.lqd-codebox {
+  margin: var(--space-3) 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0d1117;
+}
+.lqd-codebox-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 7px 12px;
+  background: #161b22;               /* VSCode 标题栏底色 */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.lqd-codebox-dots {
+  display: inline-flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.lqd-codebox-dots i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.lqd-codebox-dots i:nth-child(1) { background: #ff5f57; }  /* 红 */
+.lqd-codebox-dots i:nth-child(2) { background: #febc2e; }  /* 黄 */
+.lqd-codebox-dots i:nth-child(3) { background: #28c840; }  /* 绿 */
+.lqd-codebox-lang {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.lqd-codebox pre.hljs {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: #0d1117;
+  border: none;
+  border-radius: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+.lqd-codebox pre.hljs code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  background: transparent;
+}
+
 .lqd-chat-msg-content code {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);

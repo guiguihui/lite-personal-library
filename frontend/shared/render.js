@@ -182,14 +182,24 @@
           codeText = code.text || '';
           lang = code.lang || '';
         }
+        var langLabel = (lang || '').split(/\s+/)[0] || 'code';
+        // VS Code 风格代码框:窗口圆点 + 语言标签 + 深色画布
+        var header = '<div class="lqd-codebox-bar">' +
+          '<span class="lqd-codebox-dots"><i></i><i></i><i></i></span>' +
+          '<span class="lqd-codebox-lang">' + _escHtml(langLabel) + '</span>' +
+          '</div>';
         if (typeof hljs !== 'undefined' && lang && hljs.getLanguage(lang)) {
           try {
             var highlighted = hljs.highlight(codeText, { language: lang }).value;
-            return '<pre class="hljs"><code class="language-' + lang + '">' + highlighted + '</code></pre>';
+            return '<div class="lqd-codebox">' + header +
+              '<pre class="hljs"><code class="language-' + lang + '">' + highlighted + '</code></pre>' +
+              '</div>';
           } catch (_) { /* fall through */ }
         }
         // 无语言或高亮失败:仍加 hljs 类以便 CSS 统一背景
-        return '<pre class="hljs"><code>' + _escHtml(codeText) + '</code></pre>';
+        return '<div class="lqd-codebox">' + header +
+          '<pre class="hljs"><code>' + _escHtml(codeText) + '</code></pre>' +
+          '</div>';
       };
       marked.setOptions({ renderer: renderer, breaks: false, gfm: true });
     } catch (e) {

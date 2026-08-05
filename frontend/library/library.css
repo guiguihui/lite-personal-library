@@ -393,6 +393,51 @@
   line-height: 1.6;
 }
 
+/* VS Code 风格代码框(与 chat.css 的 .lqd-codebox 保持一致) */
+.reader-content .lqd-codebox {
+  margin: var(--space-3) 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0d1117;
+}
+.reader-content .lqd-codebox-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 7px 12px;
+  background: #161b22;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.reader-content .lqd-codebox-dots { display: inline-flex; gap: 5px; flex-shrink: 0; }
+.reader-content .lqd-codebox-dots i {
+  width: 11px; height: 11px; border-radius: 50%; display: inline-block;
+}
+.reader-content .lqd-codebox-dots i:nth-child(1) { background: #ff5f57; }
+.reader-content .lqd-codebox-dots i:nth-child(2) { background: #febc2e; }
+.reader-content .lqd-codebox-dots i:nth-child(3) { background: #28c840; }
+.reader-content .lqd-codebox-lang {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.reader-content .lqd-codebox pre.hljs {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: #0d1117;
+  border: none;
+  border-radius: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+.reader-content .lqd-codebox pre.hljs code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  background: transparent;
+}
+
 .reader-content code {
   font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
   font-size: var(--fs-sm);

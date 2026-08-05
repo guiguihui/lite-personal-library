@@ -480,16 +480,61 @@ def reset_chunk_counter() -> None:
     _CHUNK_COUNTER[0] = 0
 
 
+def _split_paragraphs_fence_aware(text: str) -> list[str]:
+    """按段落切分,但把 ``` 围栏代码块视为原子单元。
+
+    代码块内部可能含空行,直接按 \n\n 切分会把围栏劈断 → 渲染端围栏不闭合、
+    代码不进入代码框。这里扫描围栏,块内空行不切,围栏整体作为一个"段落"。
+    """
+    lines = text.split("\n")
+    segments: list[str] = []
+    buf: list[str] = []
+    in_fence = False
+    fence_marker: str | None = None
+
+    def flush() -> None:
+        if buf:
+            segments.append("\n".join(buf))
+            buf.clear()
+
+    for line in lines:
+        # 围栏开/闭:行首 ``` 且(开时无语言 或 闭时与当前 marker 一致)
+        stripped = line.lstrip()
+        if not in_fence and stripped.startswith("```"):
+            in_fence = True
+            fence_marker = line.rstrip()
+            buf.append(line)
+            continue
+        if in_fence and stripped.rstrip() == "```":
+            in_fence = False
+            fence_marker = None
+            buf.append(line)
+            flush()
+            continue
+        if in_fence:
+            # 代码块内:空行也保留在块内,不切分
+            buf.append(line)
+            continue
+        # 普通行:按空行分段
+        if not line.strip():
+            flush()
+        else:
+            buf.append(line)
+    flush()
+    return [seg for seg in segments if seg.strip()]
+
+
 def split_into_chunks(text: str, target: int = CHUNK_TARGET_CHARS,
                       overlap: int = CHUNK_OVERLAP_CHARS) -> list[tuple[str, int, int]]:
-    """把正文切成 ~target 字符的 chunk，重叠 overlap 字符。
+    """把正文切成 ~target 字符的 chunk,重叠 overlap 字符。
 
-    优先段落边界（空行切分），单段超长再按 target 硬切。
-    返回 [(chunk_text, start_char, end_char), ...]，char 偏移相对于 text。
+    优先段落边界(空行切分),单段超长再按 target 硬切。
+    围栏代码块视为原子单元:块内空行不切、超长也整块保留(不劈断围栏)。
+    返回 [(chunk_text, start_char, end_char), ...],char 偏移相对于 text。
     """
     if not text or not text.strip():
         return []
-    paragraphs = [p for p in re.split(r"\n\s*\n", text) if p.strip()]
+    paragraphs = _split_paragraphs_fence_aware(text)
     if not paragraphs:
         return []
     chunks: list[tuple[str, int, int]] = []
@@ -511,8 +556,9 @@ def split_into_chunks(text: str, target: int = CHUNK_TARGET_CHARS,
             buf_start = end_pos
 
     for para in paragraphs:
-        # 单段超长 → 直接按 target 切（不再等累加）
-        if len(para) >= target:
+        # 单段超长 → 直接按 target 切(不再等累加)。
+        # 但围栏代码块除外:整块保留为一个 chunk,避免劈断 ``` 围栏。
+        if len(para) >= target and not para.lstrip().startswith("```"):
             if buf.strip():
                 flush(pos)
             i = 0
@@ -520,10 +566,10 @@ def split_into_chunks(text: str, target: int = CHUNK_TARGET_CHARS,
                 piece = para[i:i + target]
                 chunks.append((piece.strip(), pos + i, pos + i + len(piece)))
                 i += target - overlap if (target - overlap) > 0 else target
-            # 段后游标推进（para 末尾 + 原段间分隔）
+            # 段后游标推进(para 末尾 + 原段间分隔)
             pos += len(para) + 2  # \n\n 近似
             continue
-        # 累加段落
+        # 累加段落(含围栏块:整块累加,不硬切)
         if len(buf) + len(para) + 2 > target and buf:
             flush(pos)
         if not buf:
