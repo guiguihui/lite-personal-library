@@ -67,7 +67,7 @@ frontend/
   upload/      — Upload queue UI
   config/      — Settings UI (BYOK providers)
   filesearch/  — 本机文件检索(A 独有)
-  shared/      — render.js, settings.js, thinking-orbs.js, knowledge-flags/wikilinks/link-popover
+  shared/      — render.js, settings.js, knowledge-flags/wikilinks/link-popover
   vendor/      — d3.v7.9.0.min.js(局部图谱)
   katex/       — Math rendering (vendored)
 data/           — User data (content/, pageindex/, config/, pdfs/, fileindex/) — gitignored

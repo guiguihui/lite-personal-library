@@ -21,7 +21,8 @@
   30% { transform: translateY(-4px); opacity: 1; }
 }
 
-/* ── 思考动画:thinking-orbs canvas ── */
+/* ── 思考动画:简洁圆点加载("thinking....") ──
+   纯 CSS transform/opacity,合成线程执行,无 canvas、无 rAF → 不卡、无泄漏 */
 
 /* 思考器容器:横向玻璃胶囊 */
 @keyframes lqd-thinker-fade-in {
@@ -50,16 +51,26 @@
   animation: lqd-thinker-fade-out 0.25s var(--ease-fluid) forwards;
 }
 
-/* thinking-orbs 画布容器 */
-.lqd-thinker-orb-wrap {
-  display: flex;
+/* 三个圆点:依次弹跳,错峰延迟 */
+@keyframes lqd-dot-bounce2 {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.lqd-thinker-dots {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
   flex-shrink: 0;
 }
-.lqd-thinker-orb-wrap canvas {
-  display: block;
+.lqd-thinker-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tint-blue);
+  animation: lqd-dot-bounce2 1.2s var(--ease-fluid) infinite;
 }
+.lqd-thinker-dots i:nth-child(2) { animation-delay: 0.15s; }
+.lqd-thinker-dots i:nth-child(3) { animation-delay: 0.3s; }
 
 /* 状态文字:柔和明暗呼吸 */
 @keyframes lqd-label-pulse {
@@ -74,11 +85,11 @@
   white-space: nowrap;
 }
 
-/* 隐藏旧元素 (兼容) */
+/* 隐藏旧元素 (遗留 orb/轨道 兼容) */
 .lqd-thinker-ring,
 .lqd-thinker-core,
 .lqd-thinker-orb,
-.lqd-thinker-dots,
+.lqd-thinker-orb-wrap,
 .lqd-thinker-orbit,
 .lqd-thinker-orbit-dot,
 .lqd-thinker-orbit-core {
@@ -918,17 +929,6 @@
   color: var(--fg-primary);
   animation: lqd-tool-in 0.2s var(--ease-fluid);
 }
-
-/* 检索步骤中的 mini thinking-orbs 画布 */
-.lqd-tool-orb-slot {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-}
-.lqd-tool-orb-slot canvas { display: block; }
 
 .lqd-tool-step code {
   background: var(--bg-tertiary);
