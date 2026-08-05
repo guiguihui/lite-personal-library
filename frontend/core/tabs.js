@@ -8,6 +8,8 @@
   var registry = {};
   var nextId = 1;
   var currentMountedId = null; // 防止重复挂载同一标签
+  var closedTabsStack = [];
+  var CLOSED_STACK_MAX = 20;
 
   function $(id) { return document.getElementById(id); }
 
@@ -255,13 +257,38 @@
     window.LqdEvents.emit('tab:activated', { tab: tab });
   }
 
-  function close(id) {
+  function pushClosed(tab) {
+    if (!tab) return;
+    closedTabsStack.push({
+      id: tab.id,
+      type: tab.type,
+      title: tab.title,
+      state: tab.state ? JSON.parse(JSON.stringify(tab.state)) : {}
+    });
+    if (closedTabsStack.length > CLOSED_STACK_MAX) {
+      closedTabsStack.splice(0, closedTabsStack.length - CLOSED_STACK_MAX);
+    }
+  }
+
+  function reopenLastClosed() {
+    if (!closedTabsStack.length) return null;
+    var entry = closedTabsStack.pop();
+    if (!entry || !entry.type || !registry[entry.type]) return null;
+    return open({ type: entry.type, title: entry.title, state: entry.state });
+  }
+
+  function canReopenClosed() {
+    return closedTabsStack.length > 0;
+  }
+
+  function doClose(id) {
     var idx = findTabIndex(id);
     if (idx === -1) return;
 
     var tabs = getTabs();
     var tab = tabs[idx];
 
+    pushClosed(tab);
     unmountTab(tab, false);
     tabs.splice(idx, 1);
     setTabs(tabs);
@@ -288,6 +315,40 @@
     }
 
     window.LqdEvents.emit('tab:closed', { tab: tab });
+  }
+
+  function close(id) {
+    var tab = findTab(id);
+    if (!tab) return;
+
+    var comp = getComponent(tab.type);
+    var dirty = comp && typeof comp.isDirty === 'function' ? !!comp.isDirty(tab) : false;
+
+    if (!dirty) {
+      doClose(id);
+      return;
+    }
+
+    var proceed = function (ok) {
+      if (ok) doClose(id);
+    };
+
+    if (window.LqdModal && typeof window.LqdModal.confirm === 'function') {
+      var result = window.LqdModal.confirm({
+        title: '关闭标签',
+        message: '当前标签有未保存内容,确定关闭?',
+        confirmLabel: '关闭',
+        cancelLabel: '取消',
+        danger: true
+      });
+      if (result && typeof result.then === 'function') {
+        result.then(proceed, function () { /* 忽略 */ });
+      } else {
+        proceed(!!result);
+      }
+    } else if (window.confirm('当前标签有未保存内容,确定关闭?')) {
+      doClose(id);
+    }
   }
 
   function focusTabElement(tabId) {
@@ -394,6 +455,8 @@
     list: list,
     updateTabState: updateTabState,
     getComponent: getComponent,
+    reopenLastClosed: reopenLastClosed,
+    canReopenClosed: canReopenClosed,
     init: init
   };
 })();

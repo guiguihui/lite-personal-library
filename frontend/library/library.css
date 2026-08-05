@@ -211,6 +211,7 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   opacity: 0;
+  pointer-events: none;
   transition: opacity var(--dur-fast) var(--ease-fluid),
               color var(--dur-fast) var(--ease-fluid),
               background var(--dur-fast) var(--ease-fluid);
@@ -218,6 +219,7 @@
 .shelf-card:hover .shelf-card-delete,
 .shelf-card-delete:focus-visible {
   opacity: 1;
+  pointer-events: auto;
 }
 .shelf-card-delete:hover {
   color: var(--danger);

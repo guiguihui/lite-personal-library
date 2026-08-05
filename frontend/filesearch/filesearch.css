@@ -312,6 +312,19 @@
   border-color: var(--accent);
 }
 
+.lqd-filesearch-card.active {
+  border-color: var(--accent);
+  background: var(--bg-hover, var(--bg-secondary));
+}
+
+.lqd-filesearch-card mark,
+.lqd-filesearch-card-snippet mark {
+  background: var(--accent-soft, rgba(80, 130, 255, 0.25));
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
 .lqd-filesearch-card-header {
   display: flex;
   align-items: center;

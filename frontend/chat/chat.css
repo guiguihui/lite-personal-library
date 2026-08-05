@@ -778,6 +778,10 @@
   transition: background var(--dur-fast) var(--ease-fluid);
 }
 .lqd-chat-slash-item:hover { background: var(--bg-hover); }
+.lqd-chat-slash-item.active {
+  background: var(--bg-hover);
+  outline: 1px solid color-mix(in srgb, var(--tint-blue) 40%, transparent);
+}
 .lqd-chat-slash-cmd {
   font-family: var(--font-mono);
   font-weight: 600;
@@ -853,6 +857,38 @@
   from { opacity: 0; transform: scale(0.6); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* ── 用户上翻时右下角"回到最新"浮钮 ── */
+.lqd-scroll-bottom-btn {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: var(--fg-primary);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  box-shadow: var(--shadow-md), inset 0 1px 0 var(--glass-border);
+  animation: lqd-scope-in 0.18s var(--ease-fluid);
+  transition: background var(--dur-fast) var(--ease-fluid),
+              border-color var(--dur-fast) var(--ease-fluid),
+              transform var(--dur-fast) var(--ease-fluid);
+}
+.lqd-scroll-bottom-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--tint-blue);
+  transform: translateY(-1px);
+}
+.lqd-scroll-bottom-btn:active { transform: scale(0.97); }
+.lqd-scroll-bottom-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ── Thinking ── */
 .lqd-thinking {

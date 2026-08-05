@@ -89,6 +89,10 @@
           '</div>' +
         '</div>' +
         // 队列列表(Main 区)
+        '<div class="lqd-upload-queue-toolbar">' +
+          '<span class="lqd-upload-queue-title">上传队列</span>' +
+          '<button class="lqd-btn lqd-btn--sm lqd-btn--primary" id="lqd-upload-retry-all" style="display:none">重试全部失败</button>' +
+        '</div>' +
         '<div class="lqd-upload-queue" id="lqd-upload-queue-list"></div>' +
       '</div>';
   }
@@ -133,6 +137,15 @@
     var list = $('lqd-upload-queue-list');
     if (!list) return;
     var items = window.YuuUploadQueue.all();
+
+    // 更新"重试全部失败"按钮
+    var retryAllBtn = $('lqd-upload-retry-all');
+    var failedCount = items.filter(function (i) { return i.status === 'failed'; }).length;
+    if (retryAllBtn) {
+      retryAllBtn.style.display = failedCount > 0 ? '' : 'none';
+      retryAllBtn.textContent = '重试全部失败 (' + failedCount + ')';
+    }
+
     if (!items.length) {
       list.innerHTML = '<div class="lqd-empty">队列为空,拖拽或选择文件加入队列</div>';
       return;
@@ -151,6 +164,9 @@
       var logBtn = item.log.length
         ? '<button class="lqd-btn lqd-btn--sm lqd-btn--ghost" data-action="log" data-id="' + item.id + '">查看日志</button>'
         : '';
+      var retryBtn = item.status === 'failed'
+        ? '<button class="lqd-btn lqd-btn--sm lqd-btn--ghost" data-action="retry" data-id="' + item.id + '">重试</button>'
+        : '';
       var removeBtn = item.status === 'pending' || item.status === 'done' || item.status === 'failed'
         ? '<button class="lqd-btn lqd-btn--sm lqd-btn--ghost lqd-btn--danger" data-action="remove" data-id="' + item.id + '">' + icons().icon('trash') + '</button>'
         : '';
@@ -159,7 +175,7 @@
           '<div class="lqd-upload-queue-item-name">#' + (idx + 1) + ' ' + escapeHtml(item.name) + '</div>' +
           '<div class="lqd-upload-queue-item-meta">slug: ' + escapeHtml(item.meta.slug || '') + ' · 类型: ' + escapeHtml(item.meta.docType || '') + '</div>' +
         '</div>' +
-        '<div class="lqd-upload-queue-item-actions">' + badge + logBtn + removeBtn + '</div>' +
+        '<div class="lqd-upload-queue-item-actions">' + badge + retryBtn + logBtn + removeBtn + '</div>' +
       '</div>';
     }).join('');
 
@@ -170,6 +186,7 @@
         var id = btn.getAttribute('data-id');
         if (action === 'remove') window.YuuUploadQueue.remove(id);
         else if (action === 'log') showLog(id);
+        else if (action === 'retry') retryItem(id);
       });
     });
   }
@@ -239,6 +256,24 @@
       await processItem(item);
       item = window.YuuUploadQueue.next();
     }
+  }
+
+  function retryItem(id) {
+    var item = window.YuuUploadQueue.get(id);
+    if (!item || item.status !== 'failed') return;
+    window.YuuUploadQueue.update(id, { status: 'pending', stage: '', jobId: null });
+    renderQueueList();
+    startBatch();
+  }
+
+  function retryAllFailed() {
+    var items = window.YuuUploadQueue.all();
+    var failed = items.filter(function (i) { return i.status === 'failed'; });
+    failed.forEach(function (i) {
+      window.YuuUploadQueue.update(i.id, { status: 'pending', stage: '', jobId: null });
+    });
+    renderQueueList();
+    startBatch();
   }
 
   async function processItem(item) {
@@ -421,6 +456,9 @@
 
     var clearBtn = $('lqd-upload-clear-done');
     if (clearBtn) clearBtn.addEventListener('click', clearDone);
+
+    var retryAllBtn = $('lqd-upload-retry-all');
+    if (retryAllBtn) retryAllBtn.addEventListener('click', retryAllFailed);
 
     // 订阅队列变化
     window.YuuUploadQueue.onStatusChange(function () {

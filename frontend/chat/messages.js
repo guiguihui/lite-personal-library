@@ -60,6 +60,80 @@
     return parts.join('');
   }
 
+  // 跟踪用户是否上翻(远离底部);上翻期间流式追加不再强行滚到底。
+  var scrollTrackers = typeof WeakMap === 'function' ? new WeakMap() : null;
+
+  function isNearBottom(el, threshold) {
+    if (!el) return true;
+    var t = typeof threshold === 'number' ? threshold : 80;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < t;
+  }
+
+  function _getTracker(container) {
+    if (!container) return null;
+    var state = scrollTrackers ? scrollTrackers.get(container) : container._lqdScrollTracker;
+    if (state) return state;
+    state = { userScrolledUp: false, btn: null };
+    container.addEventListener('scroll', function () {
+      if (isNearBottom(container)) {
+        state.userScrolledUp = false;
+        _hideScrollBottomBtn(state);
+      } else {
+        state.userScrolledUp = true;
+      }
+    });
+    if (scrollTrackers) scrollTrackers.set(container, state);
+    else container._lqdScrollTracker = state;
+    return state;
+  }
+
+  function _ensureScrollBottomBtn(state, container) {
+    if (state.btn) return state.btn;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'lqd-scroll-bottom-btn';
+    btn.setAttribute('aria-label', '回到最新消息');
+    btn.textContent = '↓ 有新回答';
+    btn.hidden = true;
+    btn.addEventListener('click', function () {
+      container.scrollTop = container.scrollHeight;
+      state.userScrolledUp = false;
+      _hideScrollBottomBtn(state);
+    });
+    // 挂到容器父级,以 absolute 定位贴在消息区右下角
+    var host = container.parentNode || container;
+    if (host && host !== document.body && getComputedStyle(host).position === 'static') {
+      host.style.position = 'relative';
+    }
+    (host || document.body).appendChild(btn);
+    state.btn = btn;
+    return btn;
+  }
+
+  function _showScrollBottomBtn(state, container) {
+    var btn = _ensureScrollBottomBtn(state, container);
+    btn.hidden = false;
+  }
+  function _hideScrollBottomBtn(state) {
+    if (state && state.btn) state.btn.hidden = true;
+  }
+
+  // 流式/普通追加统一入口:仅在用户未上翻时滚到底;上翻期间显示"有新回答"浮钮
+  function scrollToBottomIfAllowed(container) {
+    if (!container) return;
+    var state = _getTracker(container);
+    if (!state) {
+      container.scrollTop = container.scrollHeight;
+      return;
+    }
+    if (!state.userScrolledUp) {
+      container.scrollTop = container.scrollHeight;
+      _hideScrollBottomBtn(state);
+    } else {
+      _showScrollBottomBtn(state, container);
+    }
+  }
+
   function appendMessageBubble(role, text, container) {
     var el = document.createElement('div');
     el.className = 'lqd-chat-message ' + role;
@@ -86,7 +160,7 @@
         '</div>';
     }
     container.appendChild(el);
-    container.scrollTop = container.scrollHeight;
+    scrollToBottomIfAllowed(container);
     // 悬浮显示操作条
     if (window.LqdChatMessages && typeof window.LqdChatMessages.attachHoverActions === 'function') {
       window.LqdChatMessages.attachHoverActions(el);
@@ -109,7 +183,8 @@
 
   function setBusy(busy, sendBtn, composerInput) {
     if (sendBtn) sendBtn.disabled = busy;
-    if (composerInput) composerInput.disabled = busy;
+    // 输入框在流式期间保持可编辑,便于用户继续输入并排队下一条
+    void composerInput;
   }
 
   function reRenderKatex(el) {
@@ -158,6 +233,8 @@
     reRenderKatex: reRenderKatex,
     hideEmpty: hideEmpty,
     showEmpty: showEmpty,
-    emptyStateHTML: emptyStateHTML
+    emptyStateHTML: emptyStateHTML,
+    isNearBottom: isNearBottom,
+    scrollToBottomIfAllowed: scrollToBottomIfAllowed
   };
 })();

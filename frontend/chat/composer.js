@@ -144,26 +144,154 @@
     function doSend() {
       var query = input.value.trim();
       if (!query) return;
+      clearDraft();
       if (typeof options.onSend === 'function') {
         options.onSend(query);
       }
     }
 
+    // ── 草稿持久化(sessionStorage,按 tabId 隔离) ──
+    function getTabId() {
+      var host = composer.closest('[data-tab-id]');
+      if (host) return host.getAttribute('data-tab-id');
+      if (window.LqdTabs) {
+        var t = window.LqdTabs.active();
+        if (t && t.type === 'chat') return t.id;
+      }
+      return 'default';
+    }
+    function draftKey() { return 'lqd_chat_draft_' + getTabId(); }
+    var draftSaveTimer = null;
+    function saveDraft() {
+      try { sessionStorage.setItem(draftKey(), input.value); } catch (_) {}
+    }
+    function scheduleDraftSave() {
+      if (draftSaveTimer) clearTimeout(draftSaveTimer);
+      draftSaveTimer = setTimeout(saveDraft, 300);
+    }
+    function clearDraft() {
+      if (draftSaveTimer) { clearTimeout(draftSaveTimer); draftSaveTimer = null; }
+      try { sessionStorage.removeItem(draftKey()); } catch (_) {}
+    }
+    function restoreDraft() {
+      var v = null;
+      try { v = sessionStorage.getItem(draftKey()); } catch (_) {}
+      if (v) {
+        input.value = v;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+      }
+    }
+    restoreDraft();
+
+    // ── ↑/↓ 历史回填 ──
+    var historyIndex = -1;
+    var draftBeforeHistory = '';
+    var _historyApplying = false;
+    function getUserMessages() {
+      if (!window.LqdChatSession) return [];
+      var all = window.LqdChatSession.loadCurrent(getTabId()) || [];
+      return all.filter(function (m) { return m && m.role === 'user'; });
+    }
+    function isCaretOnFirstLine() {
+      var pos = input.selectionStart || 0;
+      return input.value.slice(0, pos).indexOf('\n') === -1;
+    }
+    function isCaretOnLastLine() {
+      var pos = input.selectionEnd != null ? input.selectionEnd : (input.selectionStart || 0);
+      return input.value.slice(pos).indexOf('\n') === -1;
+    }
+    function historyReset() {
+      historyIndex = -1;
+      draftBeforeHistory = '';
+    }
+    function historyUp() {
+      var msgs = getUserMessages();
+      if (!msgs.length) return;
+      if (historyIndex === -1) {
+        draftBeforeHistory = input.value;
+        historyIndex = msgs.length - 1;
+      } else if (historyIndex > 0) {
+        historyIndex--;
+      } else {
+        return;
+      }
+      _historyApplying = true;
+      input.value = msgs[historyIndex].content || '';
+      input.dispatchEvent(new Event('input'));
+      _historyApplying = false;
+      var len = input.value.length;
+      input.setSelectionRange(len, len);
+    }
+    function historyDown() {
+      if (historyIndex === -1) return;
+      var msgs = getUserMessages();
+      _historyApplying = true;
+      if (historyIndex < msgs.length - 1) {
+        historyIndex++;
+        input.value = msgs[historyIndex].content || '';
+      } else {
+        input.value = draftBeforeHistory;
+        historyIndex = -1;
+        draftBeforeHistory = '';
+      }
+      input.dispatchEvent(new Event('input'));
+      _historyApplying = false;
+      var len = input.value.length;
+      input.setSelectionRange(len, len);
+    }
+    function historyCancel() {
+      if (historyIndex === -1) return false;
+      _historyApplying = true;
+      input.value = draftBeforeHistory;
+      historyIndex = -1;
+      draftBeforeHistory = '';
+      input.dispatchEvent(new Event('input'));
+      _historyApplying = false;
+      return true;
+    }
+
     sendBtn.addEventListener('click', doSend);
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
+      // 斜杠菜单打开期间,↑/↓/Enter/Esc 优先归菜单处理
+      if (slashMenu) {
+        if (e.key === 'ArrowDown') { e.preventDefault(); slashMove(1); return; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); slashMove(-1); return; }
+        if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); slashRunActive(); return; }
+        if (e.key === 'Escape') { e.preventDefault(); closeSlashMenu(); return; }
+      }
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
         e.preventDefault();
+        historyReset();
         doSend();
+        return;
+      }
+      if (e.key === 'ArrowUp' && !e.shiftKey && !e.isComposing && isCaretOnFirstLine()) {
+        e.preventDefault();
+        historyUp();
+        return;
+      }
+      if (e.key === 'ArrowDown' && !e.shiftKey && !e.isComposing && historyIndex !== -1 && isCaretOnLastLine()) {
+        e.preventDefault();
+        historyDown();
+        return;
+      }
+      if (e.key === 'Escape') {
+        if (historyCancel()) { e.preventDefault(); return; }
       }
     });
     input.addEventListener('input', function () {
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+      // 用户手动编辑时退出历史回填态(程序回填不触发)
+      if (!_historyApplying) historyReset();
       updateSlashMenu();
+      scheduleDraftSave();
     });
 
     // ── 斜杠命令(P3-15) ──
     var slashMenu = null;
+    var slashMenuActiveIndex = 0;
     var SLASH_COMMANDS = [
       { cmd: '/new', desc: '新开对话', run: function () { if (window.LqdChat) window.LqdChat.openNewChat(); } },
       { cmd: '/clear', desc: '清空当前对话', run: function () { if (window.LqdChat) window.LqdChat.openNewChat(); } },
@@ -174,6 +302,37 @@
     ];
     function closeSlashMenu() {
       if (slashMenu) { slashMenu.remove(); slashMenu = null; }
+      slashMenuActiveIndex = 0;
+    }
+    function _slashItems() {
+      return slashMenu ? Array.prototype.slice.call(slashMenu.querySelectorAll('.lqd-chat-slash-item')) : [];
+    }
+    function _slashSetActive(idx) {
+      var items = _slashItems();
+      if (!items.length) return;
+      slashMenuActiveIndex = ((idx % items.length) + items.length) % items.length;
+      for (var i = 0; i < items.length; i++) {
+        if (i === slashMenuActiveIndex) items[i].classList.add('active');
+        else items[i].classList.remove('active');
+      }
+      var active = items[slashMenuActiveIndex];
+      if (active && active.scrollIntoView) active.scrollIntoView({ block: 'nearest' });
+    }
+    function slashMove(delta) {
+      var items = _slashItems();
+      if (!items.length) return;
+      _slashSetActive(slashMenuActiveIndex + delta);
+    }
+    function slashRunActive() {
+      var items = _slashItems();
+      var active = items[slashMenuActiveIndex];
+      if (!active) return;
+      var cmd = active.getAttribute('data-cmd');
+      var c = null;
+      for (var i = 0; i < SLASH_COMMANDS.length; i++) {
+        if (SLASH_COMMANDS[i].cmd === cmd) { c = SLASH_COMMANDS[i]; break; }
+      }
+      if (c) runSlash(c);
     }
     function showSlashMenu() {
       closeSlashMenu();
@@ -186,10 +345,16 @@
       cmds.forEach(function (c) {
         var item = document.createElement('div');
         item.className = 'lqd-chat-slash-item';
+        item.setAttribute('data-cmd', c.cmd);
         item.innerHTML = '<span class="lqd-chat-slash-cmd">' + c.cmd + '</span><span class="lqd-chat-slash-desc">' + c.desc + '</span>';
         item.addEventListener('click', function (e) {
           e.stopPropagation();
           runSlash(c);
+        });
+        item.addEventListener('mouseenter', function () {
+          var items = _slashItems();
+          var idx = items.indexOf(item);
+          if (idx >= 0) _slashSetActive(idx);
         });
         wrap.appendChild(item);
       });
@@ -201,6 +366,8 @@
       }
       composer.appendChild(wrap);
       slashMenu = wrap;
+      slashMenuActiveIndex = 0;
+      _slashSetActive(0);
     }
     function runSlash(c) {
       closeSlashMenu();
@@ -297,9 +464,6 @@
         finish();
       });
     }
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeSlashMenu();
-    });
     // 点击外部关闭斜杠菜单
     composer.addEventListener('click', function (e) {
       if (slashMenu && !slashMenu.contains(e.target) && e.target !== input) closeSlashMenu();

@@ -59,6 +59,8 @@ a = Analysis(
         "pytest",
         "pytest_cov",
         "tests",
+        # 排除备份文件(含 API key)
+        "llm.yaml.backup",
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

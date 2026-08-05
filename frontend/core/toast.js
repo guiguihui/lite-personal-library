@@ -108,7 +108,23 @@
     requestAnimationFrame(function () { el.classList.add('lqd-toast--entering'); });
 
     if (duration > 0) {
+      var remaining = duration;
+      var startedAt = Date.now();
       timers[id] = setTimeout(function () { dismiss(id); }, duration);
+
+      el.addEventListener('mouseenter', function () {
+        if (!timers[id]) return;
+        clearTimeout(timers[id]);
+        delete timers[id];
+        remaining = remaining - (Date.now() - startedAt);
+        if (remaining < 0) remaining = 0;
+      });
+      el.addEventListener('mouseleave', function () {
+        if (timers[id]) return;
+        if (remaining <= 0) { dismiss(id); return; }
+        startedAt = Date.now();
+        timers[id] = setTimeout(function () { dismiss(id); }, remaining);
+      });
     }
 
     if (window.LqdEvents) window.LqdEvents.emit('toast:shown', { id: id, type: type, message: options.message });

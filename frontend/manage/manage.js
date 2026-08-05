@@ -81,8 +81,59 @@
   function setButtonsDisabled(disabled) {
     var full = Manage.els.btnFull;
     var incr = Manage.els.btnIncr;
-    if (full) full.disabled = disabled;
     if (incr) incr.disabled = disabled;
+    if (full) {
+      if (disabled) {
+        full.disabled = false;
+        full.textContent = '取消构建';
+        full.classList.remove('manage-btn--primary');
+        full.classList.add('manage-btn--danger');
+      } else {
+        full.disabled = false;
+        full.textContent = '全量构建';
+        full.classList.add('manage-btn--primary');
+        full.classList.remove('manage-btn--danger');
+      }
+    }
+  }
+
+  function isBuilding() {
+    return !!Manage.pollTimer;
+  }
+
+  function cancelBuild() {
+    var jobId = Manage.currentJobId;
+    stopPoll();
+    Manage.currentJobId = null;
+    setButtonsDisabled(false);
+    setStatus('已请求取消,后端将完成当前批次后停止', 'failed');
+    appendLog('[info] 用户请求取消构建');
+    if (!jobId) return;
+    fetch('/api/index/build/' + encodeURIComponent(jobId) + '/cancel', { method: 'POST' })
+      .catch(function () { /* 后端无 cancel 接口时静默 */ });
+  }
+
+  async function confirmFullBuild() {
+    var msg = '将重写全部索引,预计需要数分钟,期间搜索功能可能受影响。确定继续?';
+    var ok = window.LqdModal
+      ? await window.LqdModal.confirm({
+          title: '全量构建',
+          message: msg,
+          confirmLabel: '继续',
+          cancelLabel: '取消',
+          danger: true
+        })
+      : confirm(msg);
+    return ok;
+  }
+
+  async function onFullBuildClick() {
+    if (isBuilding()) {
+      cancelBuild();
+      return;
+    }
+    if (!(await confirmFullBuild())) return;
+    buildIndex('full');
   }
 
   function buildIndex(mode) {
@@ -551,7 +602,7 @@
     Manage.els.meta = $('manage-meta');
     Manage.els.log = $('manage-log');
     if (Manage.els.btnFull) {
-      Manage.els.btnFull.addEventListener('click', function () { buildIndex('full'); });
+      Manage.els.btnFull.addEventListener('click', onFullBuildClick);
     }
     if (Manage.els.btnIncr) {
       Manage.els.btnIncr.addEventListener('click', function () { buildIndex('incremental'); });

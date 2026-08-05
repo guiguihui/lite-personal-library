@@ -33,6 +33,29 @@
     return (window.LQD_CHAT_BASE || '/').replace(/\/$/, '');
   }
 
+  function highlightText(text, query) {
+    var esc = escapeHtml(text);
+    if (!query) return esc;
+    var q = query.trim();
+    if (!q) return esc;
+    var escQ = escapeHtml(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    try {
+      return esc.replace(new RegExp('(' + escQ + ')', 'gi'), '<mark>$1</mark>');
+    } catch (_) {
+      return esc;
+    }
+  }
+
+  function debounce(fn, ms) {
+    var t = null;
+    return function () {
+      var args = arguments;
+      var self = this;
+      if (t) clearTimeout(t);
+      t = setTimeout(function () { fn.apply(self, args); }, ms);
+    };
+  }
+
   // ── 标签组件接口 ───────────────────────────────────────────────────────────
   function mount(container, tab) {
     var root = el('div', 'lqd-search');
@@ -47,6 +70,35 @@
     var input = root.querySelector('.lqd-search-input');
     var results = root.querySelector('.lqd-search-results');
     var btn = root.querySelector('.lqd-search-btn');
+    var selectedIndex = -1;
+
+    function clearActive() {
+      var items = results.querySelectorAll('.lqd-search-result');
+      for (var i = 0; i < items.length; i++) items[i].classList.remove('active');
+    }
+
+    function setActive(idx) {
+      var items = results.querySelectorAll('.lqd-search-result');
+      if (!items.length) { selectedIndex = -1; return; }
+      if (idx < 0) idx = items.length - 1;
+      if (idx >= items.length) idx = 0;
+      clearActive();
+      selectedIndex = idx;
+      var el_ = items[idx];
+      el_.classList.add('active');
+      if (el_.scrollIntoView) el_.scrollIntoView({ block: 'nearest' });
+    }
+
+    function triggerActive() {
+      var items = results.querySelectorAll('.lqd-search-result');
+      if (selectedIndex < 0 || selectedIndex >= items.length) return;
+      items[selectedIndex].click();
+    }
+
+    var debouncedSearch = debounce(function () {
+      selectedIndex = -1;
+      doSearch(input.value, results);
+    }, 250);
 
     if (tab && tab.state && tab.state.query) {
       input.value = tab.state.query;
@@ -56,9 +108,20 @@
     }
 
     btn.addEventListener('click', function () { doSearch(input.value, results); });
+    input.addEventListener('input', debouncedSearch);
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') doSearch(input.value, results);
+      if (e.key === 'Enter') {
+        if (selectedIndex >= 0) { e.preventDefault(); triggerActive(); }
+        else doSearch(input.value, results);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActive(selectedIndex + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActive(selectedIndex - 1);
+      }
     });
+    results.addEventListener('click', function () { selectedIndex = -1; clearActive(); });
   }
 
   function unmount(container, tab) {
@@ -121,9 +184,9 @@
       var breadcrumb = r.breadcrumb || '';
       var meta = (r.doc_type || r.type || '') + (breadcrumb ? ' · ' + breadcrumb : '');
       item.innerHTML =
-        '<div class="lqd-search-result-title">' + escapeHtml(r.title || '无标题') + '</div>' +
+        '<div class="lqd-search-result-title">' + highlightText(r.title || '无标题', query) + '</div>' +
         '<div class="lqd-search-result-meta">' + escapeHtml(meta) + '</div>' +
-        '<div class="lqd-search-result-snippet">' + escapeHtml((r.text || '').slice(0, 200)) + (r.text && r.text.length > 200 ? '…' : '') + '</div>';
+        '<div class="lqd-search-result-snippet">' + highlightText((r.text || '').slice(0, 200), query) + (r.text && r.text.length > 200 ? '…' : '') + '</div>';
       item.addEventListener('click', (function (result) {
         return function () { openResult(result); };
       })(r));

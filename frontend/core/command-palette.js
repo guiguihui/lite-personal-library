@@ -117,12 +117,21 @@
 
       el.addEventListener('click', function () { execute(item); });
       el.addEventListener('mouseenter', function () {
+        if (selectedIndex === idx) return;
+        var list = getList();
+        var prev = list ? list.querySelector('[data-index="' + selectedIndex + '"]') : null;
+        if (prev) prev.classList.remove('active');
+        el.classList.add('active');
         selectedIndex = idx;
-        renderList();
       });
 
       list.appendChild(el);
     });
+
+    var active = list.querySelector('[data-index="' + selectedIndex + '"]');
+    if (active && typeof active.scrollIntoView === 'function') {
+      try { active.scrollIntoView({ block: 'nearest' }); } catch (e) { /* 忽略 */ }
+    }
   }
 
   function execute(item) {
@@ -252,6 +261,29 @@
         e.preventDefault();
         var tab = window.LqdTabs ? window.LqdTabs.active() : null;
         if (tab && window.LqdTabs) window.LqdTabs.close(tab.id);
+      }
+      // Ctrl+Tab / Ctrl+Shift+Tab 循环切换标签(仅 Ctrl,不含 Cmd —— Cmd+Tab 是系统级)
+      if (e.ctrlKey && !e.metaKey && e.key === 'Tab') {
+        e.preventDefault();
+        if (!window.LqdTabs) return;
+        var tabs = window.LqdTabs.list();
+        if (!tabs.length) return;
+        var activeTab = window.LqdTabs.active();
+        var idx = -1;
+        for (var i = 0; i < tabs.length; i++) {
+          if (activeTab && tabs[i].id === activeTab.id) { idx = i; break; }
+        }
+        var next = e.shiftKey
+          ? (idx <= 0 ? tabs.length - 1 : idx - 1)
+          : (idx < 0 ? 0 : (idx + 1) % tabs.length);
+        window.LqdTabs.activate(tabs[next].id);
+      }
+      // Ctrl+Shift+T 重新打开最近关闭的标签
+      if (e.ctrlKey && e.shiftKey && !e.metaKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        if (window.LqdTabs && typeof window.LqdTabs.reopenLastClosed === 'function') {
+          window.LqdTabs.reopenLastClosed();
+        }
       }
     });
 

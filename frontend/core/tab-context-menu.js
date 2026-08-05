@@ -42,12 +42,18 @@
     if (e.key === 'Escape') closeMenu();
   }
 
-  function createItem(label, onClick) {
+  function createItem(label, onClick, opts) {
+    opts = opts || {};
     var item = document.createElement('div');
-    item.className = 'lqd-tab-context-menu-item';
+    item.className = 'lqd-tab-context-menu-item' + (opts.disabled ? ' disabled' : '');
     item.setAttribute('role', 'menuitem');
-    item.setAttribute('tabindex', '0');
+    if (opts.disabled) {
+      item.setAttribute('aria-disabled', 'true');
+    } else {
+      item.setAttribute('tabindex', '0');
+    }
     item.textContent = label;
+    if (opts.disabled) return item;
     item.addEventListener('click', function () {
       closeMenu();
       try { onClick(); } catch (e) { /* 忽略 */ }
@@ -87,6 +93,13 @@
     el.appendChild(createItem('关闭全部', function () {
       if (window.LqdTabs && window.LqdTabs.closeAll) window.LqdTabs.closeAll();
     }));
+
+    var canReopen = window.LqdTabs && typeof window.LqdTabs.canReopenClosed === 'function'
+      ? window.LqdTabs.canReopenClosed()
+      : false;
+    el.appendChild(createItem('重新打开已关闭标签', function () {
+      if (window.LqdTabs && window.LqdTabs.reopenLastClosed) window.LqdTabs.reopenLastClosed();
+    }, { disabled: !canReopen }));
 
     // chat 标签:追加"复制对话"
     if (tabType === 'chat') {

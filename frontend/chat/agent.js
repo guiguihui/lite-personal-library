@@ -864,6 +864,42 @@
     flushContentRender(contentEl, thinking, text, toolTrail);
   }
 
+  // ── 代码块包装:为裸 <pre> 注入 .lqd-codebox 复制按钮 ──
+  // shared/render.js 的围栏代码块已自带 codebox,这里兜底的只剩
+  // messages.js fallback renderMarkdown 生成的裸 pre。
+  function _b64encodeCode(s) {
+    try {
+      return btoa(unescape(encodeURIComponent(String(s))));
+    } catch (_) {
+      return '';
+    }
+  }
+  function wrapCodeBlocks(contentEl) {
+    if (!contentEl || !contentEl.querySelectorAll) return;
+    var pres = contentEl.querySelectorAll('pre');
+    for (var i = 0; i < pres.length; i++) {
+      var pre = pres[i];
+      if (pre.closest('.lqd-codebox')) continue;
+      var code = pre.querySelector('code');
+      var text = (code || pre).textContent || '';
+      var box = document.createElement('div');
+      box.className = 'lqd-codebox';
+      box.setAttribute('data-code', _b64encodeCode(text));
+      var header = document.createElement('div');
+      header.className = 'lqd-codebox-bar';
+      header.innerHTML =
+        '<span class="lqd-codebox-dots"><i></i><i></i><i></i></span>' +
+        '<span class="lqd-codebox-lang">code</span>' +
+        '<button class="lqd-codebox-copy" type="button" title="复制代码">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+          '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+        '</button>';
+      pre.parentNode.insertBefore(box, pre);
+      box.appendChild(header);
+      box.appendChild(pre);
+    }
+  }
+
   async function sendMessage(query, refs, tabId) {
     var messagesEl = refs.messagesEl;
     var composerInput = refs.composerInput;
@@ -995,7 +1031,11 @@
             } else if (chunk.type === 'stop') {
               stopReason = chunk.reason;
             }
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            if (window.LqdChatMessages && window.LqdChatMessages.scrollToBottomIfAllowed) {
+              window.LqdChatMessages.scrollToBottomIfAllowed(messagesEl);
+            } else {
+              messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
           }
         } catch (streamErr) {
           if (aborted) break;
@@ -1249,6 +1289,7 @@
       if (_throttledRender && _throttledRender.contentEl === contentEl) {
         _throttledRender = null;
       }
+      wrapCodeBlocks(contentEl);
       window.LqdChatMessages.reRenderKatex(contentEl);
       // 绑定追问 chip 点击 → 自动发送
       if (followUpsHtml) {
@@ -1307,6 +1348,12 @@
       stopBtn.hidden = true;
       stopBtn.onclick = null;
     }
+    // 发送完成后焦点回到输入框
+    if (composerInput && document.body.contains(composerInput)) {
+      requestAnimationFrame(function () {
+        if (document.body.contains(composerInput)) composerInput.focus();
+      });
+    }
   }
 
   window.LqdChatAgent = {
@@ -1323,6 +1370,7 @@
     thinkingEnabled: thinkingEnabled,
     getSearchScope: getSearchScope,
     setSearchScope: setSearchScope,
-    scopeDocTypes: scopeDocTypes
+    scopeDocTypes: scopeDocTypes,
+    wrapCodeBlocks: wrapCodeBlocks
   };
 })();

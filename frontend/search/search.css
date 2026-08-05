@@ -49,6 +49,21 @@
   background: var(--bg-hover);
 }
 
+.lqd-search-result.active {
+  background: var(--bg-hover);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.lqd-search-result mark,
+.lqd-search-result-title mark,
+.lqd-search-result-snippet mark {
+  background: var(--accent-soft, rgba(80, 130, 255, 0.25));
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
 .lqd-search-result-title {
   font-size: var(--fs-base);
   font-weight: 500;

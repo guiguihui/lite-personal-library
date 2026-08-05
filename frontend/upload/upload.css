@@ -84,6 +84,17 @@
 }
 
 /* ── 队列列表(Main 区) ── */
+.lqd-upload-queue-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+.lqd-upload-queue-title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
 .lqd-upload-queue {
   display: flex;
   flex-direction: column;

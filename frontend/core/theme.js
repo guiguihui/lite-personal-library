@@ -14,6 +14,29 @@
     return 'light';
   }
 
+  function applyEffective() {
+    var mode = get();
+    document.documentElement.setAttribute('data-effective-theme', getEffectiveTheme(mode));
+  }
+
+  function bindSystemThemeListener() {
+    if (!window.matchMedia) return;
+    var mql = window.matchMedia('(prefers-color-scheme: dark)');
+    var handler = function () {
+      // 仅 auto 模式下跟随系统;手动 light/dark 不变
+      if (get() !== 'auto') return;
+      applyEffective();
+      if (window.LqdEvents && typeof window.LqdEvents.emit === 'function') {
+        window.LqdEvents.emit('theme:changed', { mode: 'auto', effective: getEffectiveTheme('auto') });
+      }
+    };
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', handler);
+    } else if (typeof mql.addListener === 'function') {
+      mql.addListener(handler);
+    }
+  }
+
   function init() {
     var saved = localStorage.getItem(THEME_KEY);
     if (!saved) {
@@ -26,6 +49,7 @@
     saved = (saved === 'light' || saved === 'dark') ? saved : 'auto';
     document.documentElement.setAttribute('data-theme', saved);
     document.documentElement.setAttribute('data-effective-theme', getEffectiveTheme(saved));
+    bindSystemThemeListener();
   }
 
   function set(mode) {

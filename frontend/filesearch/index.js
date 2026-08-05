@@ -32,6 +32,29 @@
     return (window.LQD_CHAT_BASE || '/').replace(/\/$/, '');
   }
 
+  function highlightText(text, query) {
+    var esc = escapeHtml(text);
+    if (!query) return esc;
+    var q = (query || '').trim();
+    if (!q) return esc;
+    var escQ = escapeHtml(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    try {
+      return esc.replace(new RegExp('(' + escQ + ')', 'gi'), '<mark>$1</mark>');
+    } catch (_) {
+      return esc;
+    }
+  }
+
+  function debounce(fn, ms) {
+    var t = null;
+    return function () {
+      var args = arguments;
+      var self = this;
+      if (t) clearTimeout(t);
+      t = setTimeout(function () { fn.apply(self, args); }, ms);
+    };
+  }
+
   // ── 状态 ──────────────────────────────────────────────────────────────
   var state = {
     loading: false,
@@ -77,11 +100,53 @@
     var buildBtn = root.querySelector('#lqd-filesearch-build');
     var rebuildBtn = root.querySelector('#lqd-filesearch-rebuild');
     var chooseDirBtn = root.querySelector('#lqd-filesearch-choosedir');
+    var resultsEl = root.querySelector('#lqd-filesearch-results');
+    var selectedIndex = -1;
+
+    function clearActive() {
+      var items = resultsEl.querySelectorAll('.lqd-filesearch-card');
+      for (var i = 0; i < items.length; i++) items[i].classList.remove('active');
+    }
+
+    function setActive(idx) {
+      var items = resultsEl.querySelectorAll('.lqd-filesearch-card');
+      if (!items.length) { selectedIndex = -1; return; }
+      if (idx < 0) idx = items.length - 1;
+      if (idx >= items.length) idx = 0;
+      clearActive();
+      selectedIndex = idx;
+      var el_ = items[idx];
+      el_.classList.add('active');
+      if (el_.scrollIntoView) el_.scrollIntoView({ block: 'nearest' });
+    }
+
+    function triggerActive() {
+      var items = resultsEl.querySelectorAll('.lqd-filesearch-card');
+      if (selectedIndex < 0 || selectedIndex >= items.length) return;
+      items[selectedIndex].click();
+    }
+
+    var debouncedSearch = debounce(function () {
+      selectedIndex = -1;
+      doSearch(root);
+    }, 250);
 
     searchBtn.addEventListener('click', function () { doSearch(root); });
+    input.addEventListener('input', debouncedSearch);
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); doSearch(root); }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedIndex >= 0) triggerActive();
+        else doSearch(root);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActive(selectedIndex + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActive(selectedIndex - 1);
+      }
     });
+    resultsEl.addEventListener('click', function () { selectedIndex = -1; clearActive(); });
 
     buildBtn.addEventListener('click', function () { startBuild(root, 'incremental'); });
     rebuildBtn.addEventListener('click', function () { startBuild(root, 'full'); });
@@ -396,7 +461,7 @@
         '<span class="lqd-filesearch-card-path">' + escapeHtml(item.file_path) + '</span>' +
         '<span class="lqd-filesearch-card-line">行 ' + item.line_start + '-' + item.line_end + '</span>' +
       '</div>' +
-      '<div class="lqd-filesearch-card-snippet">' + escapeHtml(item.snippet || item.text.slice(0, 200)) + '</div>';
+      '<div class="lqd-filesearch-card-snippet">' + highlightText(item.snippet || item.text.slice(0, 200), state.lastQuery) + '</div>';
 
     // 点击复制文件路径
     card.addEventListener('click', function () {

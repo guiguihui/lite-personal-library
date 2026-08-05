@@ -50,7 +50,8 @@ button, a, [role="button"], input, select, textarea {
   transition-timing-function: var(--ease-fluid, cubic-bezier(0.16, 1, 0.3, 1));
 }
 /* 主题切换:背景/前景/边框颜色平滑过渡(静音:动画时长极短) */
-body, .lqd-chat, .lqd-sidebar, .lqd-titlebar, .lqd-main,
+body, .lqd-chat, .lqd-sidebar, .lqd-titlebar, .lqd-main, .lqd-tab,
+.lqd-messages, .lqd-composer,
 .lqd-chat-composer, .lqd-chat-message, .lqd-tb-dropdown,
 .lqd-chat-citation, .lqd-side-nav-item, .shelf-card, .tree-node-row {
   transition: background-color var(--dur-base) var(--ease-fluid),

@@ -73,6 +73,17 @@
   border-color: var(--accent-hover);
 }
 
+.manage-btn--danger {
+  border-color: var(--danger, #c0392b);
+  background: var(--danger, #c0392b);
+  color: var(--danger-fg, #fff);
+}
+
+.manage-btn--danger:hover:not(:disabled) {
+  background: var(--danger-hover, #a93226);
+  border-color: var(--danger-hover, #a93226);
+}
+
 .manage-status {
   display: flex;
   align-items: center;

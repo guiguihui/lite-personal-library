@@ -14,7 +14,9 @@
     initialized: false,
     currentGroup: 'llm',
     els: {},
-    settings: null  // 从后端加载的 LLM 配置
+    settings: null,  // 从后端加载的 LLM 配置
+    isDirty: false,
+    snapshot: {}     // 当前表单的字段快照,保存时用于 diff
   };
 
   function $(id) { return document.getElementById(id); }
@@ -26,6 +28,49 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  // ── dirty 跟踪 ────────────────────────────────────────────────────────
+  function collectFormValues(container) {
+    var snap = {};
+    if (!container) return snap;
+    var fields = container.querySelectorAll('input, select, textarea');
+    for (var i = 0; i < fields.length; i++) {
+      var f = fields[i];
+      if (!f.id) continue;
+      snap[f.id] = (f.type === 'checkbox') ? !!f.checked : f.value;
+    }
+    return snap;
+  }
+
+  function bindDirtyTracking(container) {
+    if (!container) return;
+    state.snapshot = collectFormValues(container);
+    state.isDirty = false;
+    var fields = container.querySelectorAll('input, select, textarea');
+    for (var i = 0; i < fields.length; i++) {
+      var f = fields[i];
+      if (f._lqdDirtyBound) continue;
+      f._lqdDirtyBound = true;
+      f.addEventListener('change', function () { state.isDirty = true; });
+      f.addEventListener('input', function () { state.isDirty = true; });
+    }
+  }
+
+  function diffSnapshot() {
+    var changed = [];
+    if (!state.els.body) return changed;
+    var now = collectFormValues(state.els.body);
+    for (var k in now) {
+      if (!(k in state.snapshot)) continue;
+      if (now[k] !== state.snapshot[k]) changed.push(k.replace(/^lqd-cfg-/, ''));
+    }
+    return changed;
+  }
+
+  function confirmLeaveIfDirty() {
+    if (!state.isDirty) return true;
+    return confirm('有未保存的更改,确定离开?');
   }
 
   // ── 加载 LLM 配置 ─────────────────────────────────────────────────────
@@ -139,6 +184,7 @@
 
     // 异步加载当前 provider 的掩码 key
     loadMaskedKey(active);
+    bindDirtyTracking(container);
   }
 
   async function loadMaskedKey(provider) {
@@ -179,6 +225,7 @@
   }
 
   async function saveLLM() {
+    var changed = diffSnapshot();
     var provider = $('lqd-cfg-provider').value;
     var baseUrl = $('lqd-cfg-base-url').value.trim();
     var model = $('lqd-cfg-model').value.trim();
@@ -249,6 +296,14 @@
         note = '(注:入库翻译暂仅支持 OpenAI 兼容端点,聊天主路径可用)';
       }
       setTestStatus('success', 'LLM 配置已保存' + note);
+      state.isDirty = false;
+      if (window.LqdToast && changed.length) {
+        window.LqdToast.show({
+          type: 'success',
+          message: '已更新: ' + changed.join(', '),
+          duration: 3000
+        });
+      }
       // 重新加载
       await loadSettings();
       await renderLLMForm(state.els.body);
@@ -608,9 +663,11 @@
       '</div>';
 
     $('lqd-cfg-save-storage').addEventListener('click', saveStorage);
+    bindDirtyTracking(container);
   }
 
   async function saveStorage() {
+    var changed = diffSnapshot();
     var body = {
       content_dir: $('lqd-cfg-content-dir').value.trim(),
       pageindex_dir: $('lqd-cfg-pageindex-dir').value.trim(),
@@ -634,6 +691,15 @@
       var msg = '存储配置已保存';
       if (result.requires_restart) msg += '(端口/主机变更需重启应用)';
       setStorageStatus('success', msg);
+      state.isDirty = false;
+      state.snapshot = collectFormValues(state.els.body);
+      if (window.LqdToast && changed.length) {
+        window.LqdToast.show({
+          type: 'success',
+          message: '已更新: ' + changed.join(', '),
+          duration: 3000
+        });
+      }
     } catch (e) {
       setStorageStatus('error', '保存失败: ' + e.message);
     }
@@ -673,9 +739,11 @@
 
     $('lqd-cfg-save-app').addEventListener('click', saveApp);
     $('lqd-cfg-restart').addEventListener('click', restartApp);
+    bindDirtyTracking(container);
   }
 
   async function saveApp() {
+    var changed = diffSnapshot();
     var body = {
       http_host: $('lqd-cfg-http-host').value.trim(),
       http_port: parseInt($('lqd-cfg-http-port').value, 10)
@@ -692,6 +760,15 @@
       if (!r.ok) throw new Error('HTTP ' + r.status);
       var result = await r.json();
       setAppStatus('success', result.requires_restart ? '已保存,需重启应用生效' : '应用设置已保存');
+      state.isDirty = false;
+      state.snapshot = collectFormValues(state.els.body);
+      if (window.LqdToast && changed.length) {
+        window.LqdToast.show({
+          type: 'success',
+          message: '已更新: ' + changed.join(', '),
+          duration: 3000
+        });
+      }
     } catch (e) {
       setAppStatus('error', '保存失败: ' + e.message);
     }
@@ -740,13 +817,18 @@
   }
 
   // ── 分组切换 ──────────────────────────────────────────────────────────
-  function showGroup(group) {
+  function showGroup(group, opts) {
+    var skipDirtyCheck = opts && opts.skipDirtyCheck;
+    if (!skipDirtyCheck && state.initialized && group !== state.currentGroup) {
+      if (!confirmLeaveIfDirty()) return false;
+    }
     state.currentGroup = group;
     var body = state.els.body;
-    if (!body) return;
+    if (!body) return true;
     if (group === 'llm') renderLLMForm(body);
     else if (group === 'storage') renderStorageForm(body);
     else if (group === 'app') renderAppForm(body);
+    return true;
   }
 
   // ── 初始化 ────────────────────────────────────────────────────────────
@@ -771,9 +853,9 @@
     container.querySelectorAll('.lqd-config-nav-item').forEach(function (item) {
       item.addEventListener('click', function () {
         var group = item.getAttribute('data-group');
+        if (!showGroup(group)) return;
         container.querySelectorAll('.lqd-config-nav-item').forEach(function (n) { n.classList.remove('active'); });
         item.classList.add('active');
-        showGroup(group);
       });
     });
 

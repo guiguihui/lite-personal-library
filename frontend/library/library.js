@@ -346,6 +346,14 @@
     if (!confirmed) return;
 
     try {
+      // 删除前缓存完整文档数据,供 Toast 撤销恢复
+      var cachedDoc = null;
+      try {
+        var docRes = await fetch('/api/content/read?type=' + encodeURIComponent(type) +
+          '&slug=' + encodeURIComponent(slug));
+        if (docRes.ok) cachedDoc = await docRes.json();
+      } catch (_) {}
+
       var r = await fetch(
         '/api/content/doc?type=' + encodeURIComponent(type) +
         '&slug=' + encodeURIComponent(slug),
@@ -358,11 +366,18 @@
       }
       var result = await r.json();
       if (window.LqdToast) {
-        window.LqdToast.show({
+        var toastOpts = {
           type: 'success',
           message: '已删除「' + title + '」(' + (result.deleted || []).join(' + ') + ')',
-          duration: 3000
-        });
+          duration: 5000
+        };
+        if (cachedDoc) {
+          toastOpts.action = {
+            label: '撤销',
+            onClick: function () { restoreDeleted(type, slug, cachedDoc); }
+          };
+        }
+        window.LqdToast.show(toastOpts);
       }
       // 如果删除的是当前打开的文档,清空右侧面板
       if (state.currentSlug === slug) {
@@ -382,6 +397,36 @@
           duration: 4000
         });
       }
+    }
+  }
+
+  function restoreDeleted(type, slug, cachedDoc) {
+    // 重新走上传流程恢复文档(把缓存的元数据塞进上传队列)
+    if (!window.YuuUploadQueue || !window.YuuUpload) {
+      if (window.LqdToast) {
+        window.LqdToast.show({ type: 'error', message: '恢复失败:上传模块未就绪', duration: 4000 });
+      }
+      return;
+    }
+    var meta = {
+      title: cachedDoc.title || null,
+      author: cachedDoc.author || null,
+      slug: slug,
+      docType: type.replace(/s$/, ''), // books→book, papers→paper, notes→note
+      strategy: 'local',
+      pages: '',
+      stages: ['extract', 'clean', 'translate', 'validate']
+    };
+    // 用空文件占位,只借上传队列跑 ingest/full 恢复索引
+    var blob = new Blob([''], { type: 'application/pdf' });
+    var file = new File([blob], (cachedDoc.title || slug) + '.pdf', { type: 'application/pdf' });
+    window.YuuUploadQueue.add(file, null, meta);
+    if (window.LqdToast) {
+      window.LqdToast.show({ type: 'info', message: '已加入恢复队列,请在上传页点击"全部开始"', duration: 5000 });
+    }
+    // 切到上传页
+    if (window.LqdTabs) {
+      window.LqdTabs.open({ type: 'upload', title: '上传' });
     }
   }
 

@@ -107,6 +107,9 @@
       }
       var bubble = window.LqdChatMessages.appendMessageBubble(m.role, content, refs.messagesEl);
       if (m.role === 'assistant' && bubble) {
+        if (window.LqdChatAgent && typeof window.LqdChatAgent.wrapCodeBlocks === 'function') {
+          window.LqdChatAgent.wrapCodeBlocks(bubble);
+        }
         window.LqdChatMessages.reRenderKatex(bubble);
         bubble.removeAttribute('aria-busy');
       }
@@ -116,6 +119,17 @@
   function onSend(query, tabId) {
     var refs = tabRefs.get(tabId);
     if (!refs) return;
+    // 流式进行中:排队等待当前生成完成后自动发送
+    if (refs.sendBtn && refs.sendBtn.disabled) {
+      if (!refs.pendingQueue) refs.pendingQueue = [];
+      refs.pendingQueue.push(query);
+      refs.composerInput.value = '';
+      refs.composerInput.style.height = 'auto';
+      if (window.LqdToast) {
+        window.LqdToast.show({ type: 'info', message: '已加入队列(' + refs.pendingQueue.length + '),等待当前回答完成', duration: 1500 });
+      }
+      return;
+    }
     refs.composerInput.value = '';
     refs.composerInput.style.height = 'auto';
     window.LqdChatAgent.sendMessage(query, refs, tabId).then(function () {
@@ -128,10 +142,16 @@
       if (window.LqdEvents) {
         window.LqdEvents.emit('chat:session:changed', {});
       }
+      // 流式期间排队的下一条:当前生成完成后自动发送
+      if (refs.pendingQueue && refs.pendingQueue.length > 0) {
+        var queued = refs.pendingQueue.shift();
+        onSend(queued, tabId);
+      }
     }).catch(function (e) {
       if (window.console && window.console.error) {
         window.console.error('[LqdChat] sendMessage failed', e);
       }
+      refs.pendingQueue = [];
     });
   }
 
@@ -1137,11 +1157,19 @@
   // 复制当前会话到新标签由上下文菜单"复制为新会话"实现(见 showCtxMenu),
   // 此处不再保留重复实现。
 
+  function isDirty(tab) {
+    if (!tab || !tab.id) return false;
+    var refs = tabRefs.get(tab.id);
+    if (!refs || !refs.composerInput) return false;
+    return refs.composerInput.value.trim().length > 0;
+  }
+
   var LqdChat = {
     type: 'chat',
     getTitle: getTitle,
     getIcon: getIcon,
     getSidebarActions: getSidebarActions,
+    isDirty: isDirty,
     mount: mount,
     unmount: unmount,
     renderSidebar: renderSidebar,
