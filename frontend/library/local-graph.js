@@ -1,5 +1,11 @@
 (function () {
   'use strict';
+  // 标签截断:超出 maxChars 用省略号。汉字按字符计,西文按字符计。
+  function truncateLabel(text, maxChars) {
+    var s = String(text || '');
+    if (s.length <= maxChars) return s;
+    return s.slice(0, maxChars - 1) + '…';
+  }
   function mount(container, graph, onOpen) {
     container.innerHTML = '';
     var width = Math.max(container.clientWidth || 280, 240), height = 240, cx = width / 2, cy = height / 2;
@@ -54,13 +60,13 @@
     if (window.d3 && nodes.length) {
       nodes.forEach(function (node) { if (node.id === center) { node.fx = cx; node.fy = cy; } });
       simulation = window.d3.forceSimulation(nodes)
-        .force('charge', window.d3.forceManyBody().strength(-140))
+        .force('charge', window.d3.forceManyBody().strength(-220))
         .force('center', window.d3.forceCenter(cx, cy))
-        .force('collision', window.d3.forceCollide(20)).stop();
+        .force('collision', window.d3.forceCollide(34)).stop();
       for (var tick = 0; tick < 100; tick++) simulation.tick();
       nodes.forEach(function (node) { positions[node.id] = [node.x, node.y]; });
     } else {
-      nodes.forEach(function (node, index) { var angle = ((index - 1) / Math.max(1, nodes.length - 1)) * Math.PI * 2; positions[node.id] = node.id === center ? [cx, cy] : [cx + Math.cos(angle) * 88, cy + Math.sin(angle) * 88]; });
+      nodes.forEach(function (node, index) { var angle = ((index - 1) / Math.max(1, nodes.length - 1)) * Math.PI * 2; positions[node.id] = node.id === center ? [cx, cy] : [cx + Math.cos(angle) * 104, cy + Math.sin(angle) * 104]; });
     }
     nodes.forEach(function (node) { var pos = positions[node.id]; if (!pos) return; pos[0] = Math.max(12, Math.min(width - 12, pos[0])); pos[1] = Math.max(14, Math.min(height - 14, pos[1])); });
 
@@ -114,10 +120,12 @@
 
       var label = document.createElementNS(svg.namespaceURI, 'text');
       var labelRight = pos[0] > width / 2;
-      label.setAttribute('x', pos[0] + (labelRight ? -10 : 10));
+      // 标签与圆点保持间距(offset 16 > 圆点 r7/9),并用 stroke 底衬保证可读
+      label.setAttribute('x', pos[0] + (labelRight ? 16 : -16));
       label.setAttribute('y', pos[1] + 4);
-      label.setAttribute('text-anchor', labelRight ? 'end' : 'start');
-      label.textContent = node.title;
+      label.setAttribute('text-anchor', labelRight ? 'start' : 'end');
+      label.setAttribute('class', 'lqd-graph-label');
+      label.textContent = truncateLabel(node.title, 14);
       group.appendChild(label);
 
       group.addEventListener('click', function () { onOpen(node); });
