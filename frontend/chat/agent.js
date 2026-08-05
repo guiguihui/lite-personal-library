@@ -812,7 +812,10 @@
   }
 
   // ── tool-step 的 mini thinking-orbs 水合/销毁 ──
-  // toolTrail 是 HTML 字符串,tool-orb-slot 需在渲染后挂 canvas。
+  // 用模块级注册表追踪活跃 orb,即使 DOM 节点被 innerHTML 重建/脱离,
+  // destroyToolOrbs 也能按注册表销毁 → 不泄漏 rAF 循环(卡顿根因之一)。
+  var activeToolOrbs = [];
+
   function hydrateToolOrbs(contentEl) {
     if (!contentEl || !window.ThinkingOrb) return;
     var slots = contentEl.querySelectorAll('.lqd-tool-step--loading .lqd-tool-orb-slot');
@@ -821,16 +824,25 @@
       if (slot._hydrated) continue;
       slot._hydrated = true;
       var mounted = window.ThinkingOrb.mount(slot, { state: 'searching', size: 18 });
-      if (mounted && mounted.orb) slot._thinkingOrb = mounted.orb;
+      if (mounted && mounted.orb) {
+        slot._thinkingOrb = mounted.orb;
+        activeToolOrbs.push(mounted.orb);
+      }
     }
   }
   function destroyToolOrbs(contentEl) {
+    // 优先用注册表销毁全部活跃 orb(含已脱离 DOM 的)
+    for (var i = 0; i < activeToolOrbs.length; i++) {
+      try { activeToolOrbs[i].destroy(); } catch (_) {}
+    }
+    activeToolOrbs = [];
+    // 兜底:DOM 中仍存在的 slot 清引用
     if (!contentEl) return;
     var slots = contentEl.querySelectorAll('.lqd-tool-orb-slot');
-    for (var i = 0; i < slots.length; i++) {
-      var slot = slots[i];
+    for (var j = 0; j < slots.length; j++) {
+      var slot = slots[j];
       if (slot._thinkingOrb) {
-        slot._thinkingOrb.destroy();
+        try { slot._thinkingOrb.destroy(); } catch (_) {}
         slot._thinkingOrb = null;
       }
     }
@@ -1024,13 +1036,15 @@
           if (tc.name === 'search_library' || tc.name === 'search_local_files') didSearch = true;
 
           var toolResult = await executeTool(tc.name, args, budgetCtx, { registry: sourceRegistry, counter: nextSourceNum }, originTabId);
-          // 检索完成:将 orb 替换为完成图标,移除进度条
+          // 检索完成:先销毁 orb 画布(释放 rAF),再重渲染替换为完成图标
+          // (顺序关键:updateContentPreservingThinker 会 innerHTML 重建,若先渲染再销毁
+          //  orb 已从 DOM 脱离,destroy 找不到 → rAF 泄漏堆积 → 卡顿)
+          destroyToolOrbs(contentEl);
           toolTrail[stepIdx] = toolTrail[stepIdx]
             .replace(' lqd-tool-step--loading', ' lqd-tool-step--settled')
             .replace('<span class="lqd-tool-orb-slot"></span>', '<span class="lqd-tool-done">' + (window.LqdIcons ? window.LqdIcons.icon('check') : '✓') + '</span>')
             .replace('<div class="lqd-tool-progress"><div class="lqd-tool-progress-bar"></div></div>', '');
           updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
-          destroyToolOrbs(contentEl);
           // 评审修复:工具路径的检索也要记录低置信(追问建议触发条件)
           if (tc.name === 'search_library' && toolResult.confidence === 'low') confidenceLow = true;
           if (toolResult.__contexts) {
@@ -1064,13 +1078,13 @@
         updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
         hydrateToolOrbs(contentEl);
         var forced = await retrieveContextAsText(query, budgetCtx, { registry: sourceRegistry, counter: nextSourceNum }, originTabId);
-        // 检索完成:将 orb 替换为完成图标,移除进度条
+        // 检索完成:先销毁 orb,再重渲染替换为完成图标(防 rAF 泄漏)
+        destroyToolOrbs(contentEl);
         toolTrail[forcedStepIdx] = toolTrail[forcedStepIdx]
           .replace(' lqd-tool-step--loading', ' lqd-tool-step--settled')
           .replace('<span class="lqd-tool-orb-slot"></span>', '<span class="lqd-tool-done">' + (window.LqdIcons ? window.LqdIcons.icon('check') : '✓') + '</span>')
           .replace('<div class="lqd-tool-progress"><div class="lqd-tool-progress-bar"></div></div>', '');
         updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
-        destroyToolOrbs(contentEl);
         if (forced.__contexts) {
           forced.__contexts = forced.contexts;
           for (var j = 0; j < forced.__contexts.length; j++) {
@@ -1094,12 +1108,13 @@
         hydrateToolOrbs(contentEl);
         try {
           var localForced = await retrieveLocalFiles(query, { registry: sourceRegistry, counter: nextSourceNum });
+          // 检索完成:先销毁 orb,再重渲染替换为完成图标(防 rAF 泄漏)
+          destroyToolOrbs(contentEl);
           toolTrail[localStepIdx] = toolTrail[localStepIdx]
             .replace(' lqd-tool-step--loading', ' lqd-tool-step--settled')
             .replace('<span class="lqd-tool-orb-slot"></span>', '<span class="lqd-tool-done">' + (window.LqdIcons ? window.LqdIcons.icon('check') : '✓') + '</span>')
             .replace('<div class="lqd-tool-progress"><div class="lqd-tool-progress-bar"></div></div>', '');
           updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
-          destroyToolOrbs(contentEl);
           if (localForced.__contexts) {
             for (var m = 0; m < localForced.__contexts.length; m++) {
               var lc = localForced.__contexts[m];
@@ -1110,12 +1125,12 @@
             }
           }
         } catch (_) { /* ignore */ }
+        destroyToolOrbs(contentEl);
         toolTrail[localStepIdx] = (toolTrail[localStepIdx] || '').
           replace(' lqd-tool-step--loading', ' lqd-tool-step--settled').
           replace('<span class="lqd-tool-orb-slot"></span>', '<span class="lqd-tool-done">' + (window.LqdIcons ? window.LqdIcons.icon('check') : '✓') + '</span>').
           replace('<div class="lqd-tool-progress"><div class="lqd-tool-progress-bar"></div></div>', '');
         updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
-        destroyToolOrbs(contentEl);
       }
 
       if (!finalText.trim() && allContexts.length) {

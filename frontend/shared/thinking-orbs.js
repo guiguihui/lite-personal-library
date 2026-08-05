@@ -638,7 +638,9 @@
     // 页面可见性
     document.addEventListener('visibilitychange', this._onVisibilityChange);
 
-    // 主题变化监听（auto 模式）
+    // 主题变化监听(auto 模式)。
+    // 只观察 html[data-theme] 属性(不扫 subtree),避免流式渲染时的
+    // 大量 DOM 属性变更触发回调 → CPU 空转 → 动画卡顿。
     if (this.theme === 'auto' && typeof MutationObserver !== 'undefined') {
       this._themeObserver = new MutationObserver(function () {
         var newDark = self._resolveTheme();
@@ -648,8 +650,8 @@
       });
       this._themeObserver.observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ['class', 'data-theme'],
-        subtree: true
+        attributeFilter: ['data-theme'],
+        subtree: false
       });
     }
     } catch (e) {
