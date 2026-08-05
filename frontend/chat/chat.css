@@ -427,65 +427,7 @@
               box-shadow var(--dur-fast) var(--ease-fluid);
 }
 
-/* ── 精致流动光效:聚焦时沿圆角边框缓慢流动的一线高光 ──
-   技术:伪元素铺一层 conic-gradient,用 padding-box/border-box
-   双 mask 相减只留 1.5px 边环;CSS @property 让渐变角度可动画。 */
-@property --lqd-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
-}
-
-.lqd-chat-composer-inner::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: conic-gradient(
-    from var(--lqd-angle),
-    transparent 0deg,
-    transparent 300deg,
-    rgba(59, 130, 246, 0.65) 342deg,
-    rgba(59, 130, 246, 0.10) 360deg
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--dur-slow) var(--ease-fluid);
-}
-
-.lqd-chat-composer-inner:focus-within::after {
-  opacity: 1;
-  animation: lqd-border-flow 3.2s linear infinite;
-}
-
-@keyframes lqd-border-flow {
-  to { --lqd-angle: 360deg; }
-}
-
-/* 暗色:光效用更亮的蓝,聚焦态更易读 */
-:root[data-effective-theme="dark"] .lqd-chat-composer-inner::after {
-  background: conic-gradient(
-    from var(--lqd-angle),
-    transparent 0deg,
-    transparent 300deg,
-    rgba(96, 165, 250, 0.70) 342deg,
-    rgba(96, 165, 250, 0.12) 360deg
-  );
-}
-
-/* 不支持 @property 的旧内核:降级为聚焦时静态亮边,不动画 */
-@supports not (background: conic-gradient(from var(--lqd-angle), red, blue)) {
-  .lqd-chat-composer-inner::after { display: none; }
-}
+/* 不支持毛玻璃的旧内核:降级为纯色背景 */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .lqd-chat-composer-inner { background: var(--bg-primary); }
 }
