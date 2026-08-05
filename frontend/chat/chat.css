@@ -382,7 +382,8 @@
   box-shadow: var(--shadow-md),
               inset 0 1px 0 var(--glass-border);
   padding: var(--space-3) var(--space-3) var(--space-2);
-  transition: border-color var(--dur-fast) var(--ease-fluid);
+  transition: border-color var(--dur-fast) var(--ease-fluid),
+              box-shadow var(--dur-fast) var(--ease-fluid);
 }
 
 /* ── 精致流动光效:聚焦时沿圆角边框缓慢流动的一线高光 ──
@@ -404,8 +405,8 @@
     from var(--lqd-angle),
     transparent 0deg,
     transparent 300deg,
-    rgba(13, 13, 13, 0.55) 342deg,
-    rgba(13, 13, 13, 0.08) 360deg
+    rgba(59, 130, 246, 0.65) 342deg,
+    rgba(59, 130, 246, 0.10) 360deg
   );
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
@@ -429,14 +430,14 @@
   to { --lqd-angle: 360deg; }
 }
 
-/* 暗色:光效换亮色,聚焦态更易读 */
+/* 暗色:光效用更亮的蓝,聚焦态更易读 */
 :root[data-effective-theme="dark"] .lqd-chat-composer-inner::after {
   background: conic-gradient(
     from var(--lqd-angle),
     transparent 0deg,
     transparent 300deg,
-    rgba(236, 236, 236, 0.65) 342deg,
-    rgba(236, 236, 236, 0.10) 360deg
+    rgba(96, 165, 250, 0.70) 342deg,
+    rgba(96, 165, 250, 0.12) 360deg
   );
 }
 
@@ -447,8 +448,23 @@
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .lqd-chat-composer-inner { background: var(--bg-primary); }
 }
+
+/* ── 蓝色发光光效 ──
+   hover / focus-within 时给 composer 边框加蓝色发光。
+   box-shadow 用两圈:内圈贴边实光(同色)+ 外圈大范围柔光。 */
+.lqd-chat-composer-inner:hover {
+  border-color: color-mix(in srgb, var(--tint-blue) 60%, var(--border));
+  box-shadow: var(--shadow-md),
+              inset 0 1px 0 var(--glass-border),
+              0 0 0 1px color-mix(in srgb, var(--tint-blue) 35%, transparent),
+              0 0 18px -2px color-mix(in srgb, var(--tint-blue) 45%, transparent);
+}
 .lqd-chat-composer-inner:focus-within {
-  border-color: var(--border-strong);
+  border-color: var(--tint-blue);
+  box-shadow: var(--shadow-md),
+              inset 0 1px 0 var(--glass-border),
+              0 0 0 1px color-mix(in srgb, var(--tint-blue) 55%, transparent),
+              0 0 26px -2px color-mix(in srgb, var(--tint-blue) 60%, transparent);
 }
 
 .lqd-chat-composer textarea {
