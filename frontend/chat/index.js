@@ -82,6 +82,7 @@
       messagesEl: messagesEl,
       composerInput: composer.input,
       sendBtn: composer.sendBtn,
+      stopBtn: composer.stopBtn,
       suggestionsEl: suggestionsEl
     };
   }
@@ -248,8 +249,9 @@
     return html.join('\n');
   }
 
-  function showCitationPopover(anchorEl, title, preview, onOpenDetail) {
+  function showCitationPopover(anchorEl, title, preview, onOpenDetail, extra) {
     closeCitationPopover();
+    extra = extra || {};
 
     var esc = window.LqdChatCitations ? window.LqdChatCitations.escHtml : function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
 
@@ -267,6 +269,11 @@
       '</div>' +
       '<div class="lqd-citation-popover-body">' + miniMarkdown(preview || '暂无预览内容') + '</div>' +
       '<div class="lqd-citation-popover-footer">' +
+        (extra.copyText ?
+          '<button class="lqd-citation-popover-copy">' +
+            (window.LqdIcons ? window.LqdIcons.icon('copy') : '复制') +
+            '<span>复制来源</span>' +
+          '</button>' : '') +
         '<button class="lqd-citation-popover-detail">' +
           (window.LqdIcons ? window.LqdIcons.icon('arrow-right') : '') +
           '<span>查看详情</span>' +
@@ -328,6 +335,25 @@
       if (typeof onOpenDetail === 'function') onOpenDetail();
     });
 
+    var copyBtn = pop.querySelector('.lqd-citation-popover-copy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(extra.copyText || '').then(function () {
+            if (window.LqdToast) window.LqdToast.show({ type: 'success', message: '已复制来源', duration: 1500 });
+          });
+        } else {
+          var ta2 = document.createElement('textarea');
+          ta2.value = extra.copyText || '';
+          ta2.style.position = 'fixed'; ta2.style.opacity = '0';
+          document.body.appendChild(ta2); ta2.select();
+          try { document.execCommand('copy'); } catch (_) {}
+          document.body.removeChild(ta2);
+        }
+      });
+    }
+
     // 点击浮窗内部阻止冒泡到 document(避免 onPopoverOutside 误关)
     pop.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -343,6 +369,32 @@
   function mount(container, tab) {
     var refs = createChatDOM(container, tab);
     tabRefs.set(tab.id, refs);
+
+    // P3-18: 拖拽文件到聊天区 → 直接入上传队列
+    var dragDepth = 0;
+    refs.root.addEventListener('dragenter', function (e) {
+      e.preventDefault();
+      dragDepth++;
+      refs.root.classList.add('lqd-chat-dragover');
+    });
+    refs.root.addEventListener('dragover', function (e) { e.preventDefault(); });
+    refs.root.addEventListener('dragleave', function (e) {
+      e.preventDefault();
+      dragDepth--;
+      if (dragDepth <= 0) { dragDepth = 0; refs.root.classList.remove('lqd-chat-dragover'); }
+    });
+    refs.root.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dragDepth = 0;
+      refs.root.classList.remove('lqd-chat-dragover');
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      if (window.LqdUpload && typeof window.LqdUpload.addFiles === 'function') {
+        window.LqdUpload.addFiles(files);
+      } else if (window.LqdShell) {
+        window.LqdShell.setActivity('upload');
+      }
+    });
 
     // 参考来源点击:先弹出浮窗显示缩略信息,点击"查看详情"再跳转。
     // citations.js 渲染的引用项带 data-doc-type/data-doc-id/data-node-id/data-preview。
@@ -368,9 +420,17 @@
         preview = lfMeta;
       }
 
-      // 弹出浮窗
-      showCitationPopover(item, title, preview, function () {
-        // 点击"查看详情"回调
+      // 弹出浮窗(P1-8:带复制来源 + 打开原文)
+      var docType2 = item.getAttribute('data-doc-type') || '';
+      var docId2 = item.getAttribute('data-doc-id') || '';
+      var nodeId2 = item.getAttribute('data-node-id') || '';
+      var copySource = '';
+      if (item.classList.contains('lqd-chat-citation--localfile')) {
+        copySource = '来源: ' + (item.getAttribute('data-localfile-path') || title);
+      } else if (docType2 && docId2) {
+        copySource = '来源: ' + docType2 + '/' + docId2 + (nodeId2 ? '#' + nodeId2 : '') + ' — ' + title;
+      }
+      showCitationPopover(item, title, preview, function () {        // 点击"查看详情"回调
 
         // 本机文件引用:不跳转文档库,只显示文件路径+内容片段(已在浮窗中展示)
         // 用户可通过浮窗内容获取文件路径和定位信息
@@ -391,7 +451,83 @@
         if (window.LqdLibrary && typeof window.LqdLibrary.openDoc === 'function') {
           window.LqdLibrary.openDoc(docType, docId, nodeId);
         }
-      });
+      }, { copyText: copySource });
+    });
+
+    // 消息悬浮操作:复制回答 / 重新生成
+    refs.messagesEl.addEventListener('click', function (e) {
+      var copyBtn = e.target && e.target.closest ? e.target.closest('.lqd-msg-copy') : null;
+      var regenBtn = e.target && e.target.closest ? e.target.closest('.lqd-msg-regen') : null;
+      if (copyBtn) {
+        var msgEl = copyBtn.closest('.lqd-chat-message');
+        if (!msgEl) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var text = msgEl.getAttribute('data-role') === 'user'
+          ? (msgEl.querySelector('.lqd-chat-msg-text') || {}).textContent || ''
+          : (msgEl.querySelector('.lqd-chat-msg-content') || {}).textContent || '';
+        // 剥掉引用卡片/操作条文本,只保留回答正文
+        var contentEl = msgEl.querySelector('.lqd-chat-msg-content');
+        if (contentEl) {
+          text = contentEl.textContent || '';
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            if (window.LqdToast) window.LqdToast.show({ type: 'success', message: '已复制', duration: 1500 });
+          });
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          try { document.execCommand('copy'); } catch (_) {}
+          document.body.removeChild(ta);
+        }
+        return;
+      }
+      if (regenBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        var msgEl2 = regenBtn.closest('.lqd-chat-message');
+        if (!msgEl2) return;
+        // 找到该助手消息上一条用户消息作为重新生成的 query
+        var prev = msgEl2.previousElementSibling;
+        while (prev) {
+          if (prev.getAttribute('data-role') === 'user') break;
+          prev = prev.previousElementSibling;
+        }
+        var query = prev ? ((prev.querySelector('.lqd-chat-msg-text') || {}).textContent || '').trim() : '';
+        if (!query) return;
+        // 删除这条 assistant 消息及其后所有消息,重新生成
+        var messages = window.LqdChatSession.loadCurrent();
+        var idx = -1;
+        for (var i = 0; i < messages.length; i++) {
+          if (messages[i].role === 'assistant' && messages[i].content && messages[i].content.indexOf(query) === -1) { /* not this */ }
+        }
+        // 找到匹配的 assistant 消息索引:其前一条是 query
+        for (var j = 0; j < messages.length; j++) {
+          if (messages[j].role === 'user' && messages[j].content === query && messages[j + 1] && messages[j + 1].role === 'assistant') {
+            idx = j; // 从这条 user 之后全部删除
+            break;
+          }
+        }
+        if (idx === -1) return;
+        var kept = messages.slice(0, idx + 1);
+        window.LqdChatSession.saveCurrent(kept);
+        // 移除 DOM 中该 assistant 消息及其后所有消息
+        var toRemove = [];
+        var sibling = msgEl2;
+        while (sibling) { toRemove.push(sibling); sibling = sibling.nextElementSibling; }
+        // 也包括之前的 assistant 残片:从 query 的 user 消息之后都清掉
+        var userEl = prev;
+        var cur = userEl ? userEl.nextElementSibling : null;
+        while (cur) { toRemove.push(cur); cur = cur.nextElementSibling; }
+        toRemove.forEach(function (el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
+        if (window.LqdEvents) window.LqdEvents.emit('chat:session:changed', {});
+        window.LqdChatAgent.sendMessage(query, refs).then(function () {
+          if (window.LqdEvents) window.LqdEvents.emit('chat:session:changed', {});
+        });
+        return;
+      }
     });
 
     var messages = window.LqdChatSession.loadCurrent();
@@ -447,16 +583,68 @@
     return tab.title || first.slice(0, 20) || '新对话';
   }
 
+  // P2-12: 把会话导出为 Markdown 文件
+  function exportSessionMarkdown(s) {
+    var lines = [];
+    lines.push('# ' + (s.title || '对话导出'));
+    lines.push('');
+    lines.push('> 导出时间: ' + new Date().toLocaleString('zh-CN'));
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+    (s.messages || []).forEach(function (m) {
+      var content = String(m.content || '');
+      if (m.role === 'user') {
+        lines.push('## 🧑 用户');
+        lines.push('');
+        lines.push(content);
+      } else if (m.role === 'assistant') {
+        lines.push('## 🤖 LQ-D');
+        lines.push('');
+        lines.push(content);
+      } else if (m.role === 'tool') {
+        lines.push('### 🔧 工具结果');
+        lines.push('');
+        lines.push(content);
+      }
+      lines.push('');
+      lines.push('---');
+      lines.push('');
+    });
+    return lines.join('\n');
+  }
+
+  function downloadTextFile(filename, text) {
+    var blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+
   function getIcon() {
     return 'chat';
   }
 
   function getSidebarActions() {
-    return [{
-      icon: 'new',
-      title: '新建对话',
-      onClick: function () { openNewChat(); }
-    }];
+    return [
+      {
+        icon: 'new',
+        title: '新建对话',
+        onClick: function () { openNewChat(); }
+      },
+      {
+        icon: 'plus',
+        title: '新开会话标签',
+        onClick: function () { newSessionTab(); }
+      }
+    ];
   }
 
   // Codex 侧栏时间格式:今天显示时分,否则相对天数/周数
@@ -513,6 +701,67 @@
       if (sidebarBody) renderSidebar(sidebarBody);
     });
     menu.appendChild(pinItem);
+    // 重命名(P2-13)
+    var renameItem = document.createElement('div');
+    renameItem.className = 'lqd-ctx-menu-item';
+    renameItem.setAttribute('role', 'menuitem');
+    renameItem.innerHTML = '<span class="lqd-icon">' + (window.LqdIcons ? window.LqdIcons.icon('edit') : '') + '</span><span>重命名</span>';
+    renameItem.addEventListener('click', function () {
+      hideCtxMenu();
+      var sessions = window.LqdChatSession.listArchived();
+      var current = '';
+      for (var i = 0; i < sessions.length; i++) {
+        if (sessions[i].id === sid) { current = sessions[i].title || ''; break; }
+      }
+      var newTitle = window.prompt('重命名对话', current);
+      if (newTitle == null) return; // 取消
+      newTitle = newTitle.trim();
+      if (!newTitle) return;
+      window.LqdChatSession.renameArchived(sid, newTitle);
+      if (window.LqdEvents) window.LqdEvents.emit('chat:history:changed', {});
+      var sidebarBody = document.querySelector('.lqd-sidebar-body');
+      if (sidebarBody) renderSidebar(sidebarBody);
+    });
+    menu.appendChild(renameItem);
+    // 复制为新会话(并行分支)
+    var dupItem = document.createElement('div');
+    dupItem.className = 'lqd-ctx-menu-item';
+    dupItem.setAttribute('role', 'menuitem');
+    dupItem.innerHTML = '<span class="lqd-icon">' + (window.LqdIcons ? window.LqdIcons.icon('copy') : '') + '</span><span>复制为新会话</span>';
+    dupItem.addEventListener('click', function () {
+      hideCtxMenu();
+      var sessions = window.LqdChatSession.listArchived();
+      var s = null;
+      for (var i = 0; i < sessions.length; i++) {
+        if (sessions[i].id === sid) { s = sessions[i]; break; }
+      }
+      if (!s) return;
+      var tab = newSessionTab();
+      if (tab) {
+        window.LqdChatSession.saveCurrent((s.messages || []).slice(), tab);
+        var refs = tabRefs.get(tab);
+        if (refs) renderMessages(refs, s.messages || []);
+        if (window.LqdEvents) window.LqdEvents.emit('chat:session:changed', {});
+      }
+    });
+    menu.appendChild(dupItem);
+    // 导出为 Markdown(P2-12)
+    var exportItem = document.createElement('div');
+    exportItem.className = 'lqd-ctx-menu-item';
+    exportItem.setAttribute('role', 'menuitem');
+    exportItem.innerHTML = '<span class="lqd-icon">' + (window.LqdIcons ? window.LqdIcons.icon('download') : '') + '</span><span>导出 Markdown</span>';
+    exportItem.addEventListener('click', function () {
+      hideCtxMenu();
+      var sessions = window.LqdChatSession.listArchived();
+      var s = null;
+      for (var i = 0; i < sessions.length; i++) {
+        if (sessions[i].id === sid) { s = sessions[i]; break; }
+      }
+      if (!s) return;
+      var md = exportSessionMarkdown(s);
+      downloadTextFile((s.title || '对话导出').replace(/[\\/:*?"<>|]/g, '_') + '.md', md);
+    });
+    menu.appendChild(exportItem);
     // 分隔线
     var sep = document.createElement('div');
     sep.className = 'lqd-ctx-menu-sep';
@@ -555,91 +804,189 @@
     }, 0);
   }
 
+  // P2-14: 会话时间分组
+  function timeGroup(iso) {
+    var d = new Date(iso);
+    var now = new Date();
+    var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
+    var dStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (dStart >= startOfToday) return '今天';
+    if (dStart >= startOfWeek) return '最近7天';
+    return '更早';
+  }
+
   function renderSidebar(container) {
     container.innerHTML = '';
 
     var sessions = window.LqdChatSession.listArchived();
-    if (!sessions.length) {
-      var empty = document.createElement('div');
-      empty.className = 'lqd-empty';
-      empty.textContent = '暂无历史对话';
-      container.appendChild(empty);
-      return;
+
+    // P2-11: 会话搜索框(仅当有会话时显示)
+    if (sessions.length) {
+      var searchWrap = document.createElement('div');
+      searchWrap.className = 'lqd-chat-history-search';
+      var searchInput = document.createElement('input');
+      searchInput.type = 'search';
+      searchInput.placeholder = '搜索历史对话…';
+      searchInput.setAttribute('aria-label', '搜索历史对话');
+      searchWrap.appendChild(searchInput);
+      container.appendChild(searchWrap);
     }
 
-    var list = document.createElement('div');
-    list.className = 'lqd-chat-history-list';
-    for (var i = 0; i < sessions.length; i++) {
-      var s = sessions[i];
-      var ds = relativeTime(s.date);
-      var item = document.createElement('div');
-      item.className = 'lqd-chat-history-item';
-      item.setAttribute('data-id', s.id);
-      item.setAttribute('role', 'button');
-      item.setAttribute('tabindex', '0');
-      item.setAttribute('aria-label', s.title || '历史对话');
-      // 置顶标记
-      var pinHtml = s.pinned ? '<span class="lqd-chat-history-pin">' + (window.LqdIcons ? window.LqdIcons.icon('pin') : '📌') + '</span>' : '';
-      item.innerHTML =
-        pinHtml +
-        '<span class="lqd-chat-history-title">' + window.LqdChatCitations.escHtml(s.title) + '</span>' +
-        '<span class="lqd-chat-history-meta">' + ds + '</span>' +
-        '<button class="lqd-chat-history-del" aria-label="删除对话">' + (window.LqdIcons ? window.LqdIcons.icon('trash') : '×') + '</button>';
+    function renderList(filterText) {
+      var wrap = document.createElement('div');
+      wrap.className = 'lqd-chat-history-wrap';
+      filterText = (filterText || '').toLowerCase().trim();
+      var filtered = sessions.filter(function (s) {
+        if (!filterText) return true;
+        return (s.title || '').toLowerCase().indexOf(filterText) !== -1;
+      });
+      if (!filtered.length) {
+        var empty = document.createElement('div');
+        empty.className = 'lqd-empty';
+        empty.textContent = filterText ? '无匹配的对话' : '暂无历史对话';
+        wrap.appendChild(empty);
+        container.appendChild(wrap);
+        return;
+      }
+      // 分组:今天 / 最近7天 / 更早(置顶项独立一组置顶)
+      var groups = [];
+      var pinned = filtered.filter(function (s) { return s.pinned; });
+      var today = filtered.filter(function (s) { return !s.pinned && timeGroup(s.date) === '今天'; });
+      var week = filtered.filter(function (s) { return !s.pinned && timeGroup(s.date) === '最近7天'; });
+      var older = filtered.filter(function (s) { return !s.pinned && timeGroup(s.date) === '更早'; });
+      if (pinned.length) groups.push(['置顶', pinned]);
+      if (today.length) groups.push(['今天', today]);
+      if (week.length) groups.push(['最近7天', week]);
+      if (older.length) groups.push(['更早', older]);
 
-      (function (id) {
-        function activate(e) {
-          if (e.target.closest('.lqd-chat-history-del')) return;
-          window.LqdChatSession.restoreArchived(id);
-          if (window.LqdEvents) {
-            window.LqdEvents.emit('chat:session:restored', { sessionId: id });
-          }
-          // 刷新当前活动标签
-          var activeTab = window.LqdTabs ? window.LqdTabs.active() : null;
-          if (activeTab && activeTab.type === 'chat') {
-            var refs = tabRefs.get(activeTab.id);
-            if (refs) renderMessages(refs, window.LqdChatSession.loadCurrent());
-            window.LqdTabs.updateTabState(activeTab.id, function (t) {
-              t.title = window.LqdChat.getTitle(t);
-            });
-          }
+      groups.forEach(function (g) {
+        var header = document.createElement('div');
+        header.className = 'lqd-chat-history-group';
+        header.textContent = g[0];
+        wrap.appendChild(header);
+        g[1].forEach(function (s) {
+          var item = buildSessionItem(s, filterText, container);
+          wrap.appendChild(item);
+        });
+      });
+      container.appendChild(wrap);
+    }
+
+    renderList('');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        var existing = container.querySelector('.lqd-chat-history-wrap');
+        if (existing) existing.remove();
+        renderList(searchInput.value);
+      });
+    }
+
+    // P3-16: 键盘导航 — ↑↓ 移动、Enter 打开(聚焦侧栏时)
+    container.addEventListener('keydown', function (e) {
+      var items = container.querySelectorAll('.lqd-chat-history-item');
+      if (!items.length) return;
+      var active = document.activeElement;
+      var idx = -1;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i] === active || items[i].contains(active)) { idx = i; break; }
+      }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        var next = (e.key === 'ArrowDown') ? idx + 1 : idx - 1;
+        if (idx === -1) next = (e.key === 'ArrowDown') ? 0 : items.length - 1;
+        if (next >= 0 && next < items.length) items[next].focus();
+      } else if (e.key === 'Enter' && idx >= 0) {
+        e.preventDefault();
+        items[idx].click();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        items[0].focus();
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        items[items.length - 1].focus();
+      }
+    });
+  }
+
+  // 构建单个会话项(供 renderSidebar 复用)
+  function buildSessionItem(s, filterText, container) {
+    var ds = relativeTime(s.date);
+    var item = document.createElement('div');
+    item.className = 'lqd-chat-history-item';
+    item.setAttribute('data-id', s.id);
+    item.setAttribute('role', 'button');
+    item.setAttribute('tabindex', '0');
+    item.setAttribute('aria-label', s.title || '历史对话');
+    // 搜索关键词高亮
+    var titleHtml = window.LqdChatCitations.escHtml(s.title || '');
+    if (filterText) {
+      var escF = window.LqdChatCitations.escHtml(filterText);
+      try {
+        titleHtml = titleHtml.replace(new RegExp('(' + escF.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'), '<mark>$1</mark>');
+      } catch (_) { /* ignore */ }
+    }
+    var pinHtml = s.pinned ? '<span class="lqd-chat-history-pin">' + (window.LqdIcons ? window.LqdIcons.icon('pin') : '📌') + '</span>' : '';
+    item.innerHTML =
+      pinHtml +
+      '<span class="lqd-chat-history-title">' + titleHtml + '</span>' +
+      '<span class="lqd-chat-history-meta">' + ds + '</span>' +
+      '<button class="lqd-chat-history-del" aria-label="删除对话">' + (window.LqdIcons ? window.LqdIcons.icon('trash') : '×') + '</button>';
+
+    (function (id) {
+      function activate(e) {
+        if (e.target.closest('.lqd-chat-history-del')) return;
+        window.LqdChatSession.restoreArchived(id);
+        if (window.LqdEvents) {
+          window.LqdEvents.emit('chat:session:restored', { sessionId: id });
         }
-        item.addEventListener('click', activate);
-        item.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            activate(e);
-          }
-        });
-        item.addEventListener('contextmenu', function (e) {
-          e.preventDefault();
-          showCtxMenu(e, id);
-        });
-        item.querySelector('.lqd-chat-history-del').addEventListener('click', function (e) {
-          e.stopPropagation();
-          // 带确认的删除
-          if (!window.LqdModal) {
-            window.LqdChatSession.removeArchived(id);
-            if (window.LqdEvents) window.LqdEvents.emit('chat:history:changed', {});
-            renderSidebar(container);
-            return;
-          }
-          window.LqdModal.confirm({
-            title: '删除对话',
-            message: '确定要删除这个历史对话吗？此操作不可恢复。',
-            danger: true,
-            confirmLabel: '删除'
-          }).then(function (ok) {
-            if (!ok) return;
-            window.LqdChatSession.removeArchived(id);
-            if (window.LqdEvents) window.LqdEvents.emit('chat:history:changed', {});
-            renderSidebar(container);
+        // 刷新当前活动标签
+        var activeTab = window.LqdTabs ? window.LqdTabs.active() : null;
+        if (activeTab && activeTab.type === 'chat') {
+          var refs = tabRefs.get(activeTab.id);
+          if (refs) renderMessages(refs, window.LqdChatSession.loadCurrent());
+          window.LqdTabs.updateTabState(activeTab.id, function (t) {
+            t.title = window.LqdChat.getTitle(t);
           });
+        }
+      }
+      item.addEventListener('click', activate);
+      item.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activate(e);
+        }
+      });
+      item.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        showCtxMenu(e, id);
+      });
+      item.querySelector('.lqd-chat-history-del').addEventListener('click', function (e) {
+        e.stopPropagation();
+        // 带确认的删除
+        if (!window.LqdModal) {
+          window.LqdChatSession.removeArchived(id);
+          if (window.LqdEvents) window.LqdEvents.emit('chat:history:changed', {});
+          renderSidebar(container);
+          return;
+        }
+        window.LqdModal.confirm({
+          title: '删除对话',
+          message: '确定要删除这个历史对话吗？此操作不可恢复。',
+          danger: true,
+          confirmLabel: '删除'
+        }).then(function (ok) {
+          if (!ok) return;
+          window.LqdChatSession.removeArchived(id);
+          if (window.LqdEvents) window.LqdEvents.emit('chat:history:changed', {});
+          renderSidebar(container);
         });
-      })(s.id);
+      });
+    })(s.id);
 
-      list.appendChild(item);
-    }
-    container.appendChild(list);
+    return item;
   }
 
   function renderOverview(container, tab) {
@@ -731,6 +1078,30 @@
     }
   }
 
+  // 多会话:始终新开一个独立 chat 标签(不复用现有标签),每个标签独立会话
+  function newSessionTab() {
+    if (!window.LqdTabs) return null;
+    var tab = window.LqdTabs.open({ type: 'chat', title: '新对话' });
+    if (window.LqdShell) window.LqdShell.setActivity('chat');
+    return tab;
+  }
+
+  // 复制当前会话到新标签(并行分支,各自独立演进)
+  function duplicateSession() {
+    var active = window.LqdTabs ? window.LqdTabs.active() : null;
+    if (!active || active.type !== 'chat') return newSessionTab();
+    var refs = tabRefs.get(active.id);
+    var messages = window.LqdChatSession.loadCurrent(active.id);
+    // 归档当前到历史,然后新标签从当前消息继续
+    var tab = newSessionTab();
+    if (tab && messages && messages.length) {
+      window.LqdChatSession.saveCurrent(messages.slice(), tab);
+      var newRefs = tabRefs.get(tab);
+      if (newRefs) renderMessages(newRefs, messages);
+    }
+    return tab;
+  }
+
   var LqdChat = {
     type: 'chat',
     getTitle: getTitle,
@@ -741,7 +1112,11 @@
     renderSidebar: renderSidebar,
     renderOverview: renderOverview,
     openNewChat: openNewChat,
-    openSession: openSession
+    openSession: openSession,
+    newSessionTab: newSessionTab,
+    duplicateSession: duplicateSession,
+    exportSessionMarkdown: exportSessionMarkdown,
+    downloadTextFile: downloadTextFile
   };
 
   window.LqdChat = LqdChat;

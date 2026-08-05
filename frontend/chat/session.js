@@ -64,18 +64,31 @@
     return messages;
   }
 
+  // 智能标题:从首条用户消息抽取(去首尾空白/多余标点,截 24 字符)
+  function smartTitle(messages) {
+    var first = '';
+    for (var i = 0; i < messages.length; i++) {
+      if (messages[i].role === 'user' && messages[i].content) {
+        first = messages[i].content;
+        break;
+      }
+    }
+    if (!first) first = (messages[0] && messages[0].content) || '(空会话)';
+    first = String(first).replace(/\s+/g, ' ').trim();
+    // 去开头动作词(命令/重复标点),让标题更像一句话
+    first = first.replace(/^(请|帮我|能否|麻烦|总结|解释|介绍一下?)\s*/, '');
+    first = first.replace(/[。！？!?]+$/, '');
+    if (first.length > 24) {
+      first = first.slice(0, 23) + '…';
+    }
+    return first || '(空会话)';
+  }
+
   function archiveCurrent(messages) {
     messages = messages || loadCurrent();
     if (!messages || !messages.length) return;
     var sessions = listArchived();
-    var title = '';
-    for (var i = 0; i < messages.length; i++) {
-      if (messages[i].role === 'user' && messages[i].content) {
-        title = messages[i].content.slice(0, 50);
-        break;
-      }
-    }
-    if (!title) title = messages[0] && messages[0].content ? messages[0].content.slice(0, 50) : '(空会话)';
+    var title = smartTitle(messages);
     // M7: 检查是否已归档过(避免重复归档产生副本)
     var existingId = messages._archivedId;
     if (existingId) {
@@ -173,6 +186,20 @@
     } catch (_) { /* ignore */ }
   }
 
+  function renameArchived(id, title) {
+    var sessions = listArchived();
+    for (var i = 0; i < sessions.length; i++) {
+      if (sessions[i].id === id) {
+        sessions[i].title = title || sessions[i].title;
+        break;
+      }
+    }
+    try {
+      localStorage.setItem(SESSIONS_ARCHIVE_KEY, JSON.stringify(sessions));
+    } catch (_) { /* ignore */ }
+    return sessions;
+  }
+
   function getAll() {
     return listArchived();
   }
@@ -213,6 +240,7 @@
     removeArchived: removeArchived,
     pinArchived: pinArchived,
     unpinArchived: unpinArchived,
+    renameArchived: renameArchived,
     MAX_ARCHIVED: MAX_ARCHIVED
   };
 })();

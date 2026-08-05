@@ -162,6 +162,15 @@
         duration_sec: r.duration_sec,
         mode: r.mode
       });
+      // P3-19: 完成 toast 通知
+      if (window.LqdToast) {
+        window.LqdToast.show({
+          type: 'success',
+          message: '索引构建完成：' + (r.docs_built != null ? r.docs_built + ' 篇文档' : '') + (r.duration_sec ? '，用时 ' + Math.round(r.duration_sec) + 's' : ''),
+          duration: 3500
+        });
+      }
+      if (window.LqdEvents) window.LqdEvents.emit('index:built', { ok: true, result: r });
     } else if (data.status === 'failed') {
       setStatus('构建失败', 'failed');
       var r2 = data.result || {};
@@ -171,6 +180,15 @@
         mode: r2.mode
       });
       if (r2.error) appendLog('[error] ' + r2.error, true);
+      // P3-19: 失败 toast
+      if (window.LqdToast) {
+        window.LqdToast.show({
+          type: 'error',
+          message: '索引构建失败：' + (r2.error || '未知错误'),
+          duration: 5000
+        });
+      }
+      if (window.LqdEvents) window.LqdEvents.emit('index:built', { ok: false, error: r2.error });
     }
     setButtonsDisabled(false);
   }

@@ -63,16 +63,48 @@
   function appendMessageBubble(role, text, container) {
     var el = document.createElement('div');
     el.className = 'lqd-chat-message ' + role;
+    el.setAttribute('data-role', role);
     if (role === 'assistant') {
       // 流式期间标记 busy,供屏幕阅读器播报(工作流 G)
       el.setAttribute('aria-busy', 'true');
-      el.innerHTML = '<div class="lqd-chat-msg-content">' + text + '</div>';
+      el.innerHTML = '<div class="lqd-chat-msg-content">' + text + '</div>' +
+        '<div class="lqd-chat-msg-actions" hidden>' +
+          '<button class="lqd-msg-action lqd-msg-copy" type="button" title="复制回答">' +
+            (window.LqdIcons ? window.LqdIcons.icon('copy') : '复制') +
+          '</button>' +
+          '<button class="lqd-msg-action lqd-msg-regen" type="button" title="重新生成">' +
+            (window.LqdIcons ? window.LqdIcons.icon('refresh') : '重试') +
+          '</button>' +
+        '</div>';
     } else {
       el.textContent = text;
+      el.innerHTML = '<span class="lqd-chat-msg-text">' + escHtml(text) + '</span>' +
+        '<div class="lqd-chat-msg-actions" hidden>' +
+          '<button class="lqd-msg-action lqd-msg-copy" type="button" title="复制">' +
+            (window.LqdIcons ? window.LqdIcons.icon('copy') : '复制') +
+          '</button>' +
+        '</div>';
     }
     container.appendChild(el);
     container.scrollTop = container.scrollHeight;
+    // 悬浮显示操作条
+    if (window.LqdChatMessages && typeof window.LqdChatMessages.attachHoverActions === 'function') {
+      window.LqdChatMessages.attachHoverActions(el);
+    }
     return role === 'assistant' ? el.querySelector('.lqd-chat-msg-content') : el;
+  }
+
+  // 消息悬浮操作条:鼠标移入消息显示复制/重新生成
+  function attachHoverActions(el) {
+    if (!el || !el.classList || !el.classList.contains('lqd-chat-message')) return;
+    var actionsEl = el.querySelector('.lqd-chat-msg-actions');
+    if (!actionsEl) return;
+    el.addEventListener('mouseenter', function () { actionsEl.hidden = false; });
+    el.addEventListener('mouseleave', function () { actionsEl.hidden = true; });
+    el.addEventListener('focusin', function () { actionsEl.hidden = false; });
+    el.addEventListener('focusout', function (e) {
+      if (!el.contains(e.relatedTarget)) actionsEl.hidden = true;
+    });
   }
 
   function setBusy(busy, sendBtn, composerInput) {
@@ -121,6 +153,7 @@
     renderToolTrail: renderToolTrail,
     renderThinkingAndText: renderThinkingAndText,
     appendMessageBubble: appendMessageBubble,
+    attachHoverActions: attachHoverActions,
     setBusy: setBusy,
     reRenderKatex: reRenderKatex,
     hideEmpty: hideEmpty,

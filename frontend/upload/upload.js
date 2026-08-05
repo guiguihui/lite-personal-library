@@ -456,9 +456,20 @@
     }).join('');
   }
 
+  // P3-18: 接收聊天区拖入的文件,直接入队(不经 dropzone)
+  function handleDropped(files) {
+    if (!files || !files.length) return;
+    handleFiles(files, null);
+    // 打开上传页展示队列
+    if (window.LqdTabs) {
+      window.LqdTabs.open({ type: 'upload', title: '上传' });
+    }
+  }
+
   window.YuuUpload = {
     init: init,
     renderQueue: renderQueue,
-    clearDone: clearDone
+    clearDone: clearDone,
+    handleDropped: handleDropped
   };
 })();

@@ -280,19 +280,48 @@
   async function* streamText(opts) {
     var useProxy = window.LqdSettings && window.LqdSettings.get('use_llm_proxy');
     if (window.LQD_DEBUG_SSE) console.log('[SSE] streamText start', { useProxy: useProxy, thinking: !!opts.thinking, protocol: opts.protocol, provider: opts.provider, hasTools: !!(opts.tools && opts.tools.length) });
+    // 可取消:opts.signal 为 AbortSignal,中止时抛 AbortError 让生成方捕获
+    var signal = opts.signal || null;
+    var abortErr = function () {
+      var e = new Error('generation aborted');
+      e.name = 'AbortError';
+      return e;
+    };
+    if (signal && signal.aborted) throw abortErr();
     if (useProxy) {
       var BASE = (window.LQD_CHAT_BASE || '').replace(/\/+$/, '');
       var resp = await fetch(BASE + '/api/llm/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: buildProxyBody(opts)
+        body: buildProxyBody(opts),
+        signal: signal || undefined
       });
       if (window.LQD_DEBUG_SSE) console.log('[SSE] proxy resp', { ok: resp.ok, status: resp.status });
+      if (signal) {
+        // 中止时让 readSSE 提前退出
+        var inner = readSSE(resp);
+        var abortHandler = function () {
+          try { if (inner && inner.return) inner.return(); } catch (_) {}
+        };
+        signal.addEventListener('abort', abortHandler, { once: true });
+        try {
+          yield* inner;
+        } finally {
+          signal.removeEventListener('abort', abortHandler);
+        }
+        return;
+      }
       yield* readSSE(resp);
       return;
     }
     var req = buildRequest(opts);
-    var resp2 = await fetch(req.url, { method: 'POST', headers: req.headers, body: req.body });
+    var ctrl = signal ? null : new AbortController();
+    var resp2 = await fetch(req.url, {
+      method: 'POST',
+      headers: req.headers,
+      body: req.body,
+      signal: signal || (ctrl ? ctrl.signal : undefined)
+    });
     yield* readSSE(resp2);
   }
 

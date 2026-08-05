@@ -29,6 +29,8 @@
   var mdCache = {};
   // get_section 的 V3 快路径缓存:sourceId(和 docId:nodeId 键)→ context(含 sourceMd/lineNum/lineEnd)
   var sectionCache = {};
+  // P1-7: 会话级"上次检索上下文",用于追问感知(代词/范围延续)
+  var lastContexts = [];
 
   var MAX_SECTION_CHARS = 2500;
 
@@ -49,9 +51,42 @@
     indexReady = true;
   }
 
+  // ── 检索来源范围(Codex 式上下文范围) ──
+  // 会话级设置:books/papers/notes/local 任一组合;空=全部。
+  // 存 localStorage(按 active tab 共享),改变时发 chat:scope:changed 事件。
+  var SCOPE_KEY = 'lqd_chat_scope';
+  function getSearchScope() {
+    try {
+      var raw = localStorage.getItem(SCOPE_KEY);
+      if (!raw) return { books: true, papers: true, notes: true, local: true };
+      var obj = JSON.parse(raw);
+      return Object.assign({ books: true, papers: true, notes: true, local: true }, obj);
+    } catch (_) {
+      return { books: true, papers: true, notes: true, local: true };
+    }
+  }
+  function setSearchScope(scope) {
+    try { localStorage.setItem(SCOPE_KEY, JSON.stringify(scope)); } catch (_) {}
+    if (window.LqdEvents) window.LqdEvents.emit('chat:scope:changed', { scope: scope });
+    return scope;
+  }
+  function scopeDocTypes(scope) {
+    var out = [];
+    if (scope.books) out.push('books');
+    if (scope.papers) out.push('papers');
+    if (scope.notes) out.push('notes');
+    return out;
+  }
+
   // ── 后端检索(V3 优先 / legacy 回退,双轨都由 /api/search 封装)─────────────
   async function searchLibrary(query, topK) {
     var url = BASE + '/api/search?q=' + encodeURIComponent(query) + '&limit=' + (topK || 12);
+    // 来源范围过滤:books/papers/notes(本机文件检索独立走 /api/filesearch)
+    var scope = getSearchScope();
+    var types = scopeDocTypes(scope);
+    if (types.length && types.length < 3) {
+      url += '&doc_types=' + encodeURIComponent(types.join(','));
+    }
     var response = await fetch(url);
     if (!response.ok) throw new Error('HTTP ' + response.status);
     var payload = await response.json();
@@ -168,8 +203,27 @@
 
   // 检索:走后端 /api/search,不再浏览器内跑 YuuRetrieval 多路检索。
   // 保留 mmrSelect 去冗余(后端顺序 + 同义相似度去重),其余精排由后端完成。
+  // P1-7 追问感知:若新查询含代词("它/这个/那/他们/该/其")或很短,自动拼接
+  // 上次检索的文档名,让后端能命中延续的话题。
+  function buildFollowupQuery(query) {
+    var q = String(query || '').trim();
+    var pronoun = /(它|它们|他|他们|她|这个|那个|这些|那些|该|其|上面|上述|这)/.test(q);
+    var short = q.length <= 8;
+    if (!lastContexts.length) return q;
+    if (!pronoun && !short) return q;
+    // 收集上次命中的文档标题(去重,最多 3)
+    var seen = {}, names = [];
+    for (var i = 0; i < lastContexts.length; i++) {
+      var t = lastContexts[i].docTitle;
+      if (t && !seen[t]) { seen[t] = true; names.push(t); }
+      if (names.length >= 3) break;
+    }
+    if (!names.length) return q;
+    return q + ' (' + names.join(' ') + ')';
+  }
+
   async function retrieveContext(query) {
-    var results = await searchLibrary(query, 12);
+    var results = await searchLibrary(buildFollowupQuery(query), 12);
     if (!results || !results.length) {
       return { contexts: [], docCount: 0, thin: true, confidence: 'low', hits: [] };
     }
@@ -276,6 +330,26 @@
     }
     if (!out) out = text.slice(0, maxChars);
     return out + '\n\n…[已按语义边界截断，可追问获取完整内容]…';
+  }
+
+  // P1-9: 从低置信检索生成 2-3 个追问建议(换角度 / 更具体 / 引向相邻章节)
+  function buildFollowUps(query, contexts) {
+    var docs = [];
+    var seen = {};
+    for (var i = 0; i < contexts.length; i++) {
+      var t = contexts[i].docTitle;
+      if (t && !seen[t]) { seen[t] = true; docs.push(t); }
+      if (docs.length >= 2) break;
+    }
+    var q = String(query || '').slice(0, 40);
+    var out = [];
+    if (docs.length) {
+      out.push('深入讲讲「' + docs[0] + '」里的相关内容');
+      if (docs[1]) out.push('「' + docs[1] + '」和这个问题有什么关系？');
+    }
+    out.push('换个角度：用更具体的术语重新描述这个问题');
+    if (out.length < 3) out.push('这个问题还能从哪些文档里找到依据？');
+    return out.slice(0, 3);
   }
 
   function buildSystemPrompt(contexts, thin, confidence) {
@@ -404,7 +478,13 @@
     var result = await retrieveContext(query);
     var confidence = result.confidence;
     var contexts = result.contexts;
-    if (!contexts.length) return { text: '未找到相关内容。', contexts: [], confidence: confidence };
+    // P1-10: 无结果时给具体恢复指引(Codex 式)
+    if (!contexts.length) {
+      return {
+        text: '未找到相关内容。\n\n排查建议：\n- 换更简洁的关键词重试(用文档中可能出现的原词)\n- 检查检索范围(输入框左侧 ⊚ 图标):确认书籍/论文/笔记已勾选\n- 若文档是最近上传,可能需先重建索引(侧栏→索引管理→重建索引)',
+        contexts: [], confidence: confidence
+      };
+    }
     if (budgetCtx) {
       contexts = packWithContextBudget(contexts, budgetCtx.historyTokens || 0, budgetCtx.systemTokens || 0);
     }
@@ -731,6 +811,7 @@
     var messagesEl = refs.messagesEl;
     var composerInput = refs.composerInput;
     var sendBtn = refs.sendBtn;
+    var stopBtn = refs.stopBtn;
 
     await window.LqdSettings.load();
     var apiKey = await window.LqdSettings.fetchApiKey();
@@ -741,6 +822,12 @@
       window.LqdChatMessages.appendMessageBubble('assistant', '请先前往「配置」页设置 LLM API Key。', messagesEl);
       return;
     }
+
+    // 停止生成:AbortController,中止时所有进行中的流抛 AbortError
+    var abortCtrl = new AbortController();
+    var aborted = false;
+    function onAbort() { aborted = true; }
+    abortCtrl.signal.addEventListener('abort', onAbort);
 
     window.LqdChatMessages.hideEmpty(refs.emptyEl, messagesEl);
     window.LqdChatMessages.appendMessageBubble('user', query, messagesEl);
@@ -755,6 +842,12 @@
 
     var contentEl = window.LqdChatMessages.appendMessageBubble('assistant', '', messagesEl);
     window.LqdChatMessages.setBusy(true, sendBtn, composerInput);
+
+    // 显示停止按钮,绑定点击 → 中止生成
+    if (stopBtn) {
+      stopBtn.hidden = false;
+      stopBtn.onclick = function () { abortCtrl.abort(); };
+    }
 
     // 挂载纯 CSS 思考器动画 (持续显示,不随 innerHTML 重建而中断)
     showThinker(contentEl, 'working');
@@ -773,6 +866,7 @@
     var finalText = '';
     var finalThinking = '';
     var didSearch = false;
+    var confidenceLow = false; // P1-9: 低置信触发追问建议
     var allContexts = [];
     var seenSourceIds = new Set();
     var toolTrail = [];
@@ -788,6 +882,7 @@
     try {
       var agentStart = Date.now();
       for (var loop = 0; loop < MAX_LOOPS; loop++) {
+        if (aborted) break;
         if (Date.now() - agentStart > 120000) {
           contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(
             finalThinking, '<em>检索超时，正在用已获取的内容生成回答……</em>', toolTrail
@@ -810,42 +905,47 @@
           messages: messages,
           tools: LIBRARY_TOOLS,
           thinking: thinkingOn,
-          maxTokens: thinkingOn ? 8192 : 4096
+          maxTokens: thinkingOn ? 8192 : 4096,
+          signal: abortCtrl.signal
         });
 
         var _dbg = window.LQD_DEBUG_SSE;
         var _recv = _dbg ? { thinking: 0, text: 0, tool_calls: 0, stop: 0 } : null;
-        for await (var chunk of stream) {
-          if (_dbg) {
-            if (chunk.type === 'thinking') _recv.thinking++;
-            else if (chunk.type === 'text') _recv.text++;
-            else if (chunk.type === 'tool_calls') _recv.tool_calls++;
-            else if (chunk.type === 'stop') _recv.stop++;
+        try {
+          for await (var chunk of stream) {
+            if (aborted) break;
+            if (_dbg) {
+              if (chunk.type === 'thinking') _recv.thinking++;
+              else if (chunk.type === 'text') _recv.text++;
+              else if (chunk.type === 'tool_calls') _recv.tool_calls++;
+              else if (chunk.type === 'stop') _recv.stop++;
+            }
+            if (chunk.type === 'thinking') {
+              roundThinking += chunk.text;
+              finalThinking += chunk.text;
+              updateContentPreservingThinker(contentEl, finalThinking, roundText, toolTrail);
+            } else if (chunk.type === 'text') {
+              roundText += chunk.text;
+              finalText = roundText;
+              // 有文本输出时移除思考器(淡出)
+              hideThinker(contentEl);
+              updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
+              window.LqdChatMessages.reRenderKatex(contentEl);
+            } else if (chunk.type === 'tool_calls') {
+              toolCalls = chunk.calls;
+            } else if (chunk.type === 'stop') {
+              stopReason = chunk.reason;
+            }
+            messagesEl.scrollTop = messagesEl.scrollHeight;
           }
-          if (chunk.type === 'thinking') {
-            roundThinking += chunk.text;
-            finalThinking += chunk.text;
-            updateContentPreservingThinker(contentEl, finalThinking, roundText, toolTrail);
-          } else if (chunk.type === 'text') {
-            roundText += chunk.text;
-            finalText = roundText;
-            // 有文本输出时移除思考器(淡出)
-            hideThinker(contentEl);
-            updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
-            window.LqdChatMessages.reRenderKatex(contentEl);
-          } else if (chunk.type === 'tool_calls') {
-            toolCalls = chunk.calls;
-          } else if (chunk.type === 'stop') {
-            stopReason = chunk.reason;
-          }
-          messagesEl.scrollTop = messagesEl.scrollHeight;
+        } catch (streamErr) {
+          if (aborted) break;
+          throw streamErr;
         }
         if (_dbg) console.log('[AGENT] loop', loop, 'recv', _recv, 'roundThinking.len', roundThinking.length, 'finalThinking.len', finalThinking.length, 'toolCalls', toolCalls);
+        if (aborted) break;
 
         // 没有工具调用 → 本轮是最终回答，退出循环
-        // 注意:不能依赖 stopReason 值——Anthropic 协议 stop_reason 是 "tool_use"
-        // (且 tool_use 时 readSSE 只 yield tool_calls 不 yield stop,stopReason 保持 null),
-        // OpenAI 协议 finish_reason 是 "tool_calls"。两者值不同,统一用 toolCalls 是否存在判断。
         if (!toolCalls || !toolCalls.length) break;
 
         messages.push({
@@ -924,6 +1024,8 @@
             }
           }
         }
+        // P1-9: 记录低置信(追问建议触发条件)
+        if (forced.confidence === 'low') confidenceLow = true;
 
         // 强制检索:同时检索本机文件
         toolTrail.push(
@@ -1009,7 +1111,7 @@
         if (allContexts.length) {
           finalText = '已检索到相关内容，但未能生成回答。请尝试换个问法重试。';
         } else {
-          finalText = '未找到相关内容。可以在书架中浏览，或换关键词重试。';
+          finalText = '未找到相关内容。\n\n排查建议：\n- 换更简洁的关键词重试(用文档中可能出现的原词)\n- 检查检索范围(输入框左侧 ⊚ 图标):确认书籍/论文/笔记已勾选\n- 若文档是最近上传,可能需先重建索引(侧栏→索引管理→重建索引)';
         }
         contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail);
         window.LqdChatMessages.reRenderKatex(contentEl);
@@ -1029,6 +1131,29 @@
         citationsHtml = window.LqdChatCitations.renderCitations(allContexts);
       }
 
+      if (aborted) {
+        // 用户主动停止:保留已生成的部分回答,标注已停止
+        if (finalText && finalText.trim()) {
+          finalText += '\n\n> ⏹️ 已停止生成(部分内容已保留)';
+        } else {
+          finalText = '已停止生成。';
+        }
+        if (window.LqdToast) {
+          window.LqdToast.show({ type: 'info', message: '已停止生成', duration: 2000 });
+        }
+      }
+
+      // P1-9: 低置信时追加追问建议(Codex 式 follow-up chips)
+      var followUpsHtml = '';
+      if (allContexts.length && confidenceLow) {
+        var fu = buildFollowUps(query, allContexts);
+        if (fu.length) {
+          followUpsHtml = '<div class="lqd-chat-followups">' +
+            fu.map(function (q) { return '<button class="lqd-chat-followup" data-q="' + window.LqdChatCitations.escHtml(q) + '">' + window.LqdChatCitations.escHtml(q) + '</button>'; }).join('') +
+            '</div>';
+        }
+      }
+
       if (debugOn && allContexts.length) {
         var debugHits = allContexts.slice(0, 12).map(function (c, i) {
           return {
@@ -1039,35 +1164,69 @@
         contentEl.innerHTML =
           window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail) +
           citationsHtml +
+          followUpsHtml +
           window.LqdChatCitations.renderDebugCard(debugHits, allContexts.slice(0, 8), systemPrompt, 'agent');
       } else {
-        contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail) + citationsHtml;
+        contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail) + citationsHtml + followUpsHtml;
       }
       window.LqdChatMessages.reRenderKatex(contentEl);
+      // 绑定追问 chip 点击 → 自动发送
+      if (followUpsHtml) {
+        var fuEls = contentEl.querySelectorAll('.lqd-chat-followup');
+        for (var fi = 0; fi < fuEls.length; fi++) {
+          (function (btn) {
+            btn.addEventListener('click', function () {
+              var q = btn.getAttribute('data-q');
+              if (!q) return;
+              if (composerInput) {
+                composerInput.value = q;
+                composerInput.dispatchEvent(new Event('input'));
+                window.LqdChatComposer.focus(composerInput);
+                composerInput.setSelectionRange(q.length, q.length);
+              }
+            });
+          })(fuEls[fi]);
+        }
+      }
 
       // 存消息时把引用卡片 HTML 一并存入(citations 字段),
       // 供切回标签重渲染时恢复流式输出时的"正文 + 参考来源"完整结构。
       window.LqdChatSession.appendToCurrent('assistant', finalText, { citations: citationsHtml });
       emitContext(allContexts);
+      // P1-7: 记录本次检索上下文供追问感知
+      lastContexts = allContexts.slice();
       if (window.LqdEvents) {
         window.LqdEvents.emit('chat:message', { role: 'assistant', content: finalText });
       }
     } catch (e) {
-      // 打印完整堆栈到 console(F12 可见)——此前只显示 e.message,
-      // "Cannot read properties of undefined" 类错误无法定位源头,每次修都靠猜。
-      if (window.LqdErrors) window.LqdErrors.report(e, 'sendMessage');
-      var stackHtml = '';
-      if (e && e.stack) {
-        stackHtml = '<details class="lqd-error-stack"><summary>错误堆栈(排查用)</summary><pre>' +
-          window.LqdChatCitations.escHtml(e.stack) + '</pre></details>';
+      // 用户主动停止:不当作错误展示
+      if (aborted) {
+        if (!finalText || !finalText.trim()) finalText = '已停止生成。';
+        if (window.LqdToast) {
+          window.LqdToast.show({ type: 'info', message: '已停止生成', duration: 2000 });
+        }
+      } else {
+        // 打印完整堆栈到 console(F12 可见)——此前只显示 e.message,
+        // "Cannot read properties of undefined" 类错误无法定位源头,每次修都靠猜。
+        if (window.LqdErrors) window.LqdErrors.report(e, 'sendMessage');
+        var stackHtml = '';
+        if (e && e.stack) {
+          stackHtml = '<details class="lqd-error-stack"><summary>错误堆栈(排查用)</summary><pre>' +
+            window.LqdChatCitations.escHtml(e.stack) + '</pre></details>';
+        }
+        contentEl.innerHTML += '<br><span style="color:#dc2626">错误: ' +
+          window.LqdChatCitations.escHtml(e && e.message ? e.message : String(e)) + '</span>' + stackHtml;
       }
-      contentEl.innerHTML += '<br><span style="color:#dc2626">错误: ' +
-        window.LqdChatCitations.escHtml(e && e.message ? e.message : String(e)) + '</span>' + stackHtml;
     }
     // 流式结束,移除 busy 标记(工作流 G)
     var bubble = contentEl.parentNode;
     if (bubble) bubble.removeAttribute('aria-busy');
     window.LqdChatMessages.setBusy(false, sendBtn, composerInput);
+    // 隐藏停止按钮
+    if (stopBtn) {
+      stopBtn.hidden = true;
+      stopBtn.onclick = null;
+    }
   }
 
   window.LqdChatAgent = {
@@ -1081,6 +1240,9 @@
     buildAgentSystemPrompt: buildAgentSystemPrompt,
     sendMessage: sendMessage,
     debugEnabled: debugEnabled,
-    thinkingEnabled: thinkingEnabled
+    thinkingEnabled: thinkingEnabled,
+    getSearchScope: getSearchScope,
+    setSearchScope: setSearchScope,
+    scopeDocTypes: scopeDocTypes
   };
 })();

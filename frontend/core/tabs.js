@@ -200,7 +200,8 @@
     }
 
     // Singleton 标签:同类型只允许一个,已存在则激活复用
-    var SINGLETON_TYPES = { chat: true };
+    // (chat 除外——Codex 式多会话,每个 chat 标签独立会话,见 P0-4)
+    var SINGLETON_TYPES = {};
     if (SINGLETON_TYPES[type]) {
       var existingTabs = getTabs();
       for (var i = 0; i < existingTabs.length; i++) {

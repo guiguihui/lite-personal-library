@@ -703,6 +703,16 @@
     // 侧栏拖拽伸缩
     initSidebarResize();
 
+    // P3-17: 全局快捷键 Ctrl+Shift+F → 打开全局搜索
+    document.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'F' || e.key === 'f')) {
+        e.preventDefault();
+        if (window.LqdSearch && typeof window.LqdSearch.open === 'function') {
+          window.LqdSearch.open('');
+        }
+      }
+    });
+
     // 渲染 Activity Bar(隐藏)与 Codex 侧栏
     renderActivityBar();
     renderSidebarChrome();

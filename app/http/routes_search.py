@@ -193,22 +193,36 @@ async def search(
     request: Request,
     q: str = Query(..., min_length=1, description="搜索关键词"),
     limit: int = Query(20, ge=1, le=100, description="返回结果数上限"),
+    doc_types: str = Query("", description="逗号分隔的文档类型过滤(books,papers,notes)。空=全部"),
 ) -> SearchResponse:
     """多路检索 API(双轨)。
 
     V3 优先;V3 指针存在但校验/打开失败时返回 HTTP 503;V3 指针缺失时
     回退 legacy Python 检索。
+    doc_types: 按复数类型(books/papers/notes)过滤,空串不过滤。
     """
     cfg = request.app.state.app_config
     pageindex_dir = cfg.pageindex_dir
 
+    # 解析 doc_types 过滤
+    allowed = {t.strip().lower() for t in doc_types.split(",") if t.strip()}
+    def filter_results(results: list[SearchResultItem]) -> list[SearchResultItem]:
+        if not allowed:
+            return results
+        # doc_type 可能单数或复数,统一归一化比较
+        norm = {"book": "books", "paper": "papers", "note": "notes"}
+        out = []
+        for r in results:
+            t = norm.get((r.doc_type or "").lower(), (r.doc_type or "").lower())
+            if t in allowed:
+                out.append(r)
+        return out
+
     if not (Path(pageindex_dir) / CURRENT_POINTER).is_file():
         # V3 未发布 → legacy 回退(兼容面,行为与 LQ-D-desktop 一致)。
         # 用 run_in_threadpool 避免同步读取 chunks.json(~26MB)阻塞事件循环。
-        return SearchResponse(
-            query=q,
-            results=await run_in_threadpool(_search_legacy, request, cfg, q, limit),
-        )
+        legacy = await run_in_threadpool(_search_legacy, request, cfg, q, limit)
+        return SearchResponse(query=q, results=filter_results(legacy))
 
     try:
         hits = await run_in_threadpool(_search_v3, pageindex_dir, q, limit)
@@ -218,5 +232,5 @@ async def search(
             detail=f"PageIndex V3 search unavailable: {type(exc).__name__}: {exc}",
         ) from exc
 
-    results = [_hit_to_result(h) for h in hits]
+    results = filter_results([_hit_to_result(h) for h in hits])
     return SearchResponse(query=q, results=results)

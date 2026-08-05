@@ -423,6 +423,31 @@
   text-transform: lowercase;
   color: rgba(255, 255, 255, 0.55);
 }
+.reader-content .lqd-codebox-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  margin-left: auto;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-fluid),
+              background var(--dur-fast) var(--ease-fluid),
+              color var(--dur-fast) var(--ease-fluid);
+}
+.reader-content .lqd-codebox:hover .lqd-codebox-copy,
+.reader-content .lqd-codebox-copy:focus-visible { opacity: 1; }
+.reader-content .lqd-codebox-copy:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.reader-content .lqd-codebox-copy.is-copied { color: #28c840; }
+.reader-content .lqd-codebox-copy.is-error { color: #ff5f57; }
 .reader-content .lqd-codebox pre.hljs {
   margin: 0;
   padding: var(--space-3) var(--space-4);

@@ -121,6 +121,53 @@
       .replace(/"/g, '&quot;');
   }
 
+  // 代码复制:base64 编码原始代码(unicode 安全),挂在 .lqd-codebox[data-code] 上,
+  // 点击 .lqd-codebox-copy 时解码写剪贴板。
+  function _b64encode(s) {
+    try {
+      return btoa(unescape(encodeURIComponent(String(s))));
+    } catch (_) {
+      return btoa(String(s));
+    }
+  }
+  function _b64decode(s) {
+    try {
+      return decodeURIComponent(escape(atob(String(s))));
+    } catch (_) {
+      return atob(String(s));
+    }
+  }
+
+  // 全局委托:点击代码框复制按钮 → 复制该块代码
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('.lqd-codebox-copy') : null;
+    if (!btn) return;
+    var box = btn.closest('.lqd-codebox');
+    if (!box) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var code = box.getAttribute('data-code') ? _b64decode(box.getAttribute('data-code')) : (box.querySelector('code') || {}).textContent || '';
+    function done(ok) {
+      var orig = btn.innerHTML;
+      btn.innerHTML = ok ? '✓' : '✕';
+      btn.classList.add(ok ? 'is-copied' : 'is-error');
+      setTimeout(function () { btn.innerHTML = orig; btn.classList.remove('is-copied', 'is-error'); }, 1400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(function () { done(true); }, function () { done(false); });
+    } else {
+      // 降级:textarea 选中复制
+      var ta = document.createElement('textarea');
+      ta.value = code;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { done(document.execCommand('copy')); } catch (_) { done(false); }
+      document.body.removeChild(ta);
+    }
+  }, true);
+
   /**
    * 渲染 markdown 为 HTML。
    * @param {string} text markdown 原文
@@ -187,18 +234,26 @@
         var header = '<div class="lqd-codebox-bar">' +
           '<span class="lqd-codebox-dots"><i></i><i></i><i></i></span>' +
           '<span class="lqd-codebox-lang">' + _escHtml(langLabel) + '</span>' +
+          '<button class="lqd-codebox-copy" type="button" title="复制代码">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+          '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+          '</button>' +
           '</div>';
+        var codeHtml;
         if (typeof hljs !== 'undefined' && lang && hljs.getLanguage(lang)) {
           try {
-            var highlighted = hljs.highlight(codeText, { language: lang }).value;
-            return '<div class="lqd-codebox">' + header +
-              '<pre class="hljs"><code class="language-' + lang + '">' + highlighted + '</code></pre>' +
-              '</div>';
-          } catch (_) { /* fall through */ }
+            codeHtml = hljs.highlight(codeText, { language: lang }).value;
+          } catch (_) {
+            codeHtml = _escHtml(codeText);
+          }
+        } else {
+          // 无语言或高亮失败:仍加 hljs 类以便 CSS 统一背景
+          codeHtml = _escHtml(codeText);
         }
-        // 无语言或高亮失败:仍加 hljs 类以便 CSS 统一背景
-        return '<div class="lqd-codebox">' + header +
-          '<pre class="hljs"><code>' + _escHtml(codeText) + '</code></pre>' +
+        // 编码原始代码供复制按钮读取(文本节点,避免 HTML 转义问题)
+        var encoded = _b64encode(codeText);
+        return '<div class="lqd-codebox" data-code="' + encoded + '">' + header +
+          '<pre class="hljs"><code class="language-' + lang + '">' + codeHtml + '</code></pre>' +
           '</div>';
       };
       marked.setOptions({ renderer: renderer, breaks: false, gfm: true });

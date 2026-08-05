@@ -44,6 +44,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── 全局交互动画一致性 ──
+   所有可点元素 hover 微反馈用统一 easing;主题切换过渡平滑。 */
+button, a, [role="button"], input, select, textarea {
+  transition-timing-function: var(--ease-fluid, cubic-bezier(0.16, 1, 0.3, 1));
+}
+/* 键盘可访问性:统一的 focus-visible 光环 */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--tint-blue, #3b82f6) 70%, transparent);
+  outline-offset: 2px;
+}
+
 /* ── prefers-reduced-motion 全局兜底 ──
    无限循环/视差/滚动劫持降为静态。 */
 @media (prefers-reduced-motion: reduce) {

@@ -39,6 +39,19 @@
       '<div class="lqd-empty">拖拽或选择文件开始入库</div>';
   }
 
+  // P3-18: 对外暴露"接收拖入文件" — 聊天区拖拽文件时调用
+  function addFiles(files) {
+    if (!files || !files.length) return;
+    if (window.YuuUpload && typeof window.YuuUpload.handleDropped === 'function') {
+      window.YuuUpload.handleDropped(files);
+      return;
+    }
+    // 兜底:打开上传页由用户手动选
+    if (window.LqdTabs) {
+      window.LqdTabs.open({ type: 'upload', title: '上传' });
+    }
+  }
+
   var LqdUpload = {
     type: 'upload',
     getTitle: getTitle,
@@ -46,7 +59,8 @@
     mount: mount,
     unmount: unmount,
     renderSidebar: renderSidebar,
-    renderOverview: renderOverview
+    renderOverview: renderOverview,
+    addFiles: addFiles
   };
 
   window.LqdUpload = LqdUpload;
