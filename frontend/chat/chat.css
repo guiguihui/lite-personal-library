@@ -51,7 +51,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 14px;
+  padding: 6px 14px 6px 8px;
   border-radius: var(--radius-pill);
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -65,22 +65,16 @@
   animation: lqd-thinker-fade-out 0.25s var(--ease-fluid) forwards;
 }
 
-/* 三个圆点:依次弹跳,错峰延迟 */
-.lqd-thinker-dots {
-  display: inline-flex;
+/* thinking-orbs 画布容器 */
+.lqd-thinker-orb-wrap {
+  display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   flex-shrink: 0;
 }
-.lqd-thinker-dots i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--tint-blue);
-  animation: lqd-dot-bounce2 1.2s var(--ease-fluid) infinite;
+.lqd-thinker-orb-wrap canvas {
+  display: block;
 }
-.lqd-thinker-dots i:nth-child(2) { animation-delay: 0.15s; }
-.lqd-thinker-dots i:nth-child(3) { animation-delay: 0.3s; }
 
 /* 状态文字:柔和明暗呼吸 */
 .lqd-thinker-label {
@@ -94,7 +88,8 @@
 /* 隐藏旧的多层轨道元素 (兼容已有 DOM) */
 .lqd-thinker-ring,
 .lqd-thinker-core,
-.lqd-thinker-orb {
+.lqd-thinker-orb,
+.lqd-thinker-dots {
   display: none;
 }
 
@@ -918,19 +913,38 @@
 }
 
 .lqd-tool-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  background: var(--accent-bg);
-  border-left: 2px solid var(--fg-tertiary);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--glass-border);
   color: var(--fg-primary);
-  animation: lqd-tool-in 0.2s ease-out;
+  animation: lqd-tool-in 0.2s var(--ease-fluid);
 }
+
+/* 检索步骤中的 mini thinking-orbs 画布 */
+.lqd-tool-orb-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.lqd-tool-orb-wrap canvas { display: block; }
 
 .lqd-tool-step code {
   background: var(--bg-tertiary);
   padding: 1px 4px;
   border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 检索步骤中的纯 CSS 旋转动画占位符 (替代 canvas orb) */
