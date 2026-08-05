@@ -7,10 +7,86 @@
 .lqd-backlinks button, .lqd-graph-fallback button { border: 0; background: none; color: inherit; cursor: pointer; padding: 0; text-align: left; }
 .lqd-backlinks p, .lqd-knowledge-empty { margin: 5px 0 0; color: var(--fg-secondary, #777); font-size: 12px; }
 .lqd-local-graph svg { width: 100%; min-height: 220px; overflow: visible; }
-.lqd-graph-edge { stroke: var(--border-strong, #aaa); stroke-width: 1; opacity: .7; }
+
+/* ── 局部图谱:光效 + 呼吸动画 ── */
+.lqd-graph-edge { fill: none; }
+.lqd-graph-edge--base {
+  stroke: url(#lqd-graph-edge-grad);
+  stroke-width: 1.2;
+  opacity: .55;
+}
+.lqd-graph-arrow { fill: var(--tint-purple, #8b5cf6); stroke: none; opacity: .7; }
+/* 能量流动光点:沿边移动的虚线光斑,逐边错峰 */
+.lqd-graph-edge--pulse {
+  stroke: var(--tint-blue, #3b82f6);
+  stroke-width: 2.2;
+  opacity: 0;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px var(--tint-blue, #3b82f6));
+  animation: lqd-graph-flow 3.6s linear infinite;
+}
+@keyframes lqd-graph-flow {
+  0% { stroke-dashoffset: 96; opacity: 0; }
+  8% { opacity: .9; }
+  85% { opacity: .7; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
 .lqd-graph-node { cursor: pointer; outline: none; }
-.lqd-graph-node circle { fill: #64748b; }
-.lqd-graph-node.book circle { fill: #2563eb; } .lqd-graph-node.paper circle { fill: #7c3aed; } .lqd-graph-node.note circle { fill: #059669; }
+/* 节点主体色:书蓝 / 论文紫 / 笔记绿,其余灰 */
+.lqd-graph-node { --node-color: #64748b; }
+.lqd-graph-node.book { --node-color: #2563eb; }
+.lqd-graph-node.paper { --node-color: #7c3aed; }
+.lqd-graph-node.note { --node-color: #059669; }
+:root[data-effective-theme="dark"] .lqd-graph-node.book { --node-color: #60a5fa; }
+:root[data-effective-theme="dark"] .lqd-graph-node.paper { --node-color: #a78bfa; }
+:root[data-effective-theme="dark"] .lqd-graph-node.note { --node-color: #34d399; }
+
+/* 光晕:径向渐变由中心向外消隐,呼吸缩放 */
+.lqd-graph-halo {
+  fill: url(#lqd-graph-halo-grad);
+  color: var(--node-color);
+  pointer-events: none;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: lqd-graph-breathe 3.2s var(--ease-fluid, ease-in-out) infinite;
+}
+@keyframes lqd-graph-breathe {
+  0%, 100% { opacity: .55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.18); }
+}
+
+/* 中心节点:扩散脉冲环,一层层向外荡开 */
+.lqd-graph-ring {
+  fill: none;
+  stroke: var(--node-color);
+  stroke-width: 1.5;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: lqd-graph-ring 3.2s var(--ease-fluid, ease-out) infinite;
+}
+@keyframes lqd-graph-ring {
+  0% { opacity: .7; transform: scale(1); }
+  70% { opacity: 0; transform: scale(2.1); }
+  100% { opacity: 0; transform: scale(2.1); }
+}
+
+/* 主体圆点 */
+.lqd-graph-dot { fill: var(--node-color); }
+.lqd-graph-node.is-center .lqd-graph-dot {
+  stroke: color-mix(in srgb, var(--node-color) 40%, white);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 5px var(--node-color));
+}
+.lqd-graph-node:hover .lqd-graph-dot {
+  filter: drop-shadow(0 0 6px var(--node-color));
+}
+.lqd-graph-node:focus-visible .lqd-graph-dot {
+  filter: drop-shadow(0 0 7px var(--node-color));
+  stroke: #fff;
+  stroke-width: 1.5;
+}
 .lqd-graph-node text { fill: var(--fg-primary, #222); font-size: 10px; max-width: 90px; }
+.lqd-graph-node:hover text { fill: var(--node-color); transition: fill .2s; }
 .lqd-link-popover { position: fixed; z-index: 10000; width: 310px; max-height: 260px; overflow: auto; padding: 12px; border: 1px solid var(--border, #ccc); border-radius: 8px; background: var(--bg-primary, white); color: var(--fg-primary, #222); box-shadow: 0 10px 35px rgba(0,0,0,.18); }
 .lqd-link-popover-meta { margin: 4px 0 8px; color: var(--fg-secondary, #777); font-size: 12px; }
