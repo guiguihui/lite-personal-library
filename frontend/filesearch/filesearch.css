@@ -177,7 +177,7 @@
   text-align: right;
   color: var(--fg-tertiary);
   opacity: 0.5;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   margin-right: 4px;
 }
 .lqd-build-log-line--start { color: var(--accent); font-weight: 500; }

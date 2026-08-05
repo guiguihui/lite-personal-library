@@ -18,13 +18,15 @@
 .manage-section h2 {
   font-size: var(--fs-lg);
   font-weight: 600;
+  letter-spacing: -0.01em;
   margin-bottom: var(--space-1);
   color: var(--fg-primary);
 }
 
 .manage-section .manage-hint {
   font-size: var(--fs-sm);
-  color: var(--fg-secondary);
+  line-height: 1.6;
+  color: var(--fg-tertiary);
   margin-bottom: var(--space-4);
 }
 

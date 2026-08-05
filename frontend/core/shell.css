@@ -55,8 +55,8 @@
   --space-8: 32px;
 
   /* 字体 */
-  --font-sans: 'Noto Sans SC', 'Inter', -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'Consolas', 'Monaco', monospace;
+  --font-sans: 'Inter', 'Noto Sans SC', -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', 'Monaco', monospace;
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-base: 14px;
@@ -129,6 +129,12 @@ html, body {
   color: var(--fg-primary);
   font-size: var(--fs-base);
   line-height: 1.5;
+  /* 文字渲染质量:消除锯齿 + 细体优先,WebView2 下更接近 Codex 观感 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv05', 'ss01'; /* Inter 特性:更舒展的数字/标点 */
+  overflow-wrap: break-word;
 }
 button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; font-size: var(--fs-base); }
@@ -368,12 +374,14 @@ input, select, textarea { font-family: inherit; font-size: var(--fs-base); }
   align-items: center;
   gap: var(--space-3);
   width: 100%;
-  padding: 7px var(--space-3);
+  padding: 8px var(--space-3);
   border: none;
   border-radius: var(--radius-md);
   background: none;
   color: var(--fg-primary);
-  font-size: var(--fs-base);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  letter-spacing: -0.005em;
   text-align: left;
   transition: background var(--dur-fast) var(--ease-fluid);
 }
@@ -403,8 +411,10 @@ input, select, textarea { font-family: inherit; font-size: var(--fs-base); }
 .lqd-side-section-title {
   padding: 0 var(--space-3);
   margin-bottom: var(--space-2);
-  font-size: var(--fs-sm);
-  font-weight: 500;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--fg-tertiary);
   flex-shrink: 0;
 }

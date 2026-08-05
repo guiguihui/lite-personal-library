@@ -55,6 +55,7 @@
 .lqd-config-section h3 {
   font-size: var(--fs-lg);
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--fg-primary);
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-2);
