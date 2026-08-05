@@ -850,8 +850,27 @@
 
   // 更新 contentEl 内容,但保留思考器不被 innerHTML 重建销毁
   // 思考器是 contentEl 的直接子节点,更新只作用于其后的 body 容器
-  function updateContentPreservingThinker(contentEl, thinking, text, toolTrail) {
+  // ⚠️ 性能:这里每次调用都会 renderThinkingAndText(整段 markdown + KaTeX)。
+  // 流式 thinking 高频触发时若每 chunk 都重渲,主线程被占满 → 动画卡顿。
+  // 所以用 rAF 节流:一帧内合并多次更新为一次重渲。
+  var _throttledRender = null; // { contentEl, thinking, text, toolTrail }
+  function scheduleContentRender(contentEl, thinking, text, toolTrail) {
     if (!contentEl) return;
+    // 累积最新内容,交由 rAF 一次性渲染
+    _throttledRender = { contentEl: contentEl, thinking: thinking, text: text, toolTrail: toolTrail };
+    if (_throttledRender._raf) return;
+    _throttledRender._raf = true;
+    requestAnimationFrame(function () {
+      _throttledRender._raf = false;
+      var state = _throttledRender;
+      _throttledRender = null;
+      if (!state) return;
+      // 若 contentEl 已脱离文档,跳过(避免对已销毁标签做无谓重渲)
+      if (!document.body.contains(state.contentEl)) return;
+      flushContentRender(state.contentEl, state.thinking, state.text, state.toolTrail);
+    });
+  }
+  function flushContentRender(contentEl, thinking, text, toolTrail) {
     var thinker = contentEl.querySelector(':scope > .lqd-thinker');
     var html = window.LqdChatMessages.renderThinkingAndText(thinking, text, toolTrail);
     if (thinker) {
@@ -866,6 +885,17 @@
     } else {
       contentEl.innerHTML = html;
     }
+  }
+  function updateContentPreservingThinker(contentEl, thinking, text, toolTrail) {
+    // 流式场景走 rAF 节流;一次性完整重渲(如最终落定)直接刷新
+    scheduleContentRender(contentEl, thinking, text, toolTrail);
+  }
+  // 最终落定:立即渲染(取消挂起的节流帧,避免闪烁)
+  function flushContentNow(contentEl, thinking, text, toolTrail) {
+    if (_throttledRender && _throttledRender.contentEl === contentEl) {
+      _throttledRender = null;
+    }
+    flushContentRender(contentEl, thinking, text, toolTrail);
   }
 
   async function sendMessage(query, refs, tabId) {
@@ -991,8 +1021,9 @@
               finalText = roundText;
               // 有文本输出时移除思考器(淡出)
               hideThinker(contentEl);
+              // 流式期间节流重渲(合并为每帧一次);KaTeX 等公式完整后再统一渲染,
+              // 避免每 chunk 都跑 renderMathInElement 拖垮主线程
               updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
-              window.LqdChatMessages.reRenderKatex(contentEl);
             } else if (chunk.type === 'tool_calls') {
               toolCalls = chunk.calls;
             } else if (chunk.type === 'stop') {
@@ -1175,8 +1206,8 @@
               finalText = summaryText;
               // 有文本输出时移除思考器(淡出)
               hideThinker(contentEl);
-              contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail);
-              window.LqdChatMessages.reRenderKatex(contentEl);
+              // 节流重渲(每帧一次),KaTeX 在最终落定统一渲染
+              updateContentPreservingThinker(contentEl, finalThinking, finalText, toolTrail);
             }
           }
         } catch (summaryErr) {
@@ -1247,6 +1278,10 @@
           window.LqdChatCitations.renderDebugCard(debugHits, allContexts.slice(0, 8), systemPrompt, 'agent');
       } else {
         contentEl.innerHTML = window.LqdChatMessages.renderThinkingAndText(finalThinking, finalText, toolTrail) + citationsHtml + followUpsHtml;
+      }
+      // 取消挂起的节流帧,避免其用旧内容覆盖最终结果
+      if (_throttledRender && _throttledRender.contentEl === contentEl) {
+        _throttledRender = null;
       }
       window.LqdChatMessages.reRenderKatex(contentEl);
       // 绑定追问 chip 点击 → 自动发送
