@@ -1,0 +1,167 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LQ-D — 上传页样式
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.lqd-upload-page {
+  padding: var(--space-6);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ── 拖拽区 ── */
+.lqd-upload-dropzone {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-fluid), background var(--dur-fast) var(--ease-fluid);
+  margin-bottom: var(--space-6);
+  background: var(--bg-secondary);
+}
+.lqd-upload-dropzone:hover,
+.lqd-upload-dropzone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.lqd-upload-dropzone-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+.lqd-upload-dropzone-icon {
+  color: var(--fg-tertiary);
+}
+.lqd-upload-dropzone-icon svg { width: 48px; height: 48px; }
+.lqd-upload-dropzone-text {
+  font-size: var(--fs-xl);
+  color: var(--fg-primary);
+  font-weight: 500;
+}
+.lqd-upload-dropzone-sub {
+  font-size: var(--fs-sm);
+  color: var(--fg-secondary);
+}
+.lqd-upload-dropzone .lqd-form-hint {
+  color: var(--fg-tertiary);
+}
+
+/* ── 元数据表单 ── */
+.lqd-upload-meta {
+  margin-bottom: var(--space-6);
+  padding: var(--space-6);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.lqd-upload-meta h3 {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  color: var(--fg-primary);
+}
+.lqd-upload-meta .lqd-form-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+.lqd-upload-meta .lqd-form-row > .lqd-form-group {
+  margin-bottom: 0;
+}
+.lqd-upload-stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.lqd-upload-meta .lqd-form-row--actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.lqd-upload-meta .lqd-form-row--actions > * {
+  flex: 0 0 auto;
+}
+
+/* ── 队列列表(Main 区) ── */
+.lqd-upload-queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.lqd-upload-queue-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.lqd-upload-queue-item-info {
+  flex: 1;
+  min-width: 0;
+}
+.lqd-upload-queue-item-name {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--fg-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lqd-upload-queue-item-meta {
+  font-size: var(--fs-xs);
+  color: var(--fg-tertiary);
+  margin-top: var(--space-1);
+}
+.lqd-upload-queue-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── Sidebar 队列项 ── */
+.lqd-sidebar-queue-item {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.lqd-sidebar-queue-item:hover {
+  background: var(--bg-hover);
+}
+.lqd-sidebar-queue-item-name {
+  font-size: var(--fs-xs);
+  color: var(--fg-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .lqd-upload-meta .lqd-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 日志查看器(在 LqdModal 内显示) */
+.lqd-log-viewer {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 60vh;
+  overflow: auto;
+  margin: 0;
+  padding: var(--space-2);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-primary);
+}

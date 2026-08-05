@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LQ-D · 品牌 Logo 设计稿</title>
+<style>
+  :root{
+    --bg:#0e1013;
+    --panel:#15171d;
+    --panel-2:#1a1d25;
+    --line:rgba(255,255,255,.07);
+    --fg:#e9e9ec;
+    --fg-2:#9a9aa3;
+    --fg-3:#6b6b76;
+    --mono:"JetBrains Mono","SFMono-Regular",Consolas,monospace;
+    --sans:"Inter","Segoe UI","PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(124,92,255,.08), transparent 60%),
+      var(--bg);
+    color:var(--fg);
+    font-family:var(--sans);
+    min-height:100vh;
+    padding:56px 40px 72px;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{max-width:1240px;margin:0 auto 48px}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:.28em;
+    color:var(--fg-3);text-transform:uppercase;
+    display:flex;align-items:center;gap:14px;margin-bottom:18px;
+  }
+  .eyebrow::before{content:"";width:34px;height:1px;background:linear-gradient(90deg,#7c5cff,#5a9bff)}
+  h1{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+  h1 em{font-style:normal;background:linear-gradient(90deg,#a08bff,#6fb1ff);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{margin-top:12px;color:var(--fg-2);font-size:14px;line-height:1.7}
+  .sub b{color:var(--fg);font-weight:600}
+
+  .grid{
+    max-width:1240px;margin:0 auto;
+    display:grid;grid-template-columns:repeat(5,1fr);gap:18px;
+  }
+  @media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:680px){.grid{grid-template-columns:repeat(2,1fr)}}
+
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:20px 18px 22px;
+    display:flex;flex-direction:column;align-items:center;gap:16px;
+    position:relative;overflow:hidden;
+    transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .35s,box-shadow .35s;
+  }
+  .card:hover{transform:translateY(-5px);box-shadow:0 18px 40px -18px rgba(0,0,0,.7)}
+  .card:hover .badge{transform:scale(1.06)}
+  .card:hover .badge::after{opacity:1}
+
+  /* 编号 + 类型 */
+  .meta{width:100%;display:flex;justify-content:space-between;align-items:baseline}
+  .num{font-family:var(--mono);font-size:11px;color:var(--fg-3);letter-spacing:.1em}
+  .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--fg-3);border:1px solid var(--line);border-radius:99px;padding:2px 8px}
+
+  /* 徽章 */
+  .badge{
+    width:88px;height:88px;border-radius:22px;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;flex-shrink:0;
+    background:radial-gradient(120% 120% at 30% 20%, #262a34, #16181e 70%);
+    border:1px solid var(--line);
+    transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  }
+  .badge::before{content:"";position:absolute;inset:0;border-radius:inherit;
+    background:var(--glow);opacity:.16;filter:blur(14px)}
+  .badge::after{content:"";position:absolute;inset:0;border-radius:inherit;
+    background:linear-gradient(145deg,var(--edge1),transparent 40%,var(--edge2));
+    opacity:.5;transition:opacity .35s}
+  .badge svg{width:46px;height:46px;position:relative;z-index:1}
+
+  /* 文案 */
+  .name{font-size:15px;font-weight:600;letter-spacing:-.01em;text-align:center}
+  .en{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--fg-3);
+    text-transform:uppercase;margin-top:2px}
+  .desc{font-size:12px;color:var(--fg-2);line-height:1.65;text-align:center;min-height:40px}
+
+  /* 分节标题 */
+  .section-divider{
+    max-width:1240px;margin:64px auto 8px;
+    display:flex;align-items:center;gap:14px;
+  }
+  .section-divider .t{
+    font-family:var(--mono);font-size:11px;letter-spacing:.26em;
+    color:var(--fg-2);text-transform:uppercase;white-space:nowrap;
+  }
+  .section-divider::after{content:"";flex:1;height:1px;background:var(--line)}
+  .section-divider .hint{font-family:var(--sans);font-size:12px;color:var(--fg-3);letter-spacing:0}
+
+  /* ── 扁平化卡片:实色块,无渐变/光晕/描边 ── */
+  .card--flat .badge{
+    border:none;
+    background:var(--flat);
+    box-shadow:0 10px 24px -14px var(--flat);
+  }
+  .badge--flat::before,.badge--flat::after{display:none}
+  .card--flat .desc{min-height:40px}
+
+  footer{max-width:1240px;margin:52px auto 0;color:var(--fg-3);font-size:12px;
+    font-family:var(--mono);letter-spacing:.04em;text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">LQ-D · Brand Identity · 10 Concepts</div>
+  <h1>LQ-D 品牌 <em>Logo</em> 设计稿</h1>
+  <p class="sub">个人知识库 × AI 助手 — <b>高级 · 创新 · 简约</b>。悬停可预览微交互，点击任一款即可采纳并应用到应用。</p>
+</header>
+
+<main class="grid" id="grid"></main>
+
+<div class="section-divider">
+  <span class="t">Flat · 扁平化系列</span>
+  <span class="hint">实色几何，无渐变 · 无描边 · 现代明快</span>
+</div>
+<main class="grid" id="grid-flat" style="margin-top:22px"></main>
+
+<div class="section-divider">
+  <span class="t">LQ · 书架 × 放大镜</span>
+  <span class="hint">L = 书架 · Q = 放大镜 — 知识检索的品牌化身</span>
+</div>
+<main class="grid" id="grid-lq" style="margin-top:22px"></main>
+
+<footer>© 2026 LQ-D · 所有 logo 为内联 SVG，可直接嵌入应用（frontend/core/icons.js）</footer>
+
+<script>
+(function(){
+  var GRADS = {
+    v1:['#8b7bff','#5a9bff'],
+    v2:['#34d3a1','#7de3c8'],
+    v3:['#ff9f5a','#ffd28a'],
+    v4:['#c26bff','#9b7bff'],
+    v5:['#4aa8ff','#8fd0ff'],
+    v6:['#22d3ee','#a78bfa','#f59e0b'],
+    v7:['#22d3ee','#67e8f9'],
+    v8:['#6a6cff','#8f90ff'],
+    v9:['#fb7185','#fda4af'],
+    v10:['#f5a524','#ffd166']
+  };
+  // 每个概念: 编号/名称/英文/描述/主色(描边渐变)/徽章边缘色/徽章发光色
+  var LOGOS = [
+    { n:'00', name:'书架放大镜', en:'Shelf × Lens', hero:true,
+      desc:'L = 书架(连贯字形+隔板) · Q = 放大镜 — 主推款。细线渐变,知识检索的品牌化身。',
+      c1:'#8b7bff', c2:'#5a9bff',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g0" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#8b7bff'+'"/><stop offset="1" stop-color="'+'#5a9bff'+'"/></linearGradient></defs><g stroke="url(#g0)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 3.4 V13.4 a1.8 1.8 0 0 0 1.8 1.8 H12.6"/><path d="M4.2 7.2 H11"/><path d="M4.2 10.8 H12"/><circle cx="17" cy="8.2" r="3.9"/><path d="M19.9 11.1 L22.2 13.4"/></g></svg>' },
+    { n:'01', name:'LQ 字母融合', en:'Monogram',
+      desc:'L 与 Q 负空间交织，双字母极简徽记，利落可信。',
+      c1:'#8b7bff', c2:'#5a9bff',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#8b7bff'+'"/><stop offset="1" stop-color="'+'#5a9bff'+'"/></linearGradient></defs><circle cx="13.2" cy="12" r="6.2" stroke="url(#g1)" stroke-width="2"/><path d="M18.3 16.2 L21 18.9" stroke="url(#g1)" stroke-width="2" stroke-linecap="round"/><path d="M6.4 3.2 L6.4 16.2 L13 16.2" stroke="url(#g1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+    { n:'02', name:'开卷折页', en:'Open Book',
+      desc:'一册展开的书，中缝藏着知识核心的光点。',
+      c1:'#34d3a1', c2:'#7de3c8',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#34d3a1'+'"/><stop offset="1" stop-color="'+'#7de3c8'+'"/></linearGradient></defs><path d="M3 6.5 C6.5 4, 9.5 4, 12 5.5 C14.5 4, 17.5 4, 21 6.5 V17.5 C17.5 15.5, 14.5 15.5, 12 17 C9.5 15.5, 6.5 15.5, 3 17.5 Z" stroke="url(#g2)" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 5.5 V17" stroke="url(#g2)" stroke-width="1.8"/><circle cx="12" cy="11" r="1.5" fill="url(#g2)"/></svg>' },
+    { n:'03', name:'四象限菱格', en:'Quadrant',
+      desc:'书·论文·笔记·问题单，四类知识归一为一张组织网。',
+      c1:'#ff9f5a', c2:'#ffd28a',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#ff9f5a'+'"/><stop offset="1" stop-color="'+'#ffd28a'+'"/></linearGradient></defs><path d="M12 3.5 L20.5 12 L12 20.5 L3.5 12 Z" stroke="url(#g3)" stroke-width="1.6"/><path d="M3.5 12 H20.5 M12 3.5 V20.5" stroke="url(#g3)" stroke-width="1" opacity=".4"/><circle cx="7.6" cy="7.6" r="1.25" fill="url(#g3)"/><circle cx="16.4" cy="7.6" r="1.25" fill="url(#g3)"/><circle cx="7.6" cy="16.4" r="1.25" fill="url(#g3)"/><circle cx="16.4" cy="16.4" r="1.25" fill="url(#g3)"/></svg>' },
+    { n:'04', name:'无限回环', en:'Infinite Loop',
+      desc:'持续学习与知识迭代的莫比乌斯环。',
+      c1:'#c26bff', c2:'#9b7bff',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#c26bff'+'"/><stop offset="1" stop-color="'+'#9b7bff'+'"/></linearGradient></defs><path d="M12 12 C8.5 5.8, 3 6.4, 3 10.5 C3 14.6, 8.5 14.6, 12 12 C15.5 9.4, 21 9.4, 21 13.5 C21 17.6, 15.5 18.2, 12 12" stroke="url(#g4)" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="1.4" fill="url(#g4)"/></svg>' },
+    { n:'05', name:'灯塔之光', en:'Beacon',
+      desc:'本地知识库如一盏灯塔，照亮每一次检索与洞察。',
+      c1:'#4aa8ff', c2:'#8fd0ff',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#4aa8ff'+'"/><stop offset="1" stop-color="'+'#8fd0ff'+'"/></linearGradient></defs><path d="M12 3.5 L19.5 20 H4.5 Z" stroke="url(#g5)" stroke-width="1.8" stroke-linejoin="round"/><path d="M4.5 20 H19.5" stroke="url(#g5)" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="3.5" r="1.5" fill="url(#g5)"/><path d="M12 7.5 V10" stroke="url(#g5)" stroke-width="1.8" stroke-linecap="round"/></svg>' },
+    { n:'06', name:'棱镜光谱', en:'Prism',
+      desc:'知识经棱镜折射，拆解为可复用的光谱色带。',
+      c1:'#22d3ee', c2:'#f59e0b',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#22d3ee'+'"/><stop offset="1" stop-color="'+'#f59e0b'+'"/></linearGradient></defs><path d="M12 3.5 L20.5 18.5 H3.5 Z" stroke="url(#g6)" stroke-width="1.5" stroke-linejoin="round" opacity=".85"/><path d="M12 1 V3.5" stroke="url(#g6)" stroke-width="1.8" stroke-linecap="round"/><path d="M8.2 18.5 L6.2 21" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round"/><path d="M12 18.5 V21" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round"/><path d="M15.8 18.5 L17.8 21" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"/></svg>' },
+    { n:'07', name:'像素点阵', en:'Pixel Grid',
+      desc:'数字知识的最小单元，拼合成一枚 L 徽记。',
+      c1:'#22d3ee', c2:'#67e8f9',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g7" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#22d3ee'+'"/><stop offset="1" stop-color="'+'#67e8f9'+'"/></linearGradient></defs><circle cx="12" cy="5" r="1.4" stroke="url(#g7)" stroke-width="1.2" opacity=".45"/><circle cx="19" cy="5" r="1.4" stroke="url(#g7)" stroke-width="1.2" opacity=".45"/><circle cx="19" cy="12" r="1.4" stroke="url(#g7)" stroke-width="1.2" opacity=".45"/><circle cx="19" cy="19" r="1.4" stroke="url(#g7)" stroke-width="1.2" opacity=".45"/><circle cx="12" cy="19" r="1.4" stroke="url(#g7)" stroke-width="1.2" opacity=".45"/><circle cx="5" cy="5" r="1.5" fill="url(#g7)"/><circle cx="5" cy="12" r="1.5" fill="url(#g7)"/><circle cx="5" cy="19" r="1.5" fill="url(#g7)"/><circle cx="12" cy="12" r="1.5" fill="url(#g7)"/></svg>' },
+    { n:'08', name:'嵌套层级', en:'Nested',
+      desc:'目录→章节→段落，同心方描绘知识的层级结构。',
+      c1:'#6a6cff', c2:'#8f90ff',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g8" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#6a6cff'+'"/><stop offset="1" stop-color="'+'#8f90ff'+'"/></linearGradient></defs><rect x="4.5" y="4.5" width="15" height="15" rx="3" stroke="url(#g8)" stroke-width="1.6"/><rect x="9" y="9" width="6" height="6" rx="1.6" stroke="url(#g8)" stroke-width="1.6"/><circle cx="12" cy="12" r="1.1" fill="url(#g8)"/></svg>' },
+    { n:'09', name:'流动思绪', en:'Flow',
+      desc:'一条优雅曲线，思绪与问答的连续流动。',
+      c1:'#fb7185', c2:'#fda4af',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g9" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#fb7185'+'"/><stop offset="1" stop-color="'+'#fda4af'+'"/></linearGradient></defs><path d="M2.5 13 C5 5, 8.5 19, 12 12 C14.5 7, 17 17, 21.5 9" stroke="url(#g9)" stroke-width="2.4" stroke-linecap="round"/><circle cx="21.5" cy="9" r="1.5" fill="url(#g9)"/></svg>' },
+    { n:'10', name:'透镜聚焦', en:'Lens',
+      desc:'洞察之眼，将散落的问题聚焦为一个答案。',
+      c1:'#f5a524', c2:'#ffd166',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g10" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+'#f5a524'+'"/><stop offset="1" stop-color="'+'#ffd166'+'"/></linearGradient></defs><path d="M6.5 2.5 L10.4 7.3" stroke="url(#g10)" stroke-width="1.2" opacity=".55" stroke-linecap="round"/><path d="M17.5 2.5 L13.6 7.3" stroke="url(#g10)" stroke-width="1.2" opacity=".55" stroke-linecap="round"/><ellipse cx="12" cy="8" rx="7.6" ry="4.4" stroke="url(#g10)" stroke-width="1.6"/><circle cx="12" cy="16.8" r="1.9" fill="url(#g10)"/></svg>' }
+  ];
+
+  var grid = document.getElementById('grid');
+  LOGOS.forEach(function(L){
+    var card = document.createElement('article');
+    card.className = 'card';
+    card.style.setProperty('--glow', 'radial-gradient(60% 60% at 50% 50%, '+L.c1+', transparent)');
+    card.style.setProperty('--edge1', L.c1);
+    card.style.setProperty('--edge2', L.c2);
+    card.style.cursor = 'pointer';
+    card.title = '点击应用这款 logo';
+    card.innerHTML =
+      '<div class="meta"><span class="num">'+L.n+'</span><span class="tag">'+L.en+'</span></div>' +
+      '<div class="badge">'+L.svg+'</div>' +
+      '<div class="name">'+L.name+'</div>' +
+      '<div class="desc">'+L.desc+'</div>';
+    grid.appendChild(card);
+  });
+
+  // ═══ 扁平化系列(实色,无渐变/光晕/描边) ═══
+  var FLAT = [
+    { n:'F1', name:'实心书签', en:'Solid Bookmark',
+      desc:'一块书签 + 折角，本地知识的实体感。', color:'#5b6cff',
+      svg:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M7 3 h10 a2 2 0 0 1 2 2 v16 l-7 -4 -7 4 V5 a2 2 0 0 1 2 -2 z"/></svg>' },
+    { n:'F2', name:'圆形对勾', en:'Check Circle',
+      desc:'完成洞察，一个清晰的确认。', color:'#12b981',
+      svg:'<svg viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="12" r="9.5"/><path d="M7.5 12.4 l3.2 3.2 6 -6.2" fill="none" stroke="#12b981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+    { n:'F3', name:'四格导航', en:'Grid Nav',
+      desc:'知识分类如桌面宫格，一目了然。', color:'#f97316',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="2" fill="#fff"/><rect x="13" y="4" width="7" height="7" rx="2" fill="#fff" opacity=".55"/><rect x="4" y="13" width="7" height="7" rx="2" fill="#fff" opacity=".55"/><rect x="13" y="13" width="7" height="7" rx="2" fill="#fff"/></svg>' },
+    { n:'F4', name:'拼图块', en:'Puzzle',
+      desc:'知识互相咬合，拼接成完整图景。', color:'#a855f7',
+      svg:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M9 4 v4 h-1 a2.4 2.4 0 0 0 0 4.8 h1 v4 H4 V4 z M15 20 v-4 h1 a2.4 2.4 0 0 0 0 -4.8 h-1 V4 h6 v16 z" stroke="#fff" stroke-width="0"/><path d="M9 6 h6 m0 0 v12 h-6" stroke="#a855f7" stroke-width="1.4" fill="none"/></svg>' },
+    { n:'F5', name:'对话泡', en:'Chat Bubble',
+      desc:'一问一答，交流的核心载体。', color:'#3b82f6',
+      svg:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M4 6 a2 2 0 0 1 2 -2 h12 a2 2 0 0 1 2 2 v9 a2 2 0 0 1 -2 2 H11 l-4 4 v-4 H6 a2 2 0 0 1 -2 -2 z"/></svg>' },
+    { n:'F6', name:'红点灯泡', en:'Idea Bulb',
+      desc:'灵光一现，AI 助手的价值时刻。', color:'#eab308',
+      svg:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M9.5 18 h5 M10.2 21 h3.6 M12 2 a6.5 6.5 0 0 0 -4 11.6 c.8.6 1.2 1.2 1.3 2.4 h5.4 c.1 -1.2.5 -1.8 1.3 -2.4 A6.5 6.5 0 0 0 12 2 z"/></svg>' },
+    { n:'F7', name:'指南针', en:'Compass',
+      desc:'在知识海洋中定向导航。', color:'#06b6d4',
+      svg:'<svg viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="12" r="9.5"/><path d="M15.8 8.2 l-2 5.6 -5.6 2 2 -5.6 z"/></svg>' },
+    { n:'F8', name:'堆叠文档', en:'Stacked Docs',
+      desc:'资料有序堆叠，随时取用。', color:'#8b5cf6',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><rect x="6" y="5" width="12" height="15" rx="2" fill="#fff" opacity=".45"/><rect x="4" y="3" width="12" height="15" rx="2" fill="#fff"/><path d="M8 8 h4 M8 12 h4" stroke="#8b5cf6" stroke-width="1.4" stroke-linecap="round"/></svg>' },
+    { n:'F9', name:'北极星', en:'North Star',
+      desc:'指向清晰的方向，AI 点亮答案。', color:'#14b8a6',
+      svg:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2 L13.8 8.2 L20 10 l-6.2 1.8 L12 18 l-1.8 -6.2 L4 10 l6.2 -1.8 z"/></svg>' },
+    { n:'F10', name:'居中靶心', en:'Bullseye',
+      desc:'锁定目标，精准命中答案。', color:'#ef4444',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" fill="#fff"/><circle cx="12" cy="12" r="6.2" fill="#ef4444"/><circle cx="12" cy="12" r="2.6" fill="#fff"/></svg>' }
+  ];
+
+  var flatGrid = document.getElementById('grid-flat');
+  FLAT.forEach(function(L){
+    var card = document.createElement('article');
+    card.className = 'card card--flat';
+    card.style.setProperty('--flat', L.color);
+    card.style.cursor = 'pointer';
+    card.title = '点击应用这款 logo';
+    card.innerHTML =
+      '<div class="meta"><span class="num">'+L.n+'</span><span class="tag">'+L.en+'</span></div>' +
+      '<div class="badge badge--flat" style="background:'+L.color+'">'+L.svg+'</div>' +
+      '<div class="name">'+L.name+'</div>' +
+      '<div class="desc">'+L.desc+'</div>';
+    flatGrid.appendChild(card);
+  });
+
+  // ═══ LQ 主题: L = 书架, Q = 放大镜(扁平化,高级感) ═══
+  // 每个 svg 为 24×24 实色矢量;外框由 --flat 底色承载,内部用白色/同色系表现
+  var LQ = [
+    { n:'L1', name:'书架放大镜', en:'Shelf & Lens',
+      desc:'左侧 L 书架,右侧 Q 放大镜,直接点题。', color:'#5b6cff',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><g fill="#fff"><path d="M5 4 h3 v13 a1.5 1.5 0 0 1 -3 0 z"/><rect x="5" y="18" width="3" height="2" rx=".6"/><rect x="9.4" y="18" width="3" height="2" rx=".6"/><rect x="13.8" y="18" width="3" height="2" rx=".6"/></g><circle cx="16.5" cy="9" r="4.5" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M19.8 12.3 L22.5 15" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>' },
+    { n:'L2', name:'开架寻书', en:'Open Shelf',
+      desc:'三层书架,放大镜落在其中一层寻找知识。', color:'#12b981',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><g fill="#fff"><rect x="4" y="4" width="16" height="3" rx=".8"/><rect x="4" y="10.5" width="16" height="3" rx=".8"/><rect x="4" y="17" width="16" height="3" rx=".8"/><rect x="5" y="6.6" width="3" height="4.2" rx=".4"/><rect x="9" y="6.6" width="4" height="4.2" rx=".4" opacity=".55"/><rect x="14" y="6.6" width="5" height="4.2" rx=".4"/></g><circle cx="15.5" cy="11" r="3.2" fill="none" stroke="#12b981" stroke-width="2.2"/><path d="M17.8 13.2 L20 15.4" stroke="#12b981" stroke-width="2.2" stroke-linecap="round"/></svg>' },
+    { n:'L3', name:'墨镜观书', en:'Spectacle',
+      desc:'Q 化作一副眼镜,注视 L 书架。', color:'#f97316',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><g fill="#fff"><path d="M4.5 7 h4 v6 a3 3 0 0 1 -4 0 z" opacity=".9"/><rect x="4.5" y="14" width="4" height="1.6" rx=".6"/></g><rect x="9.8" y="7" width="4.4" height="1.6" rx=".6" fill="#fff" opacity=".55"/><g fill="#fff"><path d="M15.5 7 h4 v6 a3 3 0 0 1 -4 0 z" opacity=".9"/><rect x="15.5" y="14" width="4" height="1.6" rx=".6"/></g><path d="M8.5 13.6 L9.8 8.2 M15.5 13.6 L14.2 8.2" stroke="#fff" stroke-width="1.3" opacity=".5"/></svg>' },
+    { n:'L4', name:'书架之眼', en:'Shelf Eye',
+      desc:'放大镜居于书架中央,洞察每一层。', color:'#a855f7',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="6" fill="#fff" opacity=".35"/><circle cx="12" cy="12" r="3.6" fill="#fff"/><g fill="#fff" opacity=".9"><rect x="3" y="3" width="18" height="2.6" rx="1"/><rect x="3" y="18.4" width="18" height="2.6" rx="1"/></g></svg>' },
+    { n:'L5', name:'探照书架', en:'Spotlight',
+      desc:'放大镜发出光带,照亮书架的特定一行。', color:'#3b82f6',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><g fill="#fff"><path d="M5 5 h3 v11 a1.6 1.6 0 0 1 -3 0 z"/><rect x="5" y="17" width="3" height="2" rx=".6"/><rect x="9.4" y="17" width="3" height="2" rx=".6"/></g><path d="M13 12 L19 8.5" stroke="#3b82f6" stroke-width="2.6" stroke-linecap="round"/><circle cx="19.5" cy="7.5" r="2.4" fill="#fff" stroke="#3b82f6" stroke-width="2"/></svg>' },
+    { n:'L6', name:'格栅检索', en:'Grid Search',
+      desc:'书脊排成格栅,放大镜定位目标条目。', color:'#06b6d4',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><g fill="#fff"><rect x="4" y="4" width="4" height="5" rx=".7"/><rect x="10" y="4" width="4" height="5" rx=".7" opacity=".6"/><rect x="16" y="4" width="4" height="5" rx=".7" opacity=".35"/><rect x="4" y="11" width="4" height="5" rx=".7" opacity=".6"/><rect x="10" y="11" width="4" height="5" rx=".7" opacity=".35"/></g><circle cx="17.5" cy="13" r="3.4" fill="none" stroke="#06b6d4" stroke-width="2.4"/><path d="M20 15.5 L22.5 18" stroke="#06b6d4" stroke-width="2.4" stroke-linecap="round"/></svg>' },
+    { n:'L7', name:'折角书页', en:'Dogear',
+      desc:'L 书架带折角书页,Q 放大镜悬于其上。', color:'#eab308',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><g fill="#fff"><path d="M5 4 h11 a2 2 0 0 1 2 2 v2 h-3 a2 2 0 0 1 -2 -2 V4 z"/><rect x="5" y="7" width="14" height="2" rx=".6"/><rect x="5" y="11" width="14" height="2" rx=".6"/><rect x="5" y="15" width="14" height="2" rx=".6"/></g><circle cx="17" cy="18" r="3" fill="#eab308" stroke="#fff" stroke-width="2"/><path d="M19 19.8 L20.6 21.4" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>' },
+    { n:'L8', name:'字母共形', en:'Monogram LQ',
+      desc:'L 与 Q 共用同一轮廓,一体两面。', color:'#8b5cf6',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><path d="M6 4 v11 a2 2 0 0 0 2 2 h7" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="15.5" cy="10.5" r="4.2" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M18.4 13.4 L21 16" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>' },
+    { n:'L9', name:'横向书架', en:'Horizontal',
+      desc:'放大镜沿书架横向扫过,检索整层。', color:'#14b8a6',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><g fill="#fff"><rect x="4" y="5" width="16" height="2.4" rx=".6"/><rect x="4" y="9.6" width="16" height="2.4" rx=".6"/><rect x="4" y="14.2" width="16" height="2.4" rx=".6"/><rect x="4" y="18.8" width="16" height="2.4" rx=".6" opacity=".5"/></g><circle cx="12" cy="9.4" r="2.2" fill="none" stroke="#14b8a6" stroke-width="2"/><path d="M13.5 10.8 L15 12.3" stroke="#14b8a6" stroke-width="2" stroke-linecap="round"/></svg>' },
+    { n:'L10', name:'双圆交叠', en:'Twin Orbits',
+      desc:'书架与放大镜成双圆,知识与洞察共鸣。', color:'#ef4444',
+      svg:'<svg viewBox="0 0 24 24" fill="none"><g fill="#fff" opacity=".9"><rect x="4" y="4" width="3" height="12" rx=".8"/><rect x="8" y="4" width="3" height="12" rx=".8"/><rect x="12" y="4" width="3" height="12" rx=".8" opacity=".45"/></g><circle cx="17.5" cy="12" r="4.2" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M20.4 14.8 L22.6 17" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>' }
+  ];
+
+  var lqGrid = document.getElementById('grid-lq');
+  LQ.forEach(function(L){
+    var card = document.createElement('article');
+    card.className = 'card card--flat';
+    card.style.setProperty('--flat', L.color);
+    card.style.cursor = 'pointer';
+    card.title = '点击应用这款 logo';
+    card.innerHTML =
+      '<div class="meta"><span class="num">'+L.n+'</span><span class="tag">'+L.en+'</span></div>' +
+      '<div class="badge badge--flat" style="background:'+L.color+'">'+L.svg+'</div>' +
+      '<div class="name">'+L.name+'</div>' +
+      '<div class="desc">'+L.desc+'</div>';
+    lqGrid.appendChild(card);
+  });
+})();
+</script>
+</body>
+</html>

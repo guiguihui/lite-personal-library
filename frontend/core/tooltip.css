@@ -1,0 +1,52 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LQ-D — Tooltip Styles
+   z-index: var(--z-overlay)。固定定位,JS 计算位置。
+   动画仅 opacity;reduced-motion 下由 foundation.css 全局兜底。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.lqd-tooltip {
+  position: fixed;
+  z-index: var(--z-overlay);
+  padding: var(--space-1) var(--space-2);
+  background: var(--fg-primary);
+  color: var(--bg-primary);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  max-width: 280px;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-fluid);
+}
+.lqd-tooltip[hidden] { display: none !important; }
+.lqd-tooltip--visible { opacity: 1; }
+
+.lqd-tooltip::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: inherit;
+}
+
+.lqd-tooltip[data-position="top"]::after {
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+}
+.lqd-tooltip[data-position="bottom"]::after {
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+}
+.lqd-tooltip[data-position="left"]::after {
+  right: -3px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+}
+.lqd-tooltip[data-position="right"]::after {
+  left: -3px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+}

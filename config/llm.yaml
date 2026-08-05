@@ -1,0 +1,43 @@
+active_provider: anthropic
+remember_key: false
+providers:
+  anthropic:
+    model: claude-sonnet-4-6
+    base_url: https://api.anthropic.com
+    has_key: false
+  deepseek:
+    model: deepseek-v4-flash
+    base_url: https://api.deepseek.com
+    has_key: false
+  openai:
+    model: gpt-4o
+    base_url: https://api.openai.com
+    has_key: false
+  siliconflow:
+    model: deepseek-ai/DeepSeek-V3
+    base_url: https://api.siliconflow.cn
+    has_key: false
+  openrouter:
+    model: anthropic/claude-sonnet-4
+    base_url: https://openrouter.ai/api
+    has_key: false
+  zhipu:
+    model: glm-4
+    base_url: https://open.bigmodel.cn/api/paas/v4
+    has_key: false
+  dashscope:
+    model: qwen-plus
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    has_key: false
+  ollama:
+    model: llama3
+    base_url: http://localhost:11434
+    has_key: false
+  gemini:
+    model: gemini-2.5-flash
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    has_key: false
+  custom:
+    model: ''
+    base_url: ''
+    has_key: false

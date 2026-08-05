@@ -1,0 +1,226 @@
+/* Manage 面板样式 — 索引构建区。
+   复用 core/shell.css 的 design tokens,保持主题一致(light/dark)。 */
+
+.lqd-manage {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+.manage-section {
+  margin-bottom: var(--space-6);
+  padding: var(--space-6);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.manage-section h2 {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+  color: var(--fg-primary);
+}
+
+.manage-section .manage-hint {
+  font-size: var(--fs-sm);
+  color: var(--fg-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.manage-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.manage-btn {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  font-family: inherit;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-fluid), border-color var(--dur-fast) var(--ease-fluid);
+}
+
+.manage-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.manage-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.manage-btn--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.manage-btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.manage-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--fg-secondary);
+  min-height: 20px;
+  margin-bottom: var(--space-2);
+}
+
+.manage-status .lqd-status-badge {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.manage-status .lqd-status-badge--running {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.manage-status .lqd-status-badge--done {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.manage-status .lqd-status-badge--failed {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.manage-meta {
+  display: flex;
+  gap: var(--space-3);
+  font-size: var(--fs-xs);
+  color: var(--fg-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+.manage-log {
+  padding: var(--space-3);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--fg-primary);
+  max-height: 240px;
+  min-height: 120px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.manage-log:empty {
+  display: none;
+}
+
+.manage-log-line {
+  display: block;
+}
+
+.manage-log-line--error {
+  color: var(--danger);
+}
+
+/* ── 入库流水线表单 ─────────────────────────────────────────────────── */
+
+.ingest-form {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  align-items: center;
+}
+
+.ingest-form-row {
+  display: contents;
+}
+
+.ingest-label {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--fg-secondary);
+  text-align: right;
+}
+
+.ingest-input,
+.ingest-select,
+.ingest-input-file,
+.ingest-stages {
+  grid-column: 2;
+  min-width: 0;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  transition: border-color var(--dur-fast) var(--ease-fluid);
+}
+
+.ingest-input:focus,
+.ingest-select:focus,
+.ingest-input-file:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
+.ingest-input-file {
+  padding: var(--space-1) var(--space-2);
+}
+
+.ingest-stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+  border: none;
+  background: transparent;
+}
+
+.ingest-stage-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--fs-sm);
+  color: var(--fg-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ingest-stage-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.ingest-stage-label input[type="checkbox"]:checked + span {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 入库按钮单独占一行 */
+.ingest-form + .manage-actions {
+  margin-left: calc(80px + var(--space-4));
+}

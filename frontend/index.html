@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LQ-D</title>
+
+  <!-- 主题切换:同步内联初始化,防止 dark 首屏闪烁 -->
+  <script>
+    (function () {
+      var key = 'lqd-theme';
+      var legacy = 'book-theme';
+      var saved = localStorage.getItem(key) || localStorage.getItem(legacy);
+      var effective = saved;
+      if (effective !== 'light' && effective !== 'dark') {
+        effective = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', saved || 'auto');
+      document.documentElement.setAttribute('data-effective-theme', effective);
+    })();
+  </script>
+
+  <!-- 字体:Noto Sans SC + Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+
+  <!-- 全局错误捕获:必须是第一个 defer 脚本,先装好捕获器再加载其余模块 -->
+  <script defer src="/frontend/core/error-handler.js"></script>
+
+  <!-- KaTeX:数学渲染,auto-render 处理 $...$ 和 $$...$$ -->
+  <link rel="stylesheet" href="/frontend/katex/katex.min.css">
+  <script defer src="/frontend/katex/katex.min.js"></script>
+  <script defer src="/frontend/katex/auto-render.min.js"></script>
+
+  <!-- marked.js:markdown 解析(Library 阅读器用,render.js 依赖) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- highlight.js:代码语法高亮(VSCode 风格) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/vs2015.min.css">
+  <script defer src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+
+  <!-- 桌面壳变量注入 -->
+  <script>
+    window.LQD_CHAT_BASE = "/";            // 后端根路径(FastAPI 挂载点)
+    window.LQD_CHAT_RAW_BASE = "/raw/";   // 替代 GitHub raw,后端 /raw/content/<path>
+  </script>
+
+  <!-- ═══ Core 框架层 ═══ -->
+  <link rel="stylesheet" href="/frontend/core/shell.css">
+  <link rel="stylesheet" href="/frontend/core/foundation.css">
+  <link rel="stylesheet" href="/frontend/core/toast.css">
+  <link rel="stylesheet" href="/frontend/core/modal.css">
+  <link rel="stylesheet" href="/frontend/core/tooltip.css">
+  <link rel="stylesheet" href="/frontend/core/skeleton.css">
+  <link rel="stylesheet" href="/frontend/core/tab-context-menu.css">
+  <script defer src="/frontend/core/theme.js"></script>
+  <script defer src="/frontend/core/icons.js"></script>
+  <script defer src="/frontend/core/events.js"></script>
+  <script defer src="/frontend/core/store.js"></script>
+  <script defer src="/frontend/core/tab-ids.js"></script>
+  <script defer src="/frontend/core/tabs.js"></script>
+  <script defer src="/frontend/core/tab-persistence.js"></script>
+  <script defer src="/frontend/core/tab-context-menu.js"></script>
+  <script defer src="/frontend/core/sidebar.js"></script>
+  <script defer src="/frontend/core/overview.js"></script>
+  <script defer src="/frontend/core/statusbar.js"></script>
+  <script defer src="/frontend/core/command-palette.js"></script>
+  <script defer src="/frontend/core/toast.js"></script>
+  <script defer src="/frontend/core/modal.js"></script>
+  <script defer src="/frontend/core/tooltip.js"></script>
+  <script defer src="/frontend/core/skeleton.js"></script>
+  <script defer src="/frontend/core/spinner.js"></script>
+  <script defer src="/frontend/core/shell.js"></script>
+
+  <!-- ═══ Shared 共享层 ═══ -->
+  <script defer src="/frontend/shared/knowledge-flags.js"></script>
+  <script defer src="/frontend/shared/wikilinks.js"></script>
+  <script defer src="/frontend/shared/link-popover.js"></script>
+  <script defer src="/frontend/shared/render.js"></script>
+  <script defer src="/frontend/shared/settings.js"></script>
+  <script defer src="/frontend/shared/thinking-orbs.js"></script>
+
+  <!-- ═══ Chat 模块 ═══ -->
+  <link rel="stylesheet" href="/frontend/chat/chat.css">
+  <script defer src="/frontend/chat/retrieval.js"></script>
+  <script defer src="/frontend/chat/session.js"></script>
+  <script defer src="/frontend/chat/llm.js"></script>
+  <script defer src="/frontend/chat/citations.js"></script>
+  <script defer src="/frontend/chat/messages.js"></script>
+  <script defer src="/frontend/chat/model-picker.js"></script>
+  <script defer src="/frontend/chat/composer.js"></script>
+  <script defer src="/frontend/chat/agent.js"></script>
+  <script defer src="/frontend/chat/index.js"></script>
+
+  <!-- ═══ Library 模块 ═══ -->
+  <link rel="stylesheet" href="/frontend/library/library.css">
+  <script defer src="/frontend/vendor/d3.v7.9.0.min.js"></script>
+  <link rel="stylesheet" href="/frontend/library/knowledge.css">
+  <script defer src="/frontend/library/local-graph.js"></script>
+  <script defer src="/frontend/library/knowledge.js"></script>
+  <script defer src="/frontend/library/library.js"></script>
+  <script defer src="/frontend/library/sidebar.js"></script>
+  <script defer src="/frontend/library/index.js"></script>
+  <script defer src="/frontend/library/open-doc.js"></script>
+
+  <!-- ═══ Manage 模块 ═══ -->
+  <link rel="stylesheet" href="/frontend/manage/manage.css">
+  <script defer src="/frontend/manage/manage.js"></script>
+  <script defer src="/frontend/manage/builder.js"></script>
+  <script defer src="/frontend/manage/index.js"></script>
+
+  <!-- ═══ Upload 模块 ═══ -->
+  <link rel="stylesheet" href="/frontend/upload/upload.css">
+  <script defer src="/frontend/upload/upload-queue.js"></script>
+  <script defer src="/frontend/upload/upload.js"></script>
+  <script defer src="/frontend/upload/index.js"></script>
+
+  <!-- ═══ Config 模块 ═══ -->
+  <link rel="stylesheet" href="/frontend/config/config.css">
+  <script defer src="/frontend/config/config-providers.js"></script>
+  <script defer src="/frontend/config/config.js"></script>
+  <script defer src="/frontend/config/index.js"></script>
+
+  <!-- ═══ Overview / Search ═══ -->
+  <link rel="stylesheet" href="/frontend/overview/overview.css">
+  <script defer src="/frontend/overview/overview.js"></script>
+  <link rel="stylesheet" href="/frontend/search/search.css">
+  <script defer src="/frontend/search/index.js"></script>
+
+  <!-- ═══ FileSearch 模块(本机文件检索) ═══ -->
+  <link rel="stylesheet" href="/frontend/filesearch/filesearch.css">
+  <script defer src="/frontend/filesearch/index.js"></script>
+</head>
+<body>
+  <!-- 命令面板 -->
+  <div class="lqd-command-palette" id="lqd-command-palette" hidden>
+    <input class="lqd-cp-input" id="lqd-cp-input" type="text" placeholder="输入命令或搜索..." autocomplete="off">
+    <div class="lqd-cp-list" id="lqd-cp-list"></div>
+  </div>
+
+  <!-- Codex 风格布局:顶栏(窗口控制+菜单) + Sidebar + Main -->
+  <div class="lqd-shell" id="lqd-shell">
+    <!-- Codex 顶栏 -->
+    <header class="lqd-titlebar" id="lqd-titlebar">
+      <div class="lqd-titlebar-left" id="lqd-titlebar-left"></div>
+      <div class="lqd-titlebar-menus" id="lqd-titlebar-menus"></div>
+      <div class="lqd-titlebar-right" id="lqd-titlebar-right"></div>
+    </header>
+
+    <!-- Codex 左侧栏 -->
+    <aside class="lqd-sidebar" id="lqd-sidebar">
+      <div class="lqd-side-brand" id="lqd-side-brand"></div>
+      <nav class="lqd-side-nav" id="lqd-side-nav" aria-label="主导航"></nav>
+      <div class="lqd-side-section">
+        <div class="lqd-side-section-title">对话</div>
+        <div class="lqd-sidebar-body" id="lqd-sidebar-body"></div>
+      </div>
+      <div class="lqd-side-footer" id="lqd-side-footer"></div>
+    </aside>
+
+    <!-- 侧栏拖拽手柄 -->
+    <div class="lqd-resize-handle" id="lqd-resize-handle"></div>
+
+    <!-- 主内容区 -->
+    <main class="lqd-main" id="lqd-main">
+      <div class="lqd-tab-bar" id="lqd-tab-bar"></div>
+      <div class="lqd-main-body" id="lqd-main-body"></div>
+    </main>
+
+    <!-- 遗留元素:视觉隐藏,JS 功能保留(状态轮询/标签管理继续工作) -->
+    <nav class="lqd-activity-bar" id="lqd-activity-bar" aria-label="主导航"></nav>
+    <div class="lqd-sidebar-header" id="lqd-sidebar-header"></div>
+    <aside class="lqd-overview" id="lqd-overview">
+      <div class="lqd-overview-header" id="lqd-overview-header">上下文</div>
+      <div class="lqd-overview-body" id="lqd-overview-body"></div>
+    </aside>
+    <footer class="lqd-status-bar" id="lqd-status-bar"></footer>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // KaTeX 自动渲染。注意:katex 内部对非 ParseError(如非法输入 TypeError)
+      // 即使 throwOnError:false 也会重抛,必须自己兜住,避免页面初始化中断。
+      if (window.renderMathInElement) {
+        try {
+          renderMathInElement(document.body, {
+            delimiters: [
+              { left: "$$", right: "$$", display: true },
+              { left: "\\[", right: "\\]", display: true },
+              { left: "\\(", right: "\\)", display: false },
+              { left: "$", right: "$", display: false }
+            ],
+            ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+            ignoredClasses: ["pseudocode"],
+            throwOnError: false
+          });
+        } catch (e) {
+          if (window.LqdErrors) window.LqdErrors.report(e, 'katex-auto-render');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

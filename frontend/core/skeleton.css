@@ -1,0 +1,60 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LQ-D — Skeleton Styles
+   shimmer 动 background-position;reduced-motion 下由 foundation.css 全局兜底。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.lqd-skeleton {
+  background: var(--skeleton-base);
+  display: block;
+}
+
+.lqd-skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 0%,
+    var(--skeleton-shimmer) 50%,
+    var(--skeleton-base) 100%
+  );
+  background-size: 200% 100%;
+  animation: lqd-skeleton-shimmer 1.4s var(--ease-fluid) infinite;
+}
+
+@keyframes lqd-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.lqd-skeleton-list,
+.lqd-skeleton-text,
+.lqd-skeleton-card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Spinner(复用 refresh 图标) ──
+   rotation 是 transform,允许;reduced-motion 下由 foundation.css 全局兜底冻结。 */
+.lqd-spin {
+  animation: lqd-spin 0.9s linear infinite;
+  display: inline-flex;
+}
+
+@keyframes lqd-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lqd-spinner-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  opacity: 0.6;
+  z-index: var(--z-sticky);
+}
+
+.lqd-spinner-icon {
+  color: var(--fg-secondary);
+}
+

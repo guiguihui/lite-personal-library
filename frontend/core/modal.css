@@ -1,0 +1,64 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LQ-D — Modal Styles
+   z-index: var(--z-modal)。背景遮罩 + 居中对话框。
+   动画仅 transform/opacity;reduced-motion 下由 foundation.css 全局兜底。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.lqd-modal-root {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: var(--z-modal);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-fluid);
+}
+.lqd-modal-root[hidden] { display: none !important; }
+.lqd-modal-root--visible { opacity: 1; }
+.lqd-modal-root--leaving { opacity: 0; }
+
+.lqd-modal {
+  width: 480px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  transform: scale(0.96);
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+.lqd-modal-root--visible .lqd-modal { transform: scale(1); }
+
+.lqd-modal-title {
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--fg-primary);
+  text-wrap: balance;
+}
+.lqd-modal--danger .lqd-modal-title { color: var(--danger); }
+
+.lqd-modal-body {
+  padding: 0 var(--space-4) var(--space-4);
+  color: var(--fg-secondary);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  overflow: auto;
+  text-wrap: pretty;
+}
+
+.lqd-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
