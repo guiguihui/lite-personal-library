@@ -21,9 +21,7 @@
   30% { transform: translateY(-4px); opacity: 1; }
 }
 
-/* ── 高级思考动画 (纯 CSS 轨道, 合成线程运行, 不占主线程) ──
-   只用 transform/opacity,由浏览器 GPU 合成线程执行。
-   主线程即使被流式重渲占满,动画依然流畅 → 彻底告别卡顿。 */
+/* ── 思考动画:thinking-orbs canvas ── */
 
 /* 思考器容器:横向玻璃胶囊 */
 @keyframes lqd-thinker-fade-in {
@@ -52,55 +50,15 @@
   animation: lqd-thinker-fade-out 0.25s var(--ease-fluid) forwards;
 }
 
-/* 轨道动画:三个光点绕中心公转 + 中心光晕呼吸 */
-.lqd-thinker-orbit {
-  position: relative;
-  width: 26px;
-  height: 26px;
+/* thinking-orbs 画布容器 */
+.lqd-thinker-orb-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
-.lqd-thinker-orbit::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--tint-blue) 22%, transparent);
-  animation: lqd-orbit-rotate 2.4s linear infinite;
-}
-@keyframes lqd-orbit-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.lqd-thinker-orbit-dot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
-  border-radius: 50%;
-  background: var(--tint-blue);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--tint-blue) 70%, transparent);
-  animation: lqd-orbit-rotate 2.4s linear infinite;
-}
-.lqd-thinker-orbit-dot.d1 { transform: translateX(10px); }
-.lqd-thinker-orbit-dot.d2 { transform: translateX(-9px); animation-delay: 0.8s; }
-.lqd-thinker-orbit-dot.d3 { transform: translateX(10px); animation-delay: 1.6s; opacity: 0.75; }
-/* 中心光晕:呼吸缩放 */
-.lqd-thinker-orbit-core {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--tint-blue) 35%, transparent);
-  animation: lqd-orbit-core-pulse 2.4s var(--ease-fluid) infinite;
-}
-@keyframes lqd-orbit-core-pulse {
-  0%, 100% { transform: scale(0.7); opacity: 0.5; }
-  50% { transform: scale(1.15); opacity: 1; }
+.lqd-thinker-orb-wrap canvas {
+  display: block;
 }
 
 /* 状态文字:柔和明暗呼吸 */
@@ -116,12 +74,14 @@
   white-space: nowrap;
 }
 
-/* 隐藏旧元素 (canvas/orbs/圆点 兼容) */
+/* 隐藏旧元素 (兼容) */
 .lqd-thinker-ring,
 .lqd-thinker-core,
 .lqd-thinker-orb,
 .lqd-thinker-dots,
-.lqd-thinker-orb-wrap {
+.lqd-thinker-orbit,
+.lqd-thinker-orbit-dot,
+.lqd-thinker-orbit-core {
   display: none;
 }
 
@@ -958,6 +918,17 @@
   color: var(--fg-primary);
   animation: lqd-tool-in 0.2s var(--ease-fluid);
 }
+
+/* 检索步骤中的 mini thinking-orbs 画布 */
+.lqd-tool-orb-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+.lqd-tool-orb-slot canvas { display: block; }
 
 .lqd-tool-step code {
   background: var(--bg-tertiary);
