@@ -1,5 +1,5 @@
 /**
- * LQ-D — Sidebar
+ * 轻量个人知识库 — Sidebar
  * 根据当前 Activity 调度左侧 Sidebar 内容。
  */
 (function () {

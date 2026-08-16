@@ -1,5 +1,5 @@
 /**
- * LQ-D — 上传队列状态机
+ * 轻量个人知识库 — 上传队列状态机
  *
  * 管理批量上传队列:每个文件一个 item,状态 pending/running/done/failed。
  * 逐个 POST /api/ingest/full,每个文件一个 job,前端轮询状态。

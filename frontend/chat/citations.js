@@ -1,5 +1,5 @@
 /**
- * LQ-D — Chat Citations
+ * 轻量个人知识库 — Chat Citations
  *
  * 引用链接注入、检索调试卡片渲染。
  */

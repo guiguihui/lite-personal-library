@@ -71,7 +71,7 @@ class NoCacheFrontendMiddleware:
 def create_app(cfg: AppConfig) -> FastAPI:
     """FastAPI 工厂:挂载所有 router + 静态资源 + 中间件。"""
     app = FastAPI(
-        title="LQ-D",
+        title="轻量个人知识库",
         version="0.1.0",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",

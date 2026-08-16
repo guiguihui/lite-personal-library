@@ -1,5 +1,5 @@
 /**
- * LQ-D — Shell
+ * 轻量个人知识库 — Shell
  * 应用骨架:Activity Bar + Sidebar + Main(Tab Bar + Body) + Overview + Status Bar。
  * 负责初始化所有 core 模块并协调视图状态。
  */

@@ -1,5 +1,5 @@
 /**
- * LQ-D — Manage Builder & Ingest helpers (placeholder)
+ * 轻量个人知识库 — Manage Builder & Ingest helpers (placeholder)
  *
  * 当前 manage.js 为单文件实现，index.js 直接调用 window.initManage / window.YuuManage.buildIndex。
  * 本文件保留为扩展点，未来可拆分 builder/ingest 逻辑至此。

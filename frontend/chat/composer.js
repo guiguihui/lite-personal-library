@@ -1,5 +1,5 @@
 /**
- * LQ-D — Chat Composer
+ * 轻量个人知识库 — Chat Composer
  *
  * 输入区、发送按钮、Enter 快捷键、动态建议问题。
  */
@@ -54,7 +54,7 @@
     var h1 = document.querySelector('article h1, main h1, h1');
     if (h1 && h1.textContent.trim()) return h1.textContent.trim();
     var t = document.title || '';
-    return t.replace(/\s*[•·-]\s*LQ-D.*$/i, '').trim();
+    return t.replace(/\s*[•·-]\s*轻量个人知识库.*$/i, '').trim();
   }
 
   function buildDynamicSuggestions() {

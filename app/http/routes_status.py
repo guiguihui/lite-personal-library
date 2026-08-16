@@ -33,7 +33,7 @@ async def get_status(request: Request) -> StatusResponse:
         current = None
 
     return StatusResponse(
-        app_name="LQ-D",
+        app_name="轻量个人知识库",
         version=app.__version__,
         index_ready=current is not None,
         index_version="v3",

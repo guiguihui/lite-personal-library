@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * LQ-D — Retrieval benchmark harness
+ * 轻量个人知识库 — Retrieval benchmark harness
  *
  * 加载 retrieval.js + node-index.json，对 golden.json 题目集跑检索管线
  * （search → RM3 → lexicalRerank，与 chat.js retrieveContext 前段一致），

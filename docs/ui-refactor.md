@@ -1,4 +1,4 @@
-# LQ-D 桌面端 UI 重构设计文档
+# 轻量个人知识库 桌面端 UI 重构设计文档
 
 > 本文档描述从「三标签 + 浮动弹窗」向「Trae 风格 AI 知识库 IDE」重构的设计决策。
 >
@@ -310,7 +310,7 @@ python -m app.main
   → load_app_config
   → create_app (FastAPI + StaticFiles)
   → run_server_in_thread
-  → webview.create_window("LQ-D", http://127.0.0.1:8765/frontend/index.html)
+  → webview.create_window("轻量个人知识库", http://127.0.0.1:8765/frontend/index.html)
   → index.html 加载 core/ → shared/ → chat/ → library/ → manage/ → upload/ → config/
   → LqdShell.init()
       → LqdTheme.init()
@@ -395,7 +395,7 @@ window.LqdCommands = {
 
 ```json
 {
-  "app_name": "LQ-D",
+  "app_name": "轻量个人知识库",
   "version": "0.1.0",
   "index_ready": true,
   "index_running": false,
@@ -442,7 +442,7 @@ GET /api/search?q=<query>&limit=20
 5. 删除 `home/home.js` / `home/home.css`，创建 `overview/`。
 6. 统一 CSS tokens，修复 `--app-*` 未定义问题。
 7. 后端新增 `routes_status.py` / `routes_search.py`。
-8. 替换品牌文本为 LQ-D，清理 `uynajgi` / `KKKKhazix`。
+8. 替换品牌文本为 轻量个人知识库，清理 `uynajgi` / `KKKKhazix`。
 9. 运行测试、构建验证、手动 UI 检查清单。
 
 ## 11. 兼容性

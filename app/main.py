@@ -92,9 +92,9 @@ def main() -> int:
         import sys as _sys
 
         print(
-            f"[LQ-D] 端口 {cfg.http_host}:{cfg.http_port} 已被占用,无法启动 HTTP 服务。\n"
+            f"[轻量个人知识库] 端口 {cfg.http_host}:{cfg.http_port} 已被占用,无法启动 HTTP 服务。\n"
             f"({type(_bind_exc).__name__}: {_bind_exc})\n"
-            f"最常见原因:上一次启动的 LQ-D 进程未退出。\n"
+            f"最常见原因:上一次启动的 轻量个人知识库 进程未退出。\n"
             f"请先结束占用该端口的进程再重试,或修改 data/config/app.yaml 的 http_port。",
             file=_sys.stderr,
         )
@@ -119,7 +119,7 @@ def main() -> int:
         import sys as _sys
 
         print(
-            f"[LQ-D] HTTP 服务启动失败:{bind_error}\n"
+            f"[轻量个人知识库] HTTP 服务启动失败:{bind_error}\n"
             f"通常是端口 {cfg.http_port} 被占用。",
             file=_sys.stderr,
         )
@@ -128,7 +128,7 @@ def main() -> int:
         import sys as _sys
 
         print(
-            f"[LQ-D] HTTP 服务未能在端口 {cfg.http_host}:{cfg.http_port} 启动。\n"
+            f"[轻量个人知识库] HTTP 服务未能在端口 {cfg.http_host}:{cfg.http_port} 启动。\n"
             f"请检查上方 uvicorn 日志,或修改 data/config/app.yaml 的 http_port。",
             file=_sys.stderr,
         )
@@ -140,7 +140,7 @@ def main() -> int:
     except Exception as _exc:
         import sys as _sys
 
-        print(f"[LQ-D] HTTP 服务就绪但探测失败:{_exc}", file=_sys.stderr)
+        print(f"[轻量个人知识库] HTTP 服务就绪但探测失败:{_exc}", file=_sys.stderr)
         return 1
 
     # 启动 pywebview(主线程阻塞)
@@ -155,7 +155,7 @@ def main() -> int:
         import webview
 
         webview.create_window(
-            "LQ-D",
+            "轻量个人知识库",
             load_url,
             width=1400,
             height=900,

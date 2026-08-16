@@ -49,6 +49,6 @@ def export_llm_context(content_dir: Path | str, pageindex_dir: Path | str, outpu
         name = f"{kind}s.md"
         (output_root / name).write_text("\n\n---\n\n".join(sections) + ("\n" if sections else ""), encoding="utf-8")
         outputs.append(name)
-    llms = "# LQ-D Library\n\n" + "\n".join(f"- [{name}]({name})" for name in outputs) + "\n"
+    llms = "# 轻量个人知识库 Library\n\n" + "\n".join(f"- [{name}]({name})" for name in outputs) + "\n"
     (output_root / "llms.txt").write_text(llms, encoding="utf-8")
     return {"outputs": ["llms.txt", *outputs], "diagnostics": diagnostics}

@@ -1,5 +1,5 @@
 /**
- * LQ-D — Command Palette
+ * 轻量个人知识库 — Command Palette
  * 命令面板:Cmd/Ctrl+K 呼出,支持静态命令与动态提供者。
  */
 (function () {

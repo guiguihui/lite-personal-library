@@ -1,5 +1,5 @@
 /**
- * LQ-D — Tab Persistence
+ * 轻量个人知识库 — Tab Persistence
  * 标签状态跨刷新持久化。设计文档 §12 此前推迟,现补齐。
  * 独立 IIFE,不依赖 tabs.js 内部函数。
  *

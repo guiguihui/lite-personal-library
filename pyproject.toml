@@ -1,7 +1,7 @@
 [project]
 name = "lq-d"
 version = "0.1.0"
-description = "LQ-D — Python 桌面知识库应用"
+description = "轻量个人知识库 — Python 桌面知识库应用"
 requires-python = ">=3.10"
 readme = "README.md"
 dependencies = [

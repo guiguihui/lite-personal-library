@@ -1,5 +1,5 @@
 /**
- * LQ-D — Library Open-Doc Bridge
+ * 轻量个人知识库 — Library Open-Doc Bridge
  * 规范的文档打开桥,augment 现有 window.LqdLibrary 对象(不替换、不改 library/index.js)。
  *
  * 修复 bug:command-palette.js:360 和 search/index.js:138 调用 LqdLibrary.openDoc/searchDocs,

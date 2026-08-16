@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   LQ-D — Core Shell Styles
+   轻量个人知识库 — Core Shell Styles
    Trae 风格五栏布局:Activity Bar + Sidebar + Main(Tab Bar + Body) + Overview + Status Bar
    基础 token(颜色/间距/字体/圆角/布局尺寸)在 :root 定义,其他模块用 var(--xxx)。
 

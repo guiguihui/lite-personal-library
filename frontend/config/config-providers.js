@@ -1,5 +1,5 @@
 /**
- * LQ-D — Provider 默认值(前端单一来源)
+ * 轻量个人知识库 — Provider 默认值(前端单一来源)
  *
  * 从后端 GET /api/settings/providers 读取,消除 chat.js/defaults.py/providers.py
  * 三处手动同步。后端 defaults.py 是唯一真实来源。

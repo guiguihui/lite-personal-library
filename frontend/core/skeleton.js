@@ -1,5 +1,5 @@
 /**
- * LQ-D — Skeleton
+ * 轻量个人知识库 — Skeleton
  * 布局形状的 shimmer 占位(非圆形 spinner,遵循 taste-skill)。
  * 独立 IIFE,不依赖其他 core 模块内部函数。
  *

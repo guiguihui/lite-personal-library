@@ -1,7 +1,7 @@
 /**
- * LQ-D — Library Tab Component
+ * 轻量个人知识库 — Library Tab Component
  *
- * 包装原有 library.js 的三栏阅读器，适配 LQ-D core 标签框架。
+ * 包装原有 library.js 的三栏阅读器，适配 轻量个人知识库 core 标签框架。
  */
 (function () {
   'use strict';

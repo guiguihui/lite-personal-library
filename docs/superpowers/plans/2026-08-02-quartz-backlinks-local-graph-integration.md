@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在 LQ-D 桌面知识库中原生实现与 Quartz 语义兼容的 Wikilink、反向链接、悬浮预览和一跳局部知识图谱。
+**Goal:** 在 轻量个人知识库 桌面知识库中原生实现与 Quartz 语义兼容的 Wikilink、反向链接、悬浮预览和一跳局部知识图谱。
 
 **Architecture:** 不引入 Quartz 的静态站点生成运行时。后端在现有 PageIndex 构建完成后扫描 Markdown，生成独立且确定性的 `link-index.json`；FastAPI 提供解析、反链、预览和一跳邻域接口；Library 阅读器用原生模块渲染 Wikilink、反链和基于 D3 + SVG 的局部图谱。链接主键使用 `doc_type:slug`，避免书籍、论文、笔记同名时发生碰撞。
 
@@ -47,7 +47,7 @@ Quartz v5 已把核心能力拆成独立插件：
 
 ### 1.2 为什么不直接安装 Quartz 插件
 
-LQ-D 是本地桌面应用，内容按请求从 Markdown 和 PageIndex JSON 读取；Quartz 是 Node/TypeScript 静态站点生成器，其插件依赖 Quartz 的 AST、构建上下文、页面组件和 SPA 生命周期。直接引入会形成第二套内容构建和前端运行时，并破坏当前 PyInstaller 打包路径。
+轻量个人知识库 是本地桌面应用，内容按请求从 Markdown 和 PageIndex JSON 读取；Quartz 是 Node/TypeScript 静态站点生成器，其插件依赖 Quartz 的 AST、构建上下文、页面组件和 SPA 生命周期。直接引入会形成第二套内容构建和前端运行时，并破坏当前 PyInstaller 打包路径。
 
 建议采用“语义兼容、架构原生”的移植：借鉴 Quartz 的数据流与交互，不复制其框架代码。若实现阶段直接改编 Quartz 的具体代码，必须保留其 MIT 许可证声明；本计划默认重新实现。
 

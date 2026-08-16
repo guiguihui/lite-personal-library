@@ -1,5 +1,5 @@
 /**
- * LQ-D — Tooltip
+ * 轻量个人知识库 — Tooltip
  * 自定义 tooltip,替代原生 title=。hover/focus 触发,有延迟。
  * 独立 IIFE,不依赖其他 core 模块内部函数。
  *

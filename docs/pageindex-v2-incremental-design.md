@@ -2,7 +2,7 @@
 
 - 状态：Implemented — 阶段 A 已完成并实测；正式读取仍保持 legacy
 - 日期：2026-07-29
-- 受众：LQ-D 维护者、PageIndex/检索实现者、测试与发布负责人
+- 受众：轻量个人知识库 维护者、PageIndex/检索实现者、测试与发布负责人
 - 主要模式：Technical Specification
 - 第一轮交付：Shadow generation（不切换正式读取路径）
 

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   LQ-D — Tab Context Menu Styles
+   轻量个人知识库 — Tab Context Menu Styles
    z-index: var(--z-overlay)。固定定位,JS 计算位置。
    动画仅 opacity/transform;reduced-motion 下由 foundation.css 全局兜底。
    ══════════════════════════════════════════════════════════════════════════ */

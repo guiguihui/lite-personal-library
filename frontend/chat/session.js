@@ -1,5 +1,5 @@
 /**
- * LQ-D — Chat Session
+ * 轻量个人知识库 — Chat Session
  *
  * 当前会话（sessionStorage）与归档历史（localStorage）CRUD。
  * 键从旧 yuu_chat_* 迁移到 lqd_chat_*。

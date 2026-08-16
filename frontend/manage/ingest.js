@@ -1,5 +1,5 @@
 /**
- * LQ-D — Manage Ingest helpers (placeholder)
+ * 轻量个人知识库 — Manage Ingest helpers (placeholder)
  *
  * 当前 manage.js 为单文件实现，index.js 直接调用 window.initManage。
  * 本文件保留为扩展点。

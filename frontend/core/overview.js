@@ -1,5 +1,5 @@
 /**
- * LQ-D — Overview
+ * 轻量个人知识库 — Overview
  * 右侧上下文面板,根据当前 Activity 和活动标签渲染。
  */
 (function () {

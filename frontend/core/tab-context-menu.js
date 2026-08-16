@@ -1,5 +1,5 @@
 /**
- * LQ-D — Tab Context Menu
+ * 轻量个人知识库 — Tab Context Menu
  * 标签右键菜单:关闭 / 关闭其他 / 关闭右侧 / 关闭全部。
  * 独立 IIFE,不依赖 tabs.js 内部函数。
  *

@@ -1,5 +1,5 @@
 /**
- * LQ-D — Icons
+ * 轻量个人知识库 — Icons
  *
  * 内联 SVG sprite,Feather Icons 风格(24×24,stroke="currentColor")。
  * 不引入图标库,颜色由 CSS color 控制。

@@ -1,4 +1,4 @@
-"""LQ-D — Retrieval core (Python port of retrieval.js).
+"""轻量个人知识库 — Retrieval core (Python port of retrieval.js).
 
 阶段 7：Python 检索重写。与前端 ``frontend/chat/retrieval.js`` 行为对齐，
 用于：

@@ -1,5 +1,5 @@
 /**
- * LQ-D — Chat Agent
+ * 轻量个人知识库 — Chat Agent
  *
  * ReAct 工具循环、检索上下文、发送消息（原 handleSend 改名为 sendMessage）。
  * 依赖: LqdSettings / LqdChatLLM / LqdChatSession / LqdChatMessages / LqdChatCitations / LqdEvents。
@@ -189,7 +189,7 @@
     } else {
       thinNotice = '\n> **检索置信度高**：可基于 Context 充分回答。\n';
     }
-    return '你是 **LQ-D** 的知识助手，基于个人数字图书馆内容的 RAG 问答系统。\n\n' +
+    return '你是 **轻量个人知识库** 的知识助手，基于个人数字图书馆内容的 RAG 问答系统。\n\n' +
       '## 检索概览\n' + docToc.join('\n') + '\n' + thinNotice + '\n' +
       '## 推理步骤\n' +
       '1. **扫描结构**：先浏览下方各段落标题和层级关系，判断哪些 [N] 与问题最相关\n' +
@@ -348,7 +348,7 @@
   }
   function buildAgentSystemPrompt() {
     var toc = buildLibraryTOC();
-    return '你是 **LQ-D** 的知识助手，基于个人数字图书馆的 RAG 问答系统。\n\n' +
+    return '你是 **轻量个人知识库** 的知识助手，基于个人数字图书馆的 RAG 问答系统。\n\n' +
       '## 图书馆目录（' + toc.docCount + ' 篇文档，检索前先浏览相关领域）\n' + toc.text + '\n\n' +
       '## 工作方式\n' +
       '- 你有三个工具：search_library（检索）、get_section（取完整章节）、rewrite_query（改写查询）\n' +

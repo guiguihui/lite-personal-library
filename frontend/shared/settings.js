@@ -1,5 +1,5 @@
 /**
- * LQ-D — Shared Settings
+ * 轻量个人知识库 — Shared Settings
  *
  * 从 chat.js 迁出的 LLM 设置对象，后端驱动（/api/settings）。
  * 被 chat/llm.js、chat/agent.js 以及 config.js 共享。

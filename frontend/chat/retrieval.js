@@ -1,5 +1,5 @@
 /**
- * LQ-D — Retrieval core (pure, testable)
+ * 轻量个人知识库 — Retrieval core (pure, testable)
  *
  * Extracted from chat.js so the lexical RAG pipeline (tokenizer → BM25 →
  * rerank → MMR) can be unit-tested and benchmarked under Node without a DOM.

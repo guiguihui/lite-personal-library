@@ -1,5 +1,5 @@
 /**
- * LQ-D — Chat Messages
+ * 轻量个人知识库 — Chat Messages
  *
  * 消息气泡、思考过程、工具调用轨迹、空状态、KaTeX 重渲染。
  */

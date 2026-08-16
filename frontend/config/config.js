@@ -1,5 +1,5 @@
 /**
- * LQ-D — 配置页
+ * 轻量个人知识库 — 配置页
  *
  * 三组配置:LLM(provider/model/base_url/api_key) + 存储(路径) + 应用(端口/策略)。
  * LLM 走 /api/settings(单 key-value PUT),存储/应用走 /api/app/config(整体 PUT)。

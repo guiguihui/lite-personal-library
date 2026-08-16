@@ -1,8 +1,8 @@
 /**
- * LQ-D — Chat Tab Component
+ * 轻量个人知识库 — Chat Tab Component
  *
  * 注册 window.LqdChat 标签组件，组合 LLM / Session / Citations / Messages / Composer / Agent。
- * 无浮动弹窗、无抽屉、无旧 Settings 表单；完全适配 LQ-D core/ 框架。
+ * 无浮动弹窗、无抽屉、无旧 Settings 表单；完全适配 轻量个人知识库 core/ 框架。
  */
 (function () {
   'use strict';

@@ -1,5 +1,5 @@
 /**
- * LQ-D — Theme Manager
+ * 轻量个人知识库 — Theme Manager
  * 无闪烁主题初始化与切换。
  */
 (function () {

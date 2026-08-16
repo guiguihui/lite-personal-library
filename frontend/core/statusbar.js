@@ -1,5 +1,5 @@
 /**
- * LQ-D — StatusBar
+ * 轻量个人知识库 — StatusBar
  * 底部状态栏:索引状态、模型名称、版本号、主题切换。
  */
 (function () {

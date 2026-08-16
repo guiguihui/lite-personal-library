@@ -1,58 +1,58 @@
-# LQ-D 品牌与第三方标识清理文档
+# 轻量个人知识库 品牌与第三方标识清理文档
 
-> 本文档记录从「Yuunagi Library」向「LQ-D」迁移时需要清理的品牌与第三方作者标识。
+> 本文档记录从「Yuunagi Library」向「轻量个人知识库」迁移时需要清理的品牌与第三方作者标识。
 >
 > 关联文档：[ui-refactor.md](ui-refactor.md)、[architecture.md](architecture.md)。
 
 ## 1. 目标
 
-1. 将项目对外品牌从 **Yuunagi Library** 替换为 **LQ-D**。
+1. 将项目对外品牌从 **Yuunagi Library** 替换为 **轻量个人知识库**。
 2. 清理仓库中不属于项目自身的第三方作者标识（`uynajgi`、`KKKKhazix`）。
 3. 重新生成索引产物，确保 `data/pageindex/*.json` 中不再残留旧品牌文本。
 
-## 2. 品牌替换清单（LQ-D）
+## 2. 品牌替换清单（轻量个人知识库）
 
 ### 2.1 yuulibrary-desktop（桌面应用）
 
 | 文件 | 替换内容 | 新值 |
 |------|----------|------|
-| `frontend/index.html` | `<title>` | `LQ-D` |
-| `app/main.py` | `webview.create_window` 标题 | `LQ-D` |
-| `app/http/server.py` | `FastAPI(title=...)` | `LQ-D Desktop` |
-| `app/__init__.py` | 注释与 `__version__` 说明 | `LQ-D` |
-| `pyproject.toml` | `name` / `description` | `lqd-desktop` / `LQ-D Desktop — ...` |
-| `yuulibrary-desktop.spec` | 注释、exe 名称说明 | `LQ-D` |
-| `run_app.py` | 注释 | `LQ-D` |
-| `README.md` | 标题与正文 | `LQ-D` |
-| `docs/architecture.md` | 标题与正文 | `LQ-D` |
-| `docs/development.md` | 标题与正文 | `LQ-D` |
-| `docs/deployment.md` | 标题与正文 | `LQ-D` |
-| `data/content/_index.md` | `title` frontmatter | `LQ-D` |
-| `data/content/about.md` | 标题与正文 | `LQ-D` |
-| `data/content/notes/welcome.md` | 标题与正文 | `LQ-D` |
-| `frontend/chat/*.js` | 注释中的 `Yuunagi Library` | `LQ-D` |
-| `frontend/chat/chat.css` | 注释中的 `Yuunagi Library` | `LQ-D` |
-| `frontend/library/library.js` | 注释中的 `Yuunagi Library` | `LQ-D` |
-| `frontend/manage/manage.js` | 注释中的 `Yuunagi Library` | `LQ-D` |
-| `frontend/upload/upload.js` | 注释中的 `Yuunagi Library` | `LQ-D` |
-| `frontend/config/config.js` | 注释中的 `Yuunagi Library` | `LQ-D` |
-| `frontend/shared/render.js` | 注释中的 `Yuunagi Library` | `LQ-D` |
+| `frontend/index.html` | `<title>` | `轻量个人知识库` |
+| `app/main.py` | `webview.create_window` 标题 | `轻量个人知识库` |
+| `app/http/server.py` | `FastAPI(title=...)` | `轻量个人知识库 Desktop` |
+| `app/__init__.py` | 注释与 `__version__` 说明 | `轻量个人知识库` |
+| `pyproject.toml` | `name` / `description` | `lqd-desktop` / `轻量个人知识库 Desktop — ...` |
+| `yuulibrary-desktop.spec` | 注释、exe 名称说明 | `轻量个人知识库` |
+| `run_app.py` | 注释 | `轻量个人知识库` |
+| `README.md` | 标题与正文 | `轻量个人知识库` |
+| `docs/architecture.md` | 标题与正文 | `轻量个人知识库` |
+| `docs/development.md` | 标题与正文 | `轻量个人知识库` |
+| `docs/deployment.md` | 标题与正文 | `轻量个人知识库` |
+| `data/content/_index.md` | `title` frontmatter | `轻量个人知识库` |
+| `data/content/about.md` | 标题与正文 | `轻量个人知识库` |
+| `data/content/notes/welcome.md` | 标题与正文 | `轻量个人知识库` |
+| `frontend/chat/*.js` | 注释中的 `Yuunagi Library` | `轻量个人知识库` |
+| `frontend/chat/chat.css` | 注释中的 `Yuunagi Library` | `轻量个人知识库` |
+| `frontend/library/library.js` | 注释中的 `Yuunagi Library` | `轻量个人知识库` |
+| `frontend/manage/manage.js` | 注释中的 `Yuunagi Library` | `轻量个人知识库` |
+| `frontend/upload/upload.js` | 注释中的 `Yuunagi Library` | `轻量个人知识库` |
+| `frontend/config/config.js` | 注释中的 `Yuunagi Library` | `轻量个人知识库` |
+| `frontend/shared/render.js` | 注释中的 `Yuunagi Library` | `轻量个人知识库` |
 
 ### 2.2 yuulibrary-main（Hugo 静态站）
 
 | 文件 | 替换内容 | 新值 |
 |------|----------|------|
-| `hugo.toml` | `title`、`copyright`、`baseURL`、`BookRepo` | `LQ-D` |
-| `README.md` | 标题、部署链接、badge | `LQ-D` |
-| `CLAUDE.md` | 标题 | `LQ-D` |
-| `CONTRIBUTING.md` | 标题 | `LQ-D` |
-| `content/_index.md` | `title` frontmatter | `LQ-D` |
-| `content/about.md` | 标题与正文 | `LQ-D` |
-| `content/notes/welcome.md` | 标题与正文 | `LQ-D` |
-| `assets/_custom.scss` | 注释 | `LQ-D` |
-| `scripts/migrate_mkdocs_to_hugo.py` | 默认标题 | `LQ-D` |
-| `layouts/partials/docs/footer.html` | `&copy;` 文案 | `LQ-D` |
-| `layouts/partials/docs/inject/menu-after.html` | 链接文案 | `LQ-D` |
+| `hugo.toml` | `title`、`copyright`、`baseURL`、`BookRepo` | `轻量个人知识库` |
+| `README.md` | 标题、部署链接、badge | `轻量个人知识库` |
+| `CLAUDE.md` | 标题 | `轻量个人知识库` |
+| `CONTRIBUTING.md` | 标题 | `轻量个人知识库` |
+| `content/_index.md` | `title` frontmatter | `轻量个人知识库` |
+| `content/about.md` | 标题与正文 | `轻量个人知识库` |
+| `content/notes/welcome.md` | 标题与正文 | `轻量个人知识库` |
+| `assets/_custom.scss` | 注释 | `轻量个人知识库` |
+| `scripts/migrate_mkdocs_to_hugo.py` | 默认标题 | `轻量个人知识库` |
+| `layouts/partials/docs/footer.html` | `&copy;` 文案 | `轻量个人知识库` |
+| `layouts/partials/docs/inject/menu-after.html` | 链接文案 | `轻量个人知识库` |
 
 ## 3. 第三方作者标识清理清单
 

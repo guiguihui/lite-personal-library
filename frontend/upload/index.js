@@ -1,5 +1,5 @@
 /**
- * LQ-D — Upload Tab Component
+ * 轻量个人知识库 — Upload Tab Component
  *
  * 包装原有 upload.js 的上传队列。
  */

@@ -1,5 +1,5 @@
 /**
- * LQ-D — Overview Content
+ * 轻量个人知识库 — Overview Content
  * 右侧上下文面板内容实现，适配 core/ 框架。
  * 监听 chat:context、tab:activated、activity:changed 事件。
  */

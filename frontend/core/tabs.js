@@ -1,5 +1,5 @@
 /**
- * LQ-D — Tabs
+ * 轻量个人知识库 — Tabs
  * 多标签页管理器。所有可标签化视图通过 register() 注册组件。
  */
 (function () {

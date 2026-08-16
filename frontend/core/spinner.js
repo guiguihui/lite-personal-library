@@ -1,5 +1,5 @@
 /**
- * LQ-D — Spinner
+ * 轻量个人知识库 — Spinner
  * 把现有 refresh 图标(icons.js)加 .lqd-spin 类做旋转,用于内联加载态。
  * 独立 IIFE,不依赖其他 core 模块内部函数。
  *

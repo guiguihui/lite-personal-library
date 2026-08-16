@@ -1,4 +1,4 @@
-# LQ-D · 轻量个人知识库桌面端
+# 轻量个人知识库 · 轻量个人知识库桌面端
 
 <p align="center">
   <strong>把 PDF / EPUB 变成可阅读、可检索、可追溯引用的本地知识库。</strong><br>
@@ -11,11 +11,11 @@
   · <a href="docs/development.md">开发说明</a>
 </p>
 
-![LQ-D desktop demo](docs/assets/demo/lq-d-demo.gif)
+![轻量个人知识库 desktop demo](docs/assets/demo/lq-d-demo.gif)
 
 > GIF 会依次展示聊天首页、文档库、上传和索引管理。需要更清晰的版本，可[查看 MP4 演示](docs/assets/demo/lq-d-demo.mp4)。
 
-## 为什么是 LQ-D
+## 为什么是 轻量个人知识库
 
 - **本地优先**：Markdown、索引和配置都保存在本地 `data/`，不依赖数据库或远程业务后端。
 - **非常轻量**：前端是原生 HTML/CSS/JavaScript；Python 进程同时承载 PyWebView 桌面窗口和仅监听 `127.0.0.1` 的 FastAPI 服务。
@@ -59,7 +59,7 @@ python -m pip install -e .
 python -m app.main
 ```
 
-启动后会出现名为 **LQ-D** 的桌面窗口。应用内部的本地服务默认运行在 `http://127.0.0.1:8765`；通常不需要手动打开浏览器。
+启动后会出现名为 **轻量个人知识库** 的桌面窗口。应用内部的本地服务默认运行在 `http://127.0.0.1:8765`；通常不需要手动打开浏览器。
 
 ### 3. 完成首次配置
 
@@ -113,7 +113,7 @@ FastAPI 本地服务
 本地文件系统：data/content · data/pageindex · data/config · data/pdfs
 ```
 
-LQ-D **不是没有后端**：后端和桌面端运行在同一台设备、同一个应用进程体系中。它的轻量来自“本地 loopback 服务 + 文件系统存储 + 无数据库”，而不是把所有工作塞进前端。详细边界、V3 Generation/View 和发布机制见[技术架构文档](docs/architecture.md)。
+轻量个人知识库 **不是没有后端**：后端和桌面端运行在同一台设备、同一个应用进程体系中。它的轻量来自“本地 loopback 服务 + 文件系统存储 + 无数据库”，而不是把所有工作塞进前端。详细边界、V3 Generation/View 和发布机制见[技术架构文档](docs/architecture.md)。
 
 ## 本地数据
 
@@ -133,7 +133,7 @@ data/
 
 ### 启动后只看到浏览器或调试窗口
 
-请从项目根目录运行 `python -m app.main`，不要单独启动前端静态页面。正常入口会创建 LQ-D 桌面窗口并在后台启动本地服务。
+请从项目根目录运行 `python -m app.main`，不要单独启动前端静态页面。正常入口会创建 轻量个人知识库 桌面窗口并在后台启动本地服务。
 
 ### 显示“知识库索引尚未生成”
 

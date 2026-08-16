@@ -1,5 +1,5 @@
 /**
- * LQ-D — Config Tab Component
+ * 轻量个人知识库 — Config Tab Component
  *
  * 包装原有 config.js 的配置表单。
  */

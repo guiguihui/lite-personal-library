@@ -1,5 +1,5 @@
 /**
- * LQ-D — Manage Tab Component
+ * 轻量个人知识库 — Manage Tab Component
  *
  * 包装原有 manage.js 的索引构建与入库流水线面板。
  */

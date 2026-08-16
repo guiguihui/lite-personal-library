@@ -1,5 +1,5 @@
 /**
- * LQ-D — Search Tab Component
+ * 轻量个人知识库 — Search Tab Component
  * 全局搜索结果视图，注册到 LqdTabs，由命令面板 search:global 打开。
  */
 (function () {

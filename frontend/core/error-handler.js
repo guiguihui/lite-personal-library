@@ -1,5 +1,5 @@
 /**
- * LQ-D — Global Error Handler(全局错误捕获,零依赖,必须最先加载)
+ * 轻量个人知识库 — Global Error Handler(全局错误捕获,零依赖,必须最先加载)
  *
  * 背景:"Cannot read properties of undefined (reading 'match')" 这类错误
  * 此前修了 4 次都靠猜根因,因为错误冒泡到 UI 时只剩 e.message,堆栈丢失。
@@ -35,7 +35,7 @@
    * @param {string} where 来源模块标识(如 'sendMessage' / 'renderKatex')
    */
   function report(err, where) {
-    console.error('[LQ-D:' + (where || 'global') + ']\n' + format(err));
+    console.error('[轻量个人知识库:' + (where || 'global') + ']\n' + format(err));
   }
 
   /** 安装全局捕获(幂等)。 */

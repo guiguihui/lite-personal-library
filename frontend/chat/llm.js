@@ -1,5 +1,5 @@
 /**
- * LQ-D — Chat LLM
+ * 轻量个人知识库 — Chat LLM
  *
  * SSE 读取、buildRequest、streamText、callLLMSync。
  * 依赖 window.LqdSettings 解析配置。

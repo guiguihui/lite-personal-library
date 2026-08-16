@@ -1,5 +1,5 @@
 /**
- * LQ-D — Modal
+ * 轻量个人知识库 — Modal
  * 可访问的模态对话框,替代原生 alert()/confirm()。
  * 独立 IIFE,焦点陷阱逻辑有意自包含(不与 command-palette.js 共享,避免耦合)。
  *
