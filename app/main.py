@@ -149,9 +149,8 @@ def main() -> int:
     # 后端 NoCacheFrontendMiddleware 已对 /frontend/* 发 no-store,但已落入
     # WebView2 磁盘缓存的旧资源仍会被复用,时间戳让 URL 唯一以彻底规避。
     load_url = f"{url}?t={int(time.time())}"
-    # debug=True 让 WebView2/EdgeChromium 开 F12 DevTools,便于排查前端 SSE/渲染问题。
-    # 临时排查用,正式发布可去掉。
-    webview_debug = True
+    # 桌面启动默认关闭 WebView2 DevTools，避免额外弹出浏览器调试窗口。
+    webview_debug = False
     try:
         import webview
 
@@ -207,9 +206,9 @@ class DesktopApi:
             result = win.create_file_dialog(
                 dialog_type,
                 file_types=file_types or [
+                    "Supported Documents (*.pdf;*.epub)",
                     "PDF Files (*.pdf)",
                     "EPUB Files (*.epub)",
-                    "DOCX Files (*.docx)",
                 ],
                 allow_multiple=True,
             )

@@ -1071,6 +1071,7 @@ def write_inverted_index(all_chunk_nodes: list[dict], global_docs: list[dict]) -
     # 这样单文档高频的领域词（如"车位"只在这 1 本书高频）不被误杀；
     # 跨文档高频的真停用词（"的/了/接口"）仍被丢弃以控体积。
     n_chunks = len(all_chunks) or 1
+    stopword_cap = int(n_chunks * STOPWORD_DF_RATIO)
     filtered, kept_tokens, dropped_tokens = _filter_stopwords(merged_postings, all_chunks)
 
     chunks_path = os.path.join(STATIC_DIR, "chunks.json")
@@ -1082,7 +1083,7 @@ def write_inverted_index(all_chunk_nodes: list[dict], global_docs: list[dict]) -
         json.dump({"postings": filtered, "num_chunks": n_chunks}, f,
                   ensure_ascii=False, separators=(",", ":"))
     print(f"  chunks:       {n_chunks} chunks, "
-          f"{kept_tokens} tokens (dropped {dropped_tokens} stopwords, cap={stopword_cap})")
+          f"{kept_tokens} tokens (dropped {dropped_tokens} stopwords, threshold={STOPWORD_DF_RATIO:.0%})")
 
 
 def changed_docs(file_paths: list[str]) -> set[tuple[str, str]]:

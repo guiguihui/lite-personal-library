@@ -94,6 +94,9 @@
   }
 
   function mount(container, tab) {
+    var mainBody = container.closest && container.closest('.lqd-main-body');
+    if (mainBody) mainBody.scrollTop = 0;
+
     var refs = createChatDOM(container, tab);
     tabRefs.set(tab.id, refs);
 

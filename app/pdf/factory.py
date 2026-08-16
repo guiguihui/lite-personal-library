@@ -17,11 +17,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.pdf.base import Extractor
-from app.pdf.epub import EpubExtractor
+from app.pdf.epub import EpubExtractor, resolve_pandoc
+from app.pdf.epub_fitz import EpubFitzExtractor
 from app.pdf.local import LocalExtractor
 from app.pdf.mineru import MineruExtractor
 
-_PDF_EXTS = {".pdf", ".docx"}
+_PDF_EXTS = {".pdf"}
 _EPUB_EXTS = {".epub"}
 
 
@@ -34,7 +35,8 @@ def make_extractor(filename: str | Path, strategy: str | None = None) -> Extract
     strat = strategy or "local"
 
     if ext in _EPUB_EXTS:
-        return EpubExtractor()
+        pandoc = resolve_pandoc()
+        return EpubExtractor(pandoc) if pandoc else EpubFitzExtractor()
     if ext in _PDF_EXTS:
         if strat == "mineru":
             return MineruExtractor()

@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from app.config.schema import BuildResult
+from app.knowledge.build_hook import finish_with_links as _finish_with_links
 from app.vendor.build_pageindex import build as _vendor_build
 
 
@@ -29,7 +30,7 @@ def build_full(content_dir: str, pageindex_dir: str, llm_model: str = "") -> Bui
     llm_model:       litellm 模型串;"" = 本地退化(不调 LLM,summary 用截断)
     """
     raw = _vendor_build(content_dir, pageindex_dir, llm_model=llm_model, mode="full")
-    return _to_build_result(raw)
+    return _finish_with_links(raw, content_dir, pageindex_dir)
 
 
 def build_incremental(content_dir: str, pageindex_dir: str, llm_model: str = "") -> BuildResult:
@@ -40,4 +41,4 @@ def build_incremental(content_dir: str, pageindex_dir: str, llm_model: str = "")
     llm_model:       litellm 模型串;"" = 本地退化
     """
     raw = _vendor_build(content_dir, pageindex_dir, llm_model=llm_model, mode="incremental")
-    return _to_build_result(raw)
+    return _finish_with_links(raw, content_dir, pageindex_dir)

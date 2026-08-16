@@ -422,13 +422,26 @@ def _classify_headings_llm(candidates: list[dict]) -> dict[int, bool]:
     return out
 
 
-def fix_pseudo_headings(text: str) -> tuple[str, dict]:
+def fix_pseudo_headings(
+    text: str,
+    *,
+    heading_mode: str = "auto",
+    classifier=None,
+) -> tuple[str, dict]:
     """识别数字编号伪标题并转为 markdown ## 标题。
 
     返回 (text, stats)。stats: {pseudo_detected, pseudo_promoted, llm_used, llm_failed}。
     统一加 ## 前缀（保留原编号文字），最终层级由 fix_heading_hierarchy Pass 2 按点数降级。
     """
-    stats = {"pseudo_detected": 0, "pseudo_promoted": 0, "llm_used": False, "llm_failed": False}
+    stats = {
+        "pseudo_detected": 0,
+        "pseudo_promoted": 0,
+        "classifier": "regex" if heading_mode == "regex" else "llm",
+        "llm_attempted": False,
+        "llm_succeeded": False,
+        "llm_used": False,
+        "llm_failed": False,
+    }
     lines = text.split("\n")
     candidates = detect_pseudo_headings(lines)
     stats["pseudo_detected"] = len(candidates)
@@ -436,16 +449,23 @@ def fix_pseudo_headings(text: str) -> tuple[str, dict]:
         return text, stats
 
     # 尝试 LLM 批量判断；失败降级正则
+    classify = (_classify_headings_regex if heading_mode == "regex"
+                else (classifier or _classify_headings_llm))
+    if heading_mode != "regex":
+        stats["llm_attempted"] = True
+
     is_heading_map: dict[int, bool]
     try:
-        is_heading_map = _classify_headings_llm(candidates)
-        stats["llm_used"] = True
+        is_heading_map = classify(candidates)
+        if heading_mode != "regex":
+            stats["llm_succeeded"] = True
+        stats["llm_used"] = heading_mode != "regex"
         # LLM 未返回的行降级正则
         for c in candidates:
             if c["line_idx"] not in is_heading_map:
                 is_heading_map[c["line_idx"]] = c["depth"] >= 2
     except Exception:
-        stats["llm_failed"] = True
+        stats["llm_failed"] = heading_mode != "regex"
         is_heading_map = _classify_headings_regex(candidates)
 
     for c in candidates:
@@ -844,7 +864,7 @@ def fix_math_delimiters(text: str):
 
 
 # ── Main clean function ──────────────────────────────────────────────────
-def clean(content):
+def clean(content, *, heading_mode="auto", classifier=None):
     """Full cleaning pipeline. Returns (cleaned_content, stats_dict)."""
     lines = content.split("\n")
 
@@ -909,7 +929,7 @@ def clean(content):
 
     # Stage 2b: pseudo-heading detection (PDF 数字编号伪标题 → ## 标题)
     # 必须在 fix_heading_hierarchy 之前：先补 ## 前缀，Pass 2 再按点数降级。
-    text, pseudo_stats = fix_pseudo_headings(text)
+    text, pseudo_stats = fix_pseudo_headings(text, heading_mode=heading_mode, classifier=classifier)
 
     # Stage 3: heading hierarchy
     text, heading_stats = fix_heading_hierarchy(text)

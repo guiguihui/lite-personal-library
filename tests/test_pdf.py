@@ -19,6 +19,7 @@ import pytest
 
 from app.pdf.base import ExtractResult
 from app.pdf.epub import EpubExtractor
+from app.pdf.epub_fitz import EpubFitzExtractor
 from app.pdf.factory import make_extractor
 from app.pdf.local import LocalExtractor, _parse_pages, _to_webp_bytes
 from app.pdf.mineru import MineruExtractor
@@ -43,17 +44,18 @@ class TestFactory:
         ext = make_extractor("foo.pdf", strategy="mineru")
         assert isinstance(ext, MineruExtractor)
 
-    def test_epub_ignores_strategy(self) -> None:
+    def test_epub_ignores_strategy(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr("app.pdf.factory.resolve_pandoc", lambda: None)
         # epub 走 pandoc,忽略 strategy 参数
         ext1 = make_extractor("foo.epub")
         ext2 = make_extractor("foo.epub", strategy="mineru")
-        assert isinstance(ext1, EpubExtractor)
-        assert isinstance(ext2, EpubExtractor)
+        assert isinstance(ext1, EpubFitzExtractor)
+        assert isinstance(ext2, EpubFitzExtractor)
 
     def test_docx_routes_to_local(self) -> None:
         # .docx 暂走 LocalExtractor(占位)
-        ext = make_extractor("foo.docx")
-        assert isinstance(ext, LocalExtractor)
+        with pytest.raises(ValueError, match="unsupported file type"):
+            make_extractor("foo.docx")
 
     def test_txt_routes_to_local(self) -> None:
         ext = make_extractor("foo.txt")

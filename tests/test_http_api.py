@@ -438,18 +438,16 @@ class TestAppConfig:
 class TestContentApi:
     def test_list_docs_books(self, client_with_content: TestClient) -> None:
         r = client_with_content.get("/api/content/docs", params={"type": "books"})
-        assert r.status_code == 200
-        data = r.json()
-        assert data["type"] == "book"
-        assert isinstance(data["docs"], list)
+        assert r.status_code == 503
+        assert r.json()["detail"]["code"] == "V3_VIEW_UNAVAILABLE"
 
     def test_list_docs_type_normalize(self, client_with_content: TestClient) -> None:
         # 复数 books 和单数 book 都接受
         r1 = client_with_content.get("/api/content/docs", params={"type": "books"})
         r2 = client_with_content.get("/api/content/docs", params={"type": "book"})
-        assert r1.status_code == 200
-        assert r2.status_code == 200
-        assert r1.json()["docs"] == r2.json()["docs"]
+        assert r1.status_code == 503
+        assert r2.status_code == 503
+        assert r1.json()["detail"]["code"] == r2.json()["detail"]["code"]
 
     def test_list_docs_unknown_type(self, client: TestClient) -> None:
         r = client.get("/api/content/docs", params={"type": "unknown"})
@@ -458,27 +456,19 @@ class TestContentApi:
     def test_list_docs_no_global_index(self, client: TestClient) -> None:
         # 空 pageindex → 404
         r = client.get("/api/content/docs", params={"type": "books"})
-        assert r.status_code == 404
+        assert r.status_code == 503
 
     def test_read_doc(self, client_with_content: TestClient) -> None:
         # 先列 docs 拿一个 slug
-        r = client_with_content.get("/api/content/docs", params={"type": "books"})
-        docs = r.json()["docs"]
-        if not docs:
-            pytest.skip("no books in fixture")
-        slug = docs[0]["id"]
-        r2 = client_with_content.get(
-            "/api/content/read", params={"type": "books", "slug": slug}
-        )
-        assert r2.status_code == 200
-        data = r2.json()
-        assert "structure" in data or "doc_name" in data
+        r = client_with_content.get("/api/content/read", params={"type": "books", "slug": "any"})
+        assert r.status_code == 503
+        assert r.json()["detail"]["code"] == "V3_VIEW_UNAVAILABLE"
 
     def test_read_doc_not_found(self, client_with_content: TestClient) -> None:
         r = client_with_content.get(
             "/api/content/read", params={"type": "books", "slug": "nonexistent"}
         )
-        assert r.status_code == 404
+        assert r.status_code == 503
 
     def test_read_section(self, client_with_content: TestClient) -> None:
         # 读 about.md 的前 10 行
@@ -486,9 +476,9 @@ class TestContentApi:
             "/api/content/section",
             params={"source_md": "content/about.md", "line_num": 0, "line_end": 10},
         )
-        assert r.status_code == 200
+        assert r.status_code == 422
         # 返回纯文本片段
-        assert isinstance(r.text, str)
+        assert r.json()["detail"]["code"] == "DOCUMENT_ID_REQUIRED"
 
     def test_read_section_path_traversal(self, client: TestClient) -> None:
         r = client.get(
@@ -545,10 +535,12 @@ class TestIndexBuild:
 
 class TestIngest:
     def test_extract_returns_job_id(self, client: TestClient) -> None:
+        pdf_path = Path(client.app.state.app_config.pdfs_dir) / "fake.pdf"
+        pdf_path.write_bytes(b"%PDF-1.4\n%%EOF\n")
         r = client.post(
             "/api/ingest/extract",
             json={
-                "input_pdf": "fake.pdf",
+                "input_pdf": str(pdf_path),
                 "doc_type": "book",
                 "slug": "test-slug",
             },
@@ -580,13 +572,8 @@ class TestIngest:
             "/api/ingest/extract",
             json={"input_pdf": "nonexistent.pdf", "doc_type": "book", "slug": "fail-slug"},
         )
-        job_id = r.json()["job_id"]
-        for _ in range(40):
-            s = client.get(f"/api/ingest/{job_id}").json()
-            if s["status"] in ("done", "failed"):
-                break
-            time.sleep(0.25)
-        assert s["status"] == "failed"
+        assert r.status_code == 422
+        assert r.json()["detail"]["code"] == "SOURCE_NOT_FOUND"
 
 
 if __name__ == "__main__":

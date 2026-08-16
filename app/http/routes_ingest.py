@@ -15,23 +15,61 @@
 from __future__ import annotations
 
 import threading
+import shutil
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from pydantic import ValidationError
 
 from app.http.schemas import (
     IngestExtractRequest,
     IngestFullRequest,
+    IngestUploadRequest,
     IngestRecleanRequest,
     IngestResponse,
     IngestTranslateRequest,
     IngestValidateRequest,
     JobStatus,
 )
-from app.ingest.jobs import create_job, get_job, list_jobs, update_job
+from app.ingest.jobs import _default_stages, create_job, get_job, list_jobs, update_job
+from app.ingest.preflight import PreflightError, get_ingest_capabilities, preflight_source
+from app.ingest.upload_store import UploadStore
 from app.ingest.pipeline import run_pipeline
 
 router = APIRouter(prefix="/api/ingest", tags=["ingest"])
 
+
+
+def _resolved_stages(doc_type: str, stages: list[str] | None) -> tuple[str, ...]:
+    return tuple(stages) if stages else _default_stages(doc_type)
+
+
+def _preflight_request(body, input_pdf: str, cfg) -> IngestExtractRequest:
+    stages = _resolved_stages(body.doc_type, body.stages)
+    result = preflight_source(
+        input_pdf,
+        pdfs_dir=cfg.pdfs_dir,
+        slug=body.slug,
+        strategy=body.extract_strategy or body.strategy or cfg.pdf_strategy,
+        network_policy=body.network_policy,
+        stages=stages,
+    )
+    return IngestExtractRequest(
+        input_pdf=str(result.source_path),
+        doc_type=body.doc_type,
+        slug=body.slug,
+        pages=body.pages,
+        strategy=result.strategy,
+        extract_strategy=result.strategy,
+        network_policy=result.network_policy,
+        stages=list(result.stages),
+        title=body.title,
+        author=body.author,
+        tags=body.tags,
+    )
+
+
+def _raise_preflight(exc: PreflightError) -> None:
+    raise HTTPException(status_code=exc.status_code, detail=exc.detail()) from exc
 
 def _start_pipeline_thread(job_id: str, request: Request) -> None:
     """启动后台线程跑 run_pipeline。"""
@@ -101,7 +139,11 @@ async def extract_endpoint(body: IngestExtractRequest, request: Request) -> Inge
     """触发提取阶段(仅 extract)。"""
     # 强制 stages 只含 extract
     body.stages = ["extract"]
-    job_id = create_job(body)
+    try:
+        extract_req = _preflight_request(body, body.input_pdf, request.app.state.app_config)
+    except PreflightError as exc:
+        _raise_preflight(exc)
+    job_id = create_job(extract_req)
     _start_pipeline_thread(job_id, request)
     return IngestResponse(job_id=job_id, status="running")
 
@@ -149,22 +191,57 @@ async def full_endpoint(body: IngestFullRequest, request: Request) -> IngestResp
 
     body.stages 为空时按 doc_type 选默认阶段序列。
     """
-    extract_req = IngestExtractRequest(
-        input_pdf=body.input_pdf,
-        doc_type=body.doc_type,
-        slug=body.slug,
-        pages=body.pages,
-        strategy=body.strategy,
-        stages=body.stages,
-        title=body.title,
-        author=body.author,
-        tags=body.tags,
-    )
+    try:
+        extract_req = _preflight_request(body, body.input_pdf, request.app.state.app_config)
+    except PreflightError as exc:
+        _raise_preflight(exc)
     job_id = create_job(extract_req)
     _start_pipeline_thread(job_id, request)
     return IngestResponse(job_id=job_id, status="running")
 
 
+
+
+@router.get("/capabilities", response_model=dict)
+async def capabilities_endpoint() -> dict[str, object]:
+    """Describe formats the running backend can actually ingest."""
+    return get_ingest_capabilities()
+
+
+@router.post("/upload", response_model=IngestResponse)
+async def upload_endpoint(
+    request: Request,
+    file: UploadFile = File(...),
+    metadata: str = Form(..., alias="request"),
+) -> IngestResponse:
+    """Stage browser bytes safely, validate them, then create an ingest job."""
+    try:
+        body = IngestUploadRequest.model_validate_json(metadata)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_UPLOAD_METADATA",
+                "message": "Invalid upload metadata",
+                "field": "request",
+                "retryable": False,
+                "context": {"errors": exc.errors(include_url=False)},
+            },
+        ) from exc
+
+    cfg = request.app.state.app_config
+    staged = None
+    try:
+        staged = await UploadStore(cfg.pdfs_dir).stage(file)
+        extract_req = _preflight_request(body, str(staged.path), cfg)
+    except PreflightError as exc:
+        if staged is not None:
+            shutil.rmtree(staged.path.parent, ignore_errors=True)
+        _raise_preflight(exc)
+
+    job_id = create_job(extract_req)
+    _start_pipeline_thread(job_id, request)
+    return IngestResponse(job_id=job_id, status="running")
 @router.post("/reclean", response_model=IngestResponse)
 async def reclean_endpoint(body: IngestRecleanRequest, request: Request) -> IngestResponse:
     """对已入库书重跑 clean 阶段(修复伪标题等)。

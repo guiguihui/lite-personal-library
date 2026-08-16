@@ -54,6 +54,7 @@
   <script defer src="/frontend/core/icons.js"></script>
   <script defer src="/frontend/core/events.js"></script>
   <script defer src="/frontend/core/store.js"></script>
+  <script defer src="/frontend/core/tab-ids.js"></script>
   <script defer src="/frontend/core/tabs.js"></script>
   <script defer src="/frontend/core/tab-persistence.js"></script>
   <script defer src="/frontend/core/tab-context-menu.js"></script>
@@ -69,12 +70,14 @@
   <script defer src="/frontend/core/shell.js"></script>
 
   <!-- ═══ Shared 共享层 ═══ -->
+  <script defer src='/frontend/shared/knowledge-flags.js'></script>
+  <script defer src='/frontend/shared/wikilinks.js'></script>
+  <script defer src='/frontend/shared/link-popover.js'></script>
   <script defer src="/frontend/shared/render.js"></script>
   <script defer src="/frontend/shared/settings.js"></script>
 
   <!-- ═══ Chat 模块 ═══ -->
   <link rel="stylesheet" href="/frontend/chat/chat.css">
-  <script defer src="/frontend/chat/retrieval.js"></script>
   <script defer src="/frontend/chat/session.js"></script>
   <script defer src="/frontend/chat/llm.js"></script>
   <script defer src="/frontend/chat/citations.js"></script>
@@ -84,8 +87,13 @@
   <script defer src="/frontend/chat/index.js"></script>
 
   <!-- ═══ Library 模块 ═══ -->
+  <script defer src='/frontend/vendor/d3.v7.9.0.min.js'></script>
+  <link rel='stylesheet' href='/frontend/library/knowledge.css'>
+  <script defer src='/frontend/library/local-graph.js'></script>
+  <script defer src='/frontend/library/knowledge.js'></script>
   <link rel="stylesheet" href="/frontend/library/library.css">
-  <script defer src="/frontend/library/library.js"></script>
+  <script defer src="/frontend/library/session.js"></script>
+  <script defer src="/frontend/library/reader.js"></script>
   <script defer src="/frontend/library/sidebar.js"></script>
   <script defer src="/frontend/library/index.js"></script>
   <script defer src="/frontend/library/open-doc.js"></script>

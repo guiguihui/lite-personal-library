@@ -102,6 +102,13 @@ class Hit:
     chunk: Mapping[str, Any] | None = None
     rrf_score: float | None = None
     rerank_score: float | None = None
+    generation: str | None = None
+    view_id: str | None = None
+    doc_key: str | None = None
+    doc_uid: str | None = None
+    segment_hash: str | None = None
+    local_id: int | None = None
+    node_key: str | None = None
 
 
 def _per_doc_truncate(scored: list[Hit], top_k: int) -> list[Hit]:
@@ -112,10 +119,11 @@ def _per_doc_truncate(scored: list[Hit], top_k: int) -> list[Hit]:
     doc_count: dict[str, int] = {}
     results: list[Hit] = []
     for item in scored:
-        c = doc_count.get(item.node["doc_id"], 0)
+        document_key = item.doc_key or item.doc_uid or item.node["doc_id"]
+        c = doc_count.get(document_key, 0)
         if c < 3:
             results.append(item)
-            doc_count[item.node["doc_id"]] = c + 1
+            doc_count[document_key] = c + 1
         if len(results) >= top_k * 2:
             break
     return results[:top_k]

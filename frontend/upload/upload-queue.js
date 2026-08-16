@@ -34,6 +34,7 @@
       name: file ? file.name : (path ? path.split(/[\\/]/).pop() : 'unknown'),
       meta: meta || {},     // {title, author, slug, tags, docType, strategy, pages, stages}
       status: STATUS.PENDING,
+      attempt: 1,
       jobId: null,
       log: [],
       stage: ''
@@ -51,7 +52,12 @@
   function update(id, patch) {
     var item = get(id);
     if (!item) return;
-    Object.keys(patch).forEach(function (k) { item[k] = patch[k]; });
+    var changes = patch;
+    if (typeof patch === 'function') {
+      var draft = Object.assign({}, item, { log: (item.log || []).slice() });
+      changes = patch(draft) || draft;
+    }
+    Object.keys(changes || {}).forEach(function (k) { item[k] = changes[k]; });
     notify();
   }
 
@@ -65,11 +71,45 @@
 
   function clearDone() {
     state.items = state.items.filter(function (i) {
-      return i.status !== STATUS.DONE && i.status !== STATUS.FAILED;
+      return i.status !== STATUS.DONE;
     });
     notify();
   }
 
+
+  function clearByStatus(statuses) {
+    var selected = statuses || [];
+    state.items = state.items.filter(function (i) {
+      return selected.indexOf(i.status) === -1;
+    });
+    notify();
+  }
+
+  function retry(id) {
+    var item = get(id);
+    if (!item || item.status !== STATUS.FAILED) return null;
+    update(id, function (current) {
+      return {
+        status: STATUS.PENDING,
+        jobId: null,
+        log: [],
+        stage: '',
+        attempt: (current.attempt || 1) + 1
+      };
+    });
+    return item;
+  }
+
+  function retryAllFailed() {
+    state.items.filter(function (i) { return i.status === STATUS.FAILED; })
+      .forEach(function (i) { retry(i.id); });
+  }
+
+  function counts() {
+    var result = { pending: 0, running: 0, done: 0, failed: 0 };
+    state.items.forEach(function (i) { result[i.status] += 1; });
+    return result;
+  }
   function all() {
     return state.items.slice();
   }
@@ -90,6 +130,10 @@
     get: get,
     next: next,
     clearDone: clearDone,
+    clearByStatus: clearByStatus,
+    retry: retry,
+    retryAllFailed: retryAllFailed,
+    counts: counts,
     all: all,
     onStatusChange: onStatusChange
   };

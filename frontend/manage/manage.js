@@ -276,13 +276,17 @@
       slug: slug,
       pages: pages || null,
       strategy: strategy,
+      extract_strategy: strategy,
+      network_policy: 'allow_ai',
       stages: stages
     };
-
-    fetch('/api/ingest/full', {
+    var form = new FormData();
+    delete body.input_pdf;
+    form.append('request', JSON.stringify(body));
+    form.append('file', file, file.name);
+    fetch('/api/ingest/upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: form
     })
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -386,7 +390,7 @@
         '<div class="ingest-form">' +
           '<div class="ingest-form-row">' +
             '<label class="ingest-label">文件</label>' +
-            '<input type="file" id="ingest-input" accept=".pdf,.epub,.docx" class="ingest-input-file" />' +
+            '<input type="file" id="ingest-input" accept=".pdf,.epub" class="ingest-input-file" />' +
           '</div>' +
           '<div class="ingest-form-row">' +
             '<label class="ingest-label">类型</label>' +
@@ -403,7 +407,7 @@
           '<div class="ingest-form-row">' +
             '<label class="ingest-label">策略</label>' +
             '<select id="ingest-strategy" class="ingest-select">' +
-              '<option value="local">local(本地,离线)</option>' +
+              '<option value="local">local(本地提取)</option>' +
               '<option value="mineru">mineru(高质量,需 API key)</option>' +
             '</select>' +
           '</div>' +

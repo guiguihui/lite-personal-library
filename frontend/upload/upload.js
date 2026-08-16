@@ -13,6 +13,7 @@
   var state = {
     initialized: false,
     els: {},
+    batchPromise: null,
     pollTimers: {}  // itemId → setInterval id
   };
 
@@ -45,12 +46,12 @@
         '<div class="lqd-upload-dropzone" id="lqd-upload-dropzone">' +
           '<div class="lqd-upload-dropzone-inner">' +
             '<div class="lqd-upload-dropzone-icon">' + icons().icon('upload') + '</div>' +
-            '<div class="lqd-upload-dropzone-text">拖拽 PDF/EPUB/DOCX 文件到此处</div>' +
+            '<div class="lqd-upload-dropzone-text">拖拽 PDF/EPUB 文件到此处</div>' +
             '<div class="lqd-upload-dropzone-sub">或</div>' +
             '<button class="lqd-btn lqd-btn--primary" id="lqd-upload-choose">选择文件</button>' +
             '<div class="lqd-form-hint">支持批量上传,文件路径通过原生对话框获取</div>' +
           '</div>' +
-          '<input type="file" id="lqd-upload-input" accept=".pdf,.epub,.docx" multiple style="display:none" />' +
+          '<input type="file" id="lqd-upload-input" accept=".pdf,.epub" multiple style="display:none" />' +
         '</div>' +
         // 元数据表单(批量默认)
         '<div class="lqd-upload-meta">' +
@@ -65,7 +66,7 @@
             '</div>' +
             '<div class="lqd-form-group"><label class="lqd-form-label">策略</label>' +
               '<select id="lqd-upload-strategy" class="lqd-form-select">' +
-                '<option value="local">local(本地,离线)</option>' +
+                '<option value="local">local(本地提取)</option>' +
                 '<option value="mineru">mineru(高质量,需 API key)</option>' +
               '</select>' +
             '</div>' +
@@ -150,6 +151,9 @@
       var logBtn = item.log.length
         ? '<button class="lqd-btn lqd-btn--sm lqd-btn--ghost" data-action="log" data-id="' + item.id + '">查看日志</button>'
         : '';
+      var retryBtn = item.status === 'failed'
+        ? '<button class="lqd-btn lqd-btn--sm" data-action="retry" data-id="' + item.id + '">Retry</button>'
+        : '';
       var removeBtn = item.status === 'pending' || item.status === 'done' || item.status === 'failed'
         ? '<button class="lqd-btn lqd-btn--sm lqd-btn--ghost lqd-btn--danger" data-action="remove" data-id="' + item.id + '">' + icons().icon('trash') + '</button>'
         : '';
@@ -158,7 +162,7 @@
           '<div class="lqd-upload-queue-item-name">#' + (idx + 1) + ' ' + escapeHtml(item.name) + '</div>' +
           '<div class="lqd-upload-queue-item-meta">slug: ' + escapeHtml(item.meta.slug || '') + ' · 类型: ' + escapeHtml(item.meta.docType || '') + '</div>' +
         '</div>' +
-        '<div class="lqd-upload-queue-item-actions">' + badge + logBtn + removeBtn + '</div>' +
+        '<div class="lqd-upload-queue-item-actions">' + badge + retryBtn + logBtn + removeBtn + '</div>' +
       '</div>';
     }).join('');
 
@@ -169,6 +173,7 @@
         var id = btn.getAttribute('data-id');
         if (action === 'remove') window.YuuUploadQueue.remove(id);
         else if (action === 'log') showLog(id);
+        else if (action === 'retry') window.YuuUploadQueue.retry(id);
       });
     });
   }
@@ -233,10 +238,18 @@
 
   // ── 批量开始 ──────────────────────────────────────────────────────────
   async function startBatch() {
-    var item = window.YuuUploadQueue.next();
-    while (item) {
-      await processItem(item);
-      item = window.YuuUploadQueue.next();
+    if (state.batchPromise) return state.batchPromise;
+    state.batchPromise = (async function () {
+      var item = window.YuuUploadQueue.next();
+      while (item) {
+        await processItem(item);
+        item = window.YuuUploadQueue.next();
+      }
+    })();
+    try {
+      await state.batchPromise;
+    } finally {
+      state.batchPromise = null;
     }
   }
 
@@ -250,6 +263,8 @@
       slug: item.meta.slug,
       pages: item.meta.pages || null,
       strategy: item.meta.strategy,
+      extract_strategy: item.meta.strategy,
+      network_policy: item.meta.networkPolicy || 'allow_ai',
       stages: item.meta.stages,
       title: item.meta.title || null,
       author: item.meta.author || null,
@@ -257,12 +272,29 @@
     };
 
     try {
-      var r = await fetch('/api/ingest/full', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var endpoint = '/api/ingest/full';
+      var options;
+      if (item.file) {
+        var form = new FormData();
+        var uploadMeta = Object.assign({}, body);
+        delete uploadMeta.input_pdf;
+        form.append('request', JSON.stringify(uploadMeta));
+        form.append('file', item.file, item.name);
+        endpoint = '/api/ingest/upload';
+        options = { method: 'POST', body: form };
+      } else {
+        options = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        };
+      }
+      var r = await fetch(endpoint, options);
+      if (!r.ok) {
+        var payload = await r.json().catch(function () { return {}; });
+        var detail = payload.detail || {};
+        throw new Error(detail.message || ('HTTP ' + r.status));
+      }
       var data = await r.json();
       window.YuuUploadQueue.update(item.id, { jobId: data.job_id, stage: '轮询中' });
       renderQueueList();
@@ -296,7 +328,11 @@
           .then(function (data) {
             if (!data) return;
             handleStatus(itemId, data);
-            if (data.status === 'done' || data.status === 'failed') {
+            var buildJobId = data.result && data.result.build_job_id;
+            if (data.status === 'done' && buildJobId) {
+              stopPoll(itemId);
+              pollBuild(itemId, buildJobId).then(resolve);
+            } else if (data.status === 'done' || data.status === 'failed') {
               stopPoll(itemId);
               resolve();
             }
@@ -317,6 +353,44 @@
     });
   }
 
+
+  function pollBuild(itemId, buildJobId) {
+    window.YuuUploadQueue.update(itemId, { status: 'running', stage: 'index' });
+    return new Promise(function (resolve) {
+      var ticks = 0;
+      var timer = setInterval(function () {
+        ticks += 1;
+        fetch('/api/index/build/' + encodeURIComponent(buildJobId))
+          .then(function (response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.json();
+          })
+          .then(function (data) {
+            if (data.status === 'running') return;
+            clearInterval(timer);
+            if (data.status === 'done') {
+              window.YuuUploadQueue.update(itemId, { status: 'done', stage: 'published' });
+              if (window.LqdEvents) window.LqdEvents.emit('index:published', data);
+            } else {
+              window.YuuUploadQueue.update(itemId, { status: 'failed', stage: 'index', log: ['[index error] ' + ((data.result && data.result.error) || 'build failed')] });
+            }
+            renderQueueList();
+            resolve();
+          })
+          .catch(function (error) {
+            window.YuuUploadQueue.update(itemId, function (current) {
+              current.log.push('[index poll error] ' + error.message);
+            });
+          });
+        if (ticks > 3600) {
+          clearInterval(timer);
+          window.YuuUploadQueue.update(itemId, { status: 'failed', stage: 'index', log: ['[index error] publish timeout'] });
+          renderQueueList();
+          resolve();
+        }
+      }, 1000);
+    });
+  }
   function handleStatus(itemId, data) {
     var patch = { log: data.log || [], stage: data.current_stage || '' };
     if (data.status === 'running') {

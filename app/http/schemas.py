@@ -44,6 +44,8 @@ class IngestExtractRequest(BaseModel):
     slug: str
     pages: str | None = None
     strategy: str | None = None  # "local" | "mineru",None 用 AppConfig.pdf_strategy
+    extract_strategy: str | None = Field(default=None, pattern="^(local|mineru)$")
+    network_policy: str = Field(default="allow_ai", pattern="^(offline|allow_ai)$")
     stages: list[str] | None = None  # 自定义阶段序列;None 按 doc_type 选默认
     # 可选元数据(由 /full 透传,publish 阶段写 _index.md front matter)
     title: str | None = None
@@ -63,6 +65,22 @@ class IngestFullRequest(BaseModel):
     slug: str
     pages: str | None = None
     strategy: str | None = None
+    extract_strategy: str | None = Field(default=None, pattern="^(local|mineru)$")
+    network_policy: str = Field(default="allow_ai", pattern="^(offline|allow_ai)$")
+    stages: list[str] | None = None
+    title: str | None = None
+    author: str | None = None
+    tags: list[str] | None = None
+
+class IngestUploadRequest(BaseModel):
+    """Metadata submitted with one multipart file upload."""
+
+    doc_type: str = Field(pattern="^(book|paper|note)$")
+    slug: str
+    pages: str | None = None
+    strategy: str | None = None
+    extract_strategy: str | None = Field(default=None, pattern="^(local|mineru)$")
+    network_policy: str = Field(default="allow_ai", pattern="^(offline|allow_ai)$")
     stages: list[str] | None = None
     title: str | None = None
     author: str | None = None
@@ -141,6 +159,9 @@ class StatusResponse(BaseModel):
     app_name: str
     version: str
     index_ready: bool
+    index_version: str = "v3"
+    generation: str | None = None
+    view_id: str | None = None
     index_running: bool
     ingest_running: bool
     active_provider: str
@@ -160,6 +181,16 @@ class SearchResultItem(BaseModel):
     breadcrumb: str
     text: str
     score: float
+    generation: str | None = None
+    view_id: str | None = None
+    doc_key: str | None = None
+    doc_uid: str | None = None
+    segment_hash: str | None = None
+    local_id: int | None = None
+    node_key: str | None = None
+    source_md: str | None = None
+    line_num: int | None = None
+    line_end: int | None = None
 
 
 class SearchResponse(BaseModel):
